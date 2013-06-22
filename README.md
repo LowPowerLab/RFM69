@@ -28,7 +28,7 @@ Among others, this is a set of features implemented in this library:
 I consider this an initial beta release, it could contain bugs, but the provided Gateway and Node examples should work out of the box. Please let me know if you find issues.
 
 ###Installation
-Copy the content of this library in the "Arduino/libraries/RFM12B" folder.
+Copy the content of this library in the "Arduino/libraries/RFM69" folder.
 <br />
 To find your Arduino folder go to File>Preferences in the Arduino IDE.
 <br/>

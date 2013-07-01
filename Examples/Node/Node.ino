@@ -4,7 +4,7 @@
 #define NODEID      25
 #define NETWORKID   100
 #define GATEWAYID   1
-#define FREQUENCY   RF69_915MHZ //Match this with the version of your Moteino! (others: RF12_433MHZ, RF12_915MHZ)
+#define FREQUENCY   RF69_915MHZ //Match this with the version of your Moteino! (others: RF69_433MHZ, RF69_915MHZ)
 #define KEY         "thisIsEncryptKey"
 #define LED         9
 #define SERIAL_BAUD 115200

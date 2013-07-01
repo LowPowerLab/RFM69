@@ -4,7 +4,7 @@
 #define NODEID      25
 #define NETWORKID   100
 #define GATEWAYID   1
-#define FREQUENCY   RF69_915MHZ //Match this with the version of your Moteino! (others: RF12_433MHZ, RF12_915MHZ)
+#define FREQUENCY   RF69_915MHZ //Match this with the version of your Moteino! (others: RF69_433MHZ, RF69_915MHZ)
 #define KEY         "thisIsEncryptKey"
 #define LED         9
 #define SERIAL_BAUD 115200
@@ -12,13 +12,13 @@
 
 int TRANSMITPERIOD = 500; //transmit a packet to gateway so often (in ms)
 char payload[] = "123 ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-byte sendSize=0;
+byte sendSize = 0;
 boolean requestACK = false;
 RFM69 radio;
 
 void setup() {
   Serial.begin(SERIAL_BAUD);
-  radio.initialize(FREQUENCY,NODEID,NETWORKID);
+  radio.initialize(FREQUENCY, NODEID, NETWORKID);
   //radio.setHighPower(); //only for RFM69HW!
   radio.encrypt(KEY);
   char buff[50];
@@ -34,7 +34,7 @@ void loop() {
     char input = Serial.read();
     if (input >= 48 && input <= 57) //[0,9]
     {
-      TRANSMITPERIOD = 100 * (input-48);
+      TRANSMITPERIOD = 100 * (input - 48);
       if (TRANSMITPERIOD == 0) TRANSMITPERIOD = 1000;
       Serial.print("\nChanging delay to ");
       Serial.print(TRANSMITPERIOD);
@@ -66,7 +66,7 @@ void loop() {
     Serial.println();
   }
   
-  int currPeriod = millis()/TRANSMITPERIOD;
+  int currPeriod = millis() / TRANSMITPERIOD;
   if (currPeriod != lastPeriod)
   {
     lastPeriod=currPeriod;
@@ -93,16 +93,16 @@ void loop() {
 
     sendSize = (sendSize + 1) % 31;
     Serial.println();
-    Blink(LED,3);
+    Blink(LED, 3);
   }
 }
 
-void Blink(byte PIN, int DELAY_MS)
+void Blink(byte pin, int delayMs)
 {
-  pinMode(PIN, OUTPUT);
-  digitalWrite(PIN,HIGH);
-  delay(DELAY_MS);
-  digitalWrite(PIN,LOW);
+  pinMode(pin, OUTPUT);
+  digitalWrite(pin, HIGH);
+  delay(delayMs);
+  digitalWrite(pin, LOW);
 }
 
 //// wait a few milliseconds for proper ACK to me, return true if indeed received

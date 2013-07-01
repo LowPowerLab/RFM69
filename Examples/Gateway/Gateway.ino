@@ -3,7 +3,7 @@
 
 #define NODEID      1
 #define NETWORKID   100
-#define FREQUENCY   RF69_915MHZ //Match this with the version of your Moteino! (others: RF12_433MHZ, RF12_915MHZ)
+#define FREQUENCY   RF69_915MHZ //Match this with the version of your Moteino! (others: RF69_433MHZ, RF69_915MHZ)
 #define KEY         "thisIsEncryptKey"
 #define LED         9
 #define SERIAL_BAUD 115200
@@ -14,7 +14,7 @@ bool promiscuousMode = false; //set to 'true' to sniff all packets on the same n
 
 void setup() {
   Serial.begin(SERIAL_BAUD);
-  radio.initialize(RF69_915MHZ,NODEID,NETWORKID);
+  radio.initialize(FREQUENCY, NODEID, NETWORKID);
   radio.encrypt(KEY);
   radio.promiscuous(promiscuousMode);
   char buff[50];
@@ -76,7 +76,7 @@ void loop() {
       */
     }
     Serial.println();
-    Blink(LED,3);
+    Blink(LED, 3);
   }
 }
 
@@ -90,10 +90,10 @@ static bool waitForAck(byte theNodeID) {
   return false;
 }
 
-void Blink(byte PIN, int DELAY_MS)
+void Blink(byte pin, int delayMs)
 {
-  pinMode(PIN, OUTPUT);
-  digitalWrite(PIN,HIGH);
-  delay(DELAY_MS);
-  digitalWrite(PIN,LOW);
+  pinMode(pin, OUTPUT);
+  digitalWrite(pin, HIGH);
+  delay(delayMs);
+  digitalWrite(pin, LOW);
 }

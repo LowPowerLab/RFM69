@@ -14,7 +14,7 @@ bool promiscuousMode = false; //set to 'true' to sniff all packets on the same n
 
 void setup() {
   Serial.begin(SERIAL_BAUD);
-  radio.initialize(RF69_915MHZ,NODEID,NETWORKID);
+  radio.initialize(FREQUENCY, NODEID, NETWORKID);
   radio.encrypt(KEY);
   radio.promiscuous(promiscuousMode);
   char buff[50];

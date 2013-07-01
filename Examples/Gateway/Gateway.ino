@@ -76,7 +76,7 @@ void loop() {
       */
     }
     Serial.println();
-    Blink(LED,3);
+    Blink(LED, 3);
   }
 }
 
@@ -90,10 +90,10 @@ static bool waitForAck(byte theNodeID) {
   return false;
 }
 
-void Blink(byte PIN, int DELAY_MS)
+void Blink(byte pin, int delayMs)
 {
-  pinMode(PIN, OUTPUT);
-  digitalWrite(PIN,HIGH);
-  delay(DELAY_MS);
-  digitalWrite(PIN,LOW);
+  pinMode(pin, OUTPUT);
+  digitalWrite(pin, HIGH);
+  delay(delayMs);
+  digitalWrite(pin, LOW);
 }

@@ -1,3 +1,11 @@
+// **********************************************************************************
+// Registers used in driver definition for HopeRF RFM69W/RFM69HW, Semtech SX1231/1231H
+// **********************************************************************************
+// Creative Commons Attrib Share-Alike License
+// You are free to use/extend this library but please abide with the CCSA license:
+// http://creativecommons.org/licenses/by-sa/3.0/
+// 2013-06-14 (C) felix@lowpowerlab.com
+// **********************************************************************************
 
 //**************************************************
 // RFM69/SX1231 Internal registers addresses

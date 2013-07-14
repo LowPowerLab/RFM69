@@ -1,11 +1,13 @@
+// **********************************************************************************
 // Driver definition for HopeRF RFM69W/RFM69HW, Semtech SX1231/1231H
+// **********************************************************************************
 // Creative Commons Attrib Share-Alike License
-// If you want to use/extend this library please abide with the license terms: http://creativecommons.org/licenses/by-sa/3.0/
+// You are free to use/extend this library but please abide with the CCSA license:
+// http://creativecommons.org/licenses/by-sa/3.0/
 // 2013-06-14 (C) felix@lowpowerlab.com
-
+// **********************************************************************************
 #ifndef RFM69_h
 #define RFM69_h
-
 #include <Arduino.h>            //assumes Arduino IDE v1.0 or greater
 
 #define MAX_DATA_LEN         61 // to take advantage of the built in AES/CRC we want to limit the frame size to the internal FIFO size (66 bytes - 3 bytes overhead)
@@ -29,13 +31,14 @@
 
 class RFM69 {
   public:
-    volatile byte DATA[MAX_DATA_LEN];          // recv/xmit buf, including hdr & crc bytes
-    volatile byte DATALEN;
-    volatile byte SENDERID;
-    volatile byte TARGETID; //should match _address
-    volatile byte PAYLOADLEN;
-    volatile byte ACK_REQUESTED;
-    volatile byte ACK_RECEIVED; /// Should be polled immediately after sending a packet with ACK request
+    static volatile byte DATA[MAX_DATA_LEN];          // recv/xmit buf, including hdr & crc bytes
+    static volatile byte DATALEN;
+    static volatile byte SENDERID;
+    static volatile byte TARGETID; //should match _address
+    static volatile byte PAYLOADLEN;
+    static volatile byte ACK_REQUESTED;
+    static volatile byte ACK_RECEIVED; /// Should be polled immediately after sending a packet with ACK request
+    static volatile byte _mode; //should be protected?
     
     RFM69(byte slaveSelectPin=SPI_CS, byte interruptPin=RF69_IRQ_PIN, bool isRFM69HW=false) {
       _slaveSelectPin = slaveSelectPin;
@@ -50,7 +53,7 @@ class RFM69 {
     void setAddress(byte addr);
     bool canSend();
     void send(byte toAddress, const void* buffer, byte bufferSize, bool requestACK=false);
-    bool sendWithRetry(byte toAddress, const void* buffer, byte bufferSize, byte attempts=3, byte retryWaitTime=15);
+    bool sendWithRetry(byte toAddress, const void* buffer, byte bufferSize, byte retries=2, byte retryWaitTime=15);
     bool receiveDone();
     bool ACKReceived(byte fromNodeID);
     void sendACK(const void* buffer = "", uint8_t bufferSize=0);
@@ -66,7 +69,7 @@ class RFM69 {
     byte readReg(byte addr);
     void writeReg(byte addr, byte val);
     void readAllRegs();
-
+    
   protected:
     static void isr0();
     void interruptHandler();
@@ -75,10 +78,9 @@ class RFM69 {
     static RFM69* selfPointer;
     byte _slaveSelectPin;
     byte _interruptPin;
-    byte _mode;
     byte _address;
-    byte _powerLevel;
     bool _promiscuousMode;
+    byte _powerLevel;
     bool _isRFM69HW;
 
     void receiveBegin();

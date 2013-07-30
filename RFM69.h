@@ -49,7 +49,7 @@ class RFM69 {
       _isRFM69HW = isRFM69HW;
     }
 
-    bool initialize(byte ID, byte freqBand, byte networkID=1);
+    bool initialize(byte freqBand, byte ID, byte networkID=1);
     void setAddress(byte addr);
     bool canSend();
     void send(byte toAddress, const void* buffer, byte bufferSize, bool requestACK=false);

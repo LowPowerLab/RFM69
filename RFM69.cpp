@@ -162,7 +162,6 @@ void RFM69::send(byte toAddress, const void* buffer, byte bufferSize, bool reque
 // replies usually take only 5-8ms at 50kbps@915Mhz
 bool RFM69::sendWithRetry(byte toAddress, const void* buffer, byte bufferSize, byte retries, byte retryWaitTime) {
   long sentTime;
-  byte howLong=0;
   for (byte i=0; i<=retries; i++)
   {
     send(toAddress, buffer, bufferSize, true);

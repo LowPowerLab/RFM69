@@ -1,29 +1,35 @@
 #include <RFM69.h>
 #include <SPI.h>
+#include <SPIFlash.h>
 
-#define NODEID      25
+#define NODEID      99
 #define NETWORKID   100
 #define GATEWAYID   1
-#define FREQUENCY   RF69_915MHZ //Match this with the version of your Moteino! (others: RF69_433MHZ, RF69_915MHZ)
-#define KEY         "thisIsEncryptKey"
+#define FREQUENCY   RF69_915MHZ //Match this with the version of your Moteino! (others: RF69_433MHZ, RF69_868MHZ)
+#define KEY         "thisIsEncryptKey" //has to be same 16 characters/bytes on all nodes, not more not less!
 #define LED         9
 #define SERIAL_BAUD 115200
-#define ACK_TIME    10  // # of ms to wait for an ack
+#define ACK_TIME    30  // # of ms to wait for an ack
 
-int TRANSMITPERIOD = 500; //transmit a packet to gateway so often (in ms)
+int TRANSMITPERIOD = 300; //transmit a packet to gateway so often (in ms)
 char payload[] = "123 ABCDEFGHIJKLMNOPQRSTUVWXYZ";
 byte sendSize=0;
 boolean requestACK = false;
+SPIFlash flash(8, 0xEF30); //EF40 for 16mbit windbond chip
 RFM69 radio;
 
 void setup() {
   Serial.begin(SERIAL_BAUD);
   radio.initialize(FREQUENCY,NODEID,NETWORKID);
-  //radio.setHighPower(); //only for RFM69HW!
+  //radio.setHighPower(); //uncomment only for RFM69HW!
   radio.encrypt(KEY);
   char buff[50];
   sprintf(buff, "\nTransmitting at %d Mhz...", FREQUENCY==RF69_433MHZ ? 433 : FREQUENCY==RF69_868MHZ ? 868 : 915);
   Serial.println(buff);
+  if (flash.initialize())
+    Serial.println("SPI Flash Init OK!");
+  else
+    Serial.println("SPI Flash Init FAIL! (is chip present?)");
 }
 
 long lastPeriod = -1;
@@ -41,12 +47,38 @@ void loop() {
       Serial.println("ms\n");
     }
     
-    if (input == 'd') //d=dump register values
+    if (input == 'r') //d=dump register values
       radio.readAllRegs();
     if (input == 'E') //E=enable encryption
       radio.encrypt(KEY);
     if (input == 'e') //e=disable encryption
       radio.encrypt(null);
+    
+    if (input == 'd') //d=dump flash area
+    {
+      Serial.println("Flash content:");
+      int counter = 0;
+
+      while(counter<=256){
+        Serial.print(flash.readByte(counter++), HEX);
+        Serial.print('.');
+      }
+      while(flash.busy());
+      Serial.println();
+    }
+    if (input == 'e')
+    {
+      Serial.print("Erasing Flash chip ... ");
+      flash.chipErase();
+      while(flash.busy());
+      Serial.println("DONE");
+    }
+    if (input == 'i')
+    {
+      Serial.print("DeviceID: ");
+      word jedecid = flash.readDeviceId();
+      Serial.println(jedecid, HEX);
+    }
   }
 
   //check for any received packets
@@ -60,7 +92,8 @@ void loop() {
     if (radio.ACK_REQUESTED)
     {
       radio.sendACK();
-      Serial.print(" - ACK sent.");
+      Serial.print(" - ACK sent");
+      delay(10);
     }
     Blink(LED,5);
     Serial.println();
@@ -97,11 +130,11 @@ void loop() {
   }
 }
 
-void Blink(byte PIN, int delay_ms)
+void Blink(byte PIN, int DELAY_MS)
 {
   pinMode(PIN, OUTPUT);
   digitalWrite(PIN,HIGH);
-  delay(delay_ms);
+  delay(DELAY_MS);
   digitalWrite(PIN,LOW);
 }
 

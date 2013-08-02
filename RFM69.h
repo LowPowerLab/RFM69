@@ -14,7 +14,7 @@
 #define SPI_CS               SS // SS is the SPI slave select pin, for instance D10 on atmega328
 #define RF69_IRQ_PIN          2 // INT0 on AVRs should be connected to DIO0
                                 // ex on Atmega328 it's D2
-#define CSMA_LIMIT         -100 // upper RX signal sensitivity threshold in dBm for carrier sense access
+#define CSMA_LIMIT          -90 // upper RX signal sensitivity threshold in dBm for carrier sense access
 #define RF69_MODE_SLEEP       0 // XTAL OFF
 #define	RF69_MODE_STANDBY     1 // XTAL ON
 #define RF69_MODE_SYNTH	      2 // PLL ON

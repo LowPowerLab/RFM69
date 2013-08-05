@@ -49,10 +49,10 @@ void loop() {
     
     if (input == 'r') //d=dump register values
       radio.readAllRegs();
-    if (input == 'E') //E=enable encryption
-      radio.encrypt(KEY);
-    if (input == 'e') //e=disable encryption
-      radio.encrypt(null);
+    //if (input == 'E') //E=enable encryption
+    //  radio.encrypt(KEY);
+    //if (input == 'e') //e=disable encryption
+    //  radio.encrypt(null);
     
     if (input == 'd') //d=dump flash area
     {

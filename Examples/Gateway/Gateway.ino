@@ -100,10 +100,10 @@ void loop() {
       {
         Serial.print(" Pinging node ");
         Serial.print(theNodeID);
-        delay(5);
-        radio.send(theNodeID, "ACK TEST", 8, true);
         Serial.print(" - ACK...");
-        if (waitForAck(theNodeID)) Serial.print("ok!");
+        delay(3); //need this when sending right after reception .. ?
+        if (radio.sendWithRetry(theNodeID, "ACK TEST", 8, 0))  // 0 = only 1 attempt, no retries
+          Serial.print("ok!");
         else Serial.print("nothing");
       }
       
@@ -111,16 +111,6 @@ void loop() {
     Serial.println();
     Blink(LED,3);
   }
-}
-
-// wait a few milliseconds for proper ACK to me, return true if indeed received
-static bool waitForAck(byte theNodeID) {
-  long now = millis();
-  while (millis() - now <= ACK_TIME) {
-    if (radio.ACKReceived(theNodeID))
-      return true;
-  }
-  return false;
 }
 
 void Blink(byte PIN, int DELAY_MS)

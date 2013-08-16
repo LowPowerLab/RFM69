@@ -18,7 +18,7 @@ void setup() {
   Serial.begin(SERIAL_BAUD);
   delay(10);
   radio.initialize(FREQUENCY,NODEID,NETWORKID);
-  //radio.setHighPower(); //uncomment only for RFM69HW!
+  //radio.setHighPower(); //must uncomment for RFM69HW!
   radio.encrypt(KEY);
   radio.promiscuous(promiscuousMode);
   char buff[50];

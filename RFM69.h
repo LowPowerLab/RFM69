@@ -62,7 +62,8 @@ class RFM69 {
     void setCS(byte newSPISlaveSelect);
     int readRSSI(bool forceTrigger=false);
     void promiscuous(bool onOff=true);
-    void setHighPower(bool onOFF=true); //for RFM69HW
+    void setHighPower(bool onOFF=true); //have to call it after initialize for RFM69HW
+    void setPowerLevel(byte level); //reduce/increase transmit power level
     void sleep();
     
     // allow hacking registers by making these public
@@ -85,7 +86,6 @@ class RFM69 {
 
     void receiveBegin();
     void setMode(byte mode);
-    void setPowerLevel(byte mode);
     void setHighPowerRegs(bool onOff);
     void select();
     void unselect();

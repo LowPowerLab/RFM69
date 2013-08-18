@@ -132,10 +132,10 @@ void RFM69::setAddress(byte addr)
 
 // set output power: 0=min, 31=max
 // this results in a "weaker" transmitted signal, and directly results in a lower RSSI at the receiver
-void RFM69Network::setPowerLevel(byte powerLevel)
+void RFM69::setPowerLevel(byte powerLevel)
 {
   _powerLevel = powerLevel;
-	writeReg(REG_PALEVEL, (readReg(REG_PALEVEL) & 0xE0) | (_powerLevel > 31 ? 31 : _powerLevel));
+  writeReg(REG_PALEVEL, (readReg(REG_PALEVEL) & 0xE0) | (_powerLevel > 31 ? 31 : _powerLevel));
 }
 
 bool RFM69::canSend()

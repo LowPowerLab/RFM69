@@ -28,6 +28,7 @@
 #define RF69_915MHZ     91
 
 #define null            0
+#define COURSE_TEMP_COEF  -90 // puts the temperature reading in the ballpark, user can fine tune the returned value
 
 class RFM69 {
   public:
@@ -65,7 +66,9 @@ class RFM69 {
     void setHighPower(bool onOFF=true); //have to call it after initialize for RFM69HW
     void setPowerLevel(byte level); //reduce/increase transmit power level
     void sleep();
-    
+    byte readTemperature(byte calFactor=0); //get CMOS temperature (8bit)
+    void rcCalibration(); //calibrate the internal RC oscillator for use in wide temperature variations - see datasheet section [4.3.5. RC Timer Accuracy]
+
     // allow hacking registers by making these public
     byte readReg(byte addr);
     void writeReg(byte addr, byte val);
@@ -73,7 +76,7 @@ class RFM69 {
     
   protected:
     static void isr0();
-    void interruptHandler();
+    void virtual interruptHandler();
     void sendFrame(byte toAddress, const void* buffer, byte size, bool requestACK=false, bool sendACK=false);
 
     static RFM69* selfPointer;

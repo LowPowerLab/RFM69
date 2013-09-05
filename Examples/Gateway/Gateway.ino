@@ -74,6 +74,16 @@ void loop() {
       word jedecid = flash.readDeviceId();
       Serial.println(jedecid, HEX);
     }
+	if (input == 't')
+    {
+      byte temperature =  radio.readTemperature(-1); // -1 = user cal factor, adjust for correct ambient
+      byte fTemp = 1.8 * temperature + 32; // 9/5=1.8
+      Serial.print( "Radio Temp is ");
+      Serial.print(temperature);
+      Serial.print("C, ");
+      Serial.print(fTemp); //converting to F loses some resolution, obvious when C is on edge between 2 values (ie 26C=78F, 27C=80F)
+      Serial.println('F');
+    }
   }
 
   if (radio.receiveDone())

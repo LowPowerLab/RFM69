@@ -79,6 +79,7 @@ bool RFM69::initialize(byte freqBand, byte nodeID, byte networkID)
   
   selfPointer = this;
   _address = nodeID;
+  return true;
 }
 
 void RFM69::setFrequency(uint32_t FRF)
@@ -332,7 +333,7 @@ void RFM69::writeReg(byte addr, byte value)
 {
   select();
   SPI.transfer(addr | 0x80);
-  byte oldregval = SPI.transfer(value);
+  SPI.transfer(value);
   unselect();
 }
 

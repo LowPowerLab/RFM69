@@ -1,14 +1,24 @@
+// Sample RFM69 receiver/gateway sketch, with ACK and optional encryption
+// Passes through any wireless received messages to the serial port & responds to ACKs
+// It also looks for an onboard FLASH chip, if present
+// Library and code by Felix Rusu - felix@lowpowerlab.com
+// Get the RFM69 and SPIFlash library at: https://github.com/LowPowerLab/
+
 #include <RFM69.h>
 #include <SPI.h>
 #include <SPIFlash.h>
 
-#define NODEID      1
-#define NETWORKID   100
-#define FREQUENCY   RF69_915MHZ //Match this with the version of your Moteino! (others: RF69_433MHZ, RF69_868MHZ)
-#define KEY         "thisIsEncryptKey" //has to be same 16 characters/bytes on all nodes, not more not less!
-#define LED         9
-#define SERIAL_BAUD 115200
-#define ACK_TIME    30  // # of ms to wait for an ack
+#define NODEID        1    //unique for each node on same network
+#define NETWORKID     100  //the same on all nodes that talk to each other
+//Match frequency to the hardware version of the radio on your Moteino (uncomment one):
+#define FREQUENCY     RF69_433MHZ
+//#define FREQUENCY     RF69_868MHZ
+//#define FREQUENCY     RF69_915MHZ
+#define ENCRYPTKEY    "sampleEncryptKey" //exactly the same 16 characters/bytes on all nodes!
+//#define IS_RFM69HW    //uncomment only for RFM69HW! Leave out if you have RFM69W!
+#define ACK_TIME      30 // max # of ms to wait for an ack
+#define LED           9  // Moteinos have LEDs on D9
+#define SERIAL_BAUD   115200
 
 RFM69 radio;
 SPIFlash flash(8, 0xEF30); //EF40 for 16mbit windbond chip
@@ -18,8 +28,10 @@ void setup() {
   Serial.begin(SERIAL_BAUD);
   delay(10);
   radio.initialize(FREQUENCY,NODEID,NETWORKID);
-  //radio.setHighPower(); //must uncomment for RFM69HW!
-  radio.encrypt(KEY);
+#ifdef IS_RFM69HW
+  radio.setHighPower(); //uncomment only for RFM69HW!
+#endif
+  radio.encrypt(ENCRYPTKEY);
   radio.promiscuous(promiscuousMode);
   char buff[50];
   sprintf(buff, "\nListening at %d Mhz...", FREQUENCY==RF69_433MHZ ? 433 : FREQUENCY==RF69_868MHZ ? 868 : 915);
@@ -39,7 +51,7 @@ void loop() {
     if (input == 'r') //d=dump all register values
       radio.readAllRegs();
     if (input == 'E') //E=enable encryption
-      radio.encrypt(KEY);
+      radio.encrypt(ENCRYPTKEY);
     if (input == 'e') //e=disable encryption
       radio.encrypt(null);
     if (input == 'p')
@@ -74,7 +86,7 @@ void loop() {
       word jedecid = flash.readDeviceId();
       Serial.println(jedecid, HEX);
     }
-	if (input == 't')
+    if (input == 't')
     {
       byte temperature =  radio.readTemperature(-1); // -1 = user cal factor, adjust for correct ambient
       byte fTemp = 1.8 * temperature + 32; // 9/5=1.8

@@ -1,18 +1,29 @@
+// Sample RFM69 sender/node sketch, with ACK and optional encryption
+// Sends periodic messages of increasing length to gateway (id=1)
+// It also looks for an onboard FLASH chip, if present
+// Library and code by Felix Rusu - felix@lowpowerlab.com
+// Get the RFM69 and SPIFlash library at: https://github.com/LowPowerLab/
+
 #include <RFM69.h>
 #include <SPI.h>
 #include <SPIFlash.h>
 
-#define NODEID      99
-#define NETWORKID   100
-#define GATEWAYID   1
-#define FREQUENCY   RF69_915MHZ //Match this with the version of your Moteino! (others: RF69_433MHZ, RF69_868MHZ)
-#define KEY         "thisIsEncryptKey" //has to be same 16 characters/bytes on all nodes, not more not less!
-#define LED         9
-#define SERIAL_BAUD 115200
-#define ACK_TIME    30  // # of ms to wait for an ack
+#define NODEID        2    //unique for each node on same network
+#define NETWORKID     100  //the same on all nodes that talk to each other
+#define GATEWAYID     1
+//Match frequency to the hardware version of the radio on your Moteino (uncomment one):
+#define FREQUENCY   RF69_433MHZ
+//#define FREQUENCY   RF69_868MHZ
+//#define FREQUENCY     RF69_915MHZ
+#define ENCRYPTKEY    "sampleEncryptKey" //exactly the same 16 characters/bytes on all nodes!
+//#define IS_RFM69HW    //uncomment only for RFM69HW! Leave out if you have RFM69W!
+#define ACK_TIME      30 // max # of ms to wait for an ack
+#define LED           9  // Moteinos have LEDs on D9
+#define SERIAL_BAUD   115200
 
 int TRANSMITPERIOD = 300; //transmit a packet to gateway so often (in ms)
 char payload[] = "123 ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+char buff[20];
 byte sendSize=0;
 boolean requestACK = false;
 SPIFlash flash(8, 0xEF30); //EF40 for 16mbit windbond chip
@@ -21,11 +32,14 @@ RFM69 radio;
 void setup() {
   Serial.begin(SERIAL_BAUD);
   radio.initialize(FREQUENCY,NODEID,NETWORKID);
-  //radio.setHighPower(); //must uncomment for RFM69HW!
-  radio.encrypt(KEY);
+#ifdef IS_RFM69HW
+  radio.setHighPower(); //uncomment only for RFM69HW!
+#endif
+  radio.encrypt(ENCRYPTKEY);
   char buff[50];
   sprintf(buff, "\nTransmitting at %d Mhz...", FREQUENCY==RF69_433MHZ ? 433 : FREQUENCY==RF69_868MHZ ? 868 : 915);
   Serial.println(buff);
+  
   if (flash.initialize())
     Serial.println("SPI Flash Init OK!");
   else
@@ -99,6 +113,15 @@ void loop() {
     Serial.println();
   }
   
+  //send FLASH id
+  if(sendSize==0)
+  {
+    sprintf(buff, "FLASH_MEM_ID:0x%X", flash.readDeviceId());
+    byte buffLen=strlen(buff);
+    radio.sendWithRetry(GATEWAYID, buff, buffLen);
+    delay(TRANSMITPERIOD);
+  }
+  
   int currPeriod = millis()/TRANSMITPERIOD;
   if (currPeriod != lastPeriod)
   {
@@ -113,17 +136,6 @@ void loop() {
      Serial.print(" ok!");
     else Serial.print(" nothing...");
 
-//   //manual ACK handling
-//    requestACK = ((sendSize % 3) == 0); //request ACK every 3rd xmission
-//    radio.send(GATEWAYID, payload, sendSize, requestACK);
-//    if (requestACK)
-//    {
-//      Serial.print(" - waiting for ACK...");
-//      if (waitForAck(GATEWAYID)) Serial.print("ok!");
-//      else Serial.print("nothing...");
-//    }
-
-
     sendSize = (sendSize + 1) % 31;
     Serial.println();
     Blink(LED,3);
@@ -137,13 +149,3 @@ void Blink(byte PIN, int DELAY_MS)
   delay(DELAY_MS);
   digitalWrite(PIN,LOW);
 }
-
-//// wait a few milliseconds for proper ACK to me, return true if indeed received
-//static bool waitForAck(byte theNodeID) {
-//  long now = millis();
-//  while (millis() - now <= ACK_TIME) {
-//    if (radio.ACKReceived(theNodeID))
-//      return true;
-//  }
-//  return false;
-//}

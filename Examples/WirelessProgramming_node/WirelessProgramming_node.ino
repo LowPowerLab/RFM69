@@ -39,8 +39,9 @@ long lastPeriod = -1;
 // SPI_CS          - CS pin attached to SPI flash chip (8 in case of Moteino)
 // MANUFACTURER_ID - OPTIONAL, 0x1F44 for adesto(ex atmel) 4mbit flash
 //                             0xEF30 for windbond 4mbit flash
+//                             0xEF40 for windbond 16mbit flash
 //////////////////////////////////////////
-SPIFlash flash(8, 0xEF40); //EF30 for windbond 4mbit flash, EF40 for 16/64mbit
+SPIFlash flash(8, 0xEF30); //EF30 for windbond 4mbit flash, EF40 for 16/64mbit
 
 void setup(){
   Serial.begin(SERIAL_BAUD);

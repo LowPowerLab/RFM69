@@ -18,6 +18,7 @@ volatile byte RFM69::TARGETID; //should match _address
 volatile byte RFM69::PAYLOADLEN;
 volatile byte RFM69::ACK_REQUESTED;
 volatile byte RFM69::ACK_RECEIVED; /// Should be polled immediately after sending a packet with ACK request
+volatile int RFM69::RSSI; //most accurate RSSI during reception (closest to the reception)
 RFM69* RFM69::selfPointer;
 
 bool RFM69::initialize(byte freqBand, byte nodeID, byte networkID)
@@ -259,6 +260,7 @@ void RFM69::interruptHandler() {
     unselect();
     setMode(RF69_MODE_RX);
   }
+  RSSI = readRSSI();
   //digitalWrite(4, 0);
 }
 
@@ -271,6 +273,7 @@ void RFM69::receiveBegin() {
   PAYLOADLEN = 0;
   ACK_REQUESTED = 0;
   ACK_RECEIVED = 0;
+  RSSI = 0;
   if (readReg(REG_IRQFLAGS2) & RF_IRQFLAGS2_PAYLOADREADY)
     writeReg(REG_PACKETCONFIG2, (readReg(REG_PACKETCONFIG2) & 0xFB) | RF_PACKET2_RXRESTART); // avoid RX deadlocks
   writeReg(REG_DIOMAPPING1, RF_DIOMAPPING1_DIO0_01); //set DIO0 to "PAYLOADREADY" in receive mode

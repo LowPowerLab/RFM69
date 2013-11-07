@@ -101,7 +101,7 @@ void loop() {
     Serial.print('[');Serial.print(radio.SENDERID, DEC);Serial.print("] ");
     for (byte i = 0; i < radio.DATALEN; i++)
       Serial.print((char)radio.DATA[i]);
-    Serial.print("   [RX_RSSI:");Serial.print(radio.readRSSI());Serial.print("]");
+    Serial.print("   [RX_RSSI:");Serial.print(radio.RSSI);Serial.print("]");
 
     if (radio.ACK_REQUESTED)
     {

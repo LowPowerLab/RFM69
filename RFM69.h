@@ -2,7 +2,7 @@
 // Driver definition for HopeRF RFM69W/RFM69HW, Semtech SX1231/1231H
 // **********************************************************************************
 // Creative Commons Attrib Share-Alike License
-// You are free to use/extend this library but please abide with the CCSA license:
+// You are free to use/extend this library but please abide with the CC-BY-SA license:
 // http://creativecommons.org/licenses/by-sa/3.0/
 // 2013-06-14 (C) felix@lowpowerlab.com
 // **********************************************************************************
@@ -39,6 +39,7 @@ class RFM69 {
     static volatile byte PAYLOADLEN;
     static volatile byte ACK_REQUESTED;
     static volatile byte ACK_RECEIVED; /// Should be polled immediately after sending a packet with ACK request
+    static volatile int RSSI; //most accurate RSSI during reception (closest to the reception)
     static volatile byte _mode; //should be protected?
     
     RFM69(byte slaveSelectPin=SPI_CS, byte interruptPin=RF69_IRQ_PIN, bool isRFM69HW=false) {

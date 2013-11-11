@@ -23,11 +23,15 @@
 //*****************************************************************************************************************************
 // ADJUST THE SETTINGS BELOW DEPENDING ON YOUR HARDWARE/SITUATION!
 //*****************************************************************************************************************************
-#define GATEWAYID   1
-#define NODEID      99
-#define NETWORKID   100
-#define FREQUENCY   RF69_915MHZ //Match this with the version of your Moteino! (others: RF69_433MHZ, RF69_868MHZ)
-#define KEY         "thisIsEncryptKey" //has to be same 16 characters/bytes on all nodes, not more not less!
+#define GATEWAYID     1
+#define NODEID        99
+#define NETWORKID     100
+//Match frequency to the hardware version of the radio on your Moteino (uncomment one):
+//#define FREQUENCY   RF69_433MHZ
+//#define FREQUENCY   RF69_868MHZ
+#define FREQUENCY     RF69_915MHZ
+#define ENCRYPTKEY    "sampleEncryptKey" //has to be same 16 characters/bytes on all nodes, not more not less!
+//#define IS_RFM69HW  //uncomment only for RFM69HW! Leave out if you have RFM69W!
 
 #define HALLSENSOR1          A0
 #define HALLSENSOR1_EN        4
@@ -87,8 +91,10 @@ void setup(void)
   pinMode(LED, OUTPUT);
   
   radio.initialize(FREQUENCY,NODEID,NETWORKID);
-  radio.setHighPower(); //must uncomment only for RFM69HW!
-  radio.encrypt(KEY);
+#ifdef IS_RFM69HW
+  radio.setHighPower(); //must include only for RFM69HW!
+#endif
+  radio.encrypt(ENCRYPTKEY);
 
   char buff[50];
   sprintf(buff, "GarageMote : %d Mhz...", FREQUENCY==RF69_433MHZ ? 433 : FREQUENCY==RF69_868MHZ ? 868 : 915);

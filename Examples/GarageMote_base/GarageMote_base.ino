@@ -20,8 +20,12 @@
 #define NODEID        1
 #define GARAGENODEID  99
 #define NETWORKID     100
-#define FREQUENCY     RF69_915MHZ //Match this with the version of your Moteino! (others: RF69_433MHZ, RF69_868MHZ)
-#define KEY           "thisIsEncryptKey" //has to be same 16 characters/bytes on all nodes, not more not less!
+//Match frequency to the hardware version of the radio on your Moteino (uncomment one):
+//#define FREQUENCY   RF69_433MHZ
+//#define FREQUENCY   RF69_868MHZ
+#define FREQUENCY     RF69_915MHZ
+#define ENCRYPTKEY    "sampleEncryptKey" //has to be same 16 characters/bytes on all nodes, not more not less!
+//#define IS_RFM69HW  //uncomment only for RFM69HW! Leave out if you have RFM69W!
 #define LED           9
 #define SERIAL_BAUD   115200
 #define ACK_TIME      30  // # of ms to wait for an ack
@@ -35,8 +39,10 @@ void setup() {
   Serial.begin(SERIAL_BAUD);
   delay(10);
   radio.initialize(FREQUENCY,NODEID,NETWORKID);
-  //radio.setHighPower(); //must uncomment only for RFM69HW!
-  radio.encrypt(KEY);
+#ifdef IS_RFM69HW
+  radio.setHighPower(); //must include only for RFM69HW!
+#endif
+  radio.encrypt(ENCRYPTKEY);
   char buff[50];
   sprintf(buff, "\nListening at %d Mhz...", FREQUENCY==RF69_433MHZ ? 433 : FREQUENCY==RF69_868MHZ ? 868 : 915);
   Serial.println(buff);

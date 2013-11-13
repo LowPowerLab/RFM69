@@ -17,6 +17,7 @@
 // The handshake protocol that receives the sketch from the serial port 
 // is handled by the SPIFLash/WirelessHEX69 library, which also relies on the RFM12B library
 // These libraries and custom 1k Optiboot bootloader for the target node are at: http://github.com/lowpowerlab
+
 #include <RFM69.h>
 #include <SPI.h>
 #include <SPIFlash.h>
@@ -25,12 +26,16 @@
 #define MYID        1   // node ID used for this unit
 #define TARGET_ID   55  // ID of node being wirelessly reprogrammed
 #define NETWORKID   250
-#define FREQUENCY   RF69_915MHZ // Match this with the version of your Moteino! (others: RF69_433MHZ, RF69_868MHZ)
+//Match frequency to the hardware version of the radio on your Moteino (uncomment one):
+//#define FREQUENCY   RF69_433MHZ
+//#define FREQUENCY   RF69_868MHZ
+#define FREQUENCY     RF69_915MHZ
+//#define IS_RFM69HW    //uncomment only for RFM69HW! Leave out if you have RFM69W!
 #define LED         9
 #define SERIAL_BAUD 115200
 #define ACK_TIME    50  // # of ms to wait for an ack
 #define TIMEOUT     3000
-#define KEY         "thisIsEncryptKey"
+#define ENCRYPTKEY  "sampleEncryptKey"
 
 RFM69 radio;
 char c = 0;
@@ -39,7 +44,10 @@ char input[64]; //serial input buffer
 void setup(){
   Serial.begin(SERIAL_BAUD);
   radio.initialize(FREQUENCY,MYID,NETWORKID);
-  //radio.encrypt(KEY); //OPTIONAL
+  //radio.encrypt(ENCRYPTKEY); //OPTIONAL
+#ifdef IS_RFM69HW
+  radio.setHighPower(); //only for RFM69HW!
+#endif
   Serial.print("Start wireless gateway...");
 }
 

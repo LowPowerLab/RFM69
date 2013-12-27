@@ -23,44 +23,72 @@
 #include <SPIFlash.h>
 #include <WirelessHEX69.h>
 
-#define MYID        1   // node ID used for this unit
-#define TARGET_ID   55  // ID of node being wirelessly reprogrammed
-#define NETWORKID   250
+#define NETWORKID          250  //what network this node is on
+#define NODEID               5  //this node's ID, should be unique among nodes on this NETWORKID
 //Match frequency to the hardware version of the radio on your Moteino (uncomment one):
 //#define FREQUENCY   RF69_433MHZ
 //#define FREQUENCY   RF69_868MHZ
 #define FREQUENCY     RF69_915MHZ
-//#define IS_RFM69HW    //uncomment only for RFM69HW! Leave out if you have RFM69W!
+#define ENCRYPTKEY "sampleEncryptKey" //(16 bytes of your choice - keep the same on all encrypted nodes)
+//#define IS_RFM69HW            //uncomment only for RFM69HW! Leave out if you have RFM69W!
+
 #define LED         9
 #define SERIAL_BAUD 115200
 #define ACK_TIME    50  // # of ms to wait for an ack
 #define TIMEOUT     3000
-#define ENCRYPTKEY  "sampleEncryptKey"
 
 RFM69 radio;
 char c = 0;
 char input[64]; //serial input buffer
+byte targetID=0;
 
 void setup(){
   Serial.begin(SERIAL_BAUD);
-  radio.initialize(FREQUENCY,MYID,NETWORKID);
-  //radio.encrypt(ENCRYPTKEY); //OPTIONAL
+  radio.initialize(FREQUENCY,NODEID,NETWORKID);
+  radio.encrypt(ENCRYPTKEY); //OPTIONAL
 #ifdef IS_RFM69HW
   radio.setHighPower(); //only for RFM69HW!
 #endif
-  Serial.print("Start wireless gateway...");
+  Serial.println("Start wireless gateway...");
 }
 
 void loop(){
-  byte inputLen = readSerialLine(input);
+  byte inputLen = readSerialLine(input, 10, 64, 100); //readSerialLine(char* input, char endOfLineChar=10, byte maxLength=64, uint16_t timeout=1000);
   
-  if (inputLen == 4 && input[0]=='F' && input[1]=='L' && input[2]=='X' && input[3]=='?') {
-    CheckForSerialHEX((byte*)input, inputLen, radio, TARGET_ID, TIMEOUT, ACK_TIME, true);
+  if (inputLen==4 && input[0]=='F' && input[1]=='L' && input[2]=='X' && input[3]=='?') {
+    if (targetID==0)
+      Serial.println("TO?");
+    else
+      CheckForSerialHEX((byte*)input, inputLen, radio, targetID, TIMEOUT, ACK_TIME, true);
+  }
+  else if (inputLen>3 && inputLen<=6 && input[0]=='T' && input[1]=='O' && input[2]==':')
+  {
+    byte newTarget=0;
+    for (byte i = 3; i<inputLen; i++) //up to 3 characters for target ID
+      if (input[i] >=48 && input[i]<=57)
+        newTarget = newTarget*10+input[i]-48;
+      else
+      {
+        newTarget=0;
+        break;
+      }
+    if (newTarget>0)
+    {
+      targetID = newTarget;
+      Serial.print("TO:");
+      Serial.print(newTarget);
+      Serial.println(":OK");
+    }
+    else
+    {
+      Serial.print(input);
+      Serial.print(":INV");
+    }
   }
   else if (inputLen>0) { //just echo back
     Serial.print("SERIAL IN > ");Serial.println(input);
   }
-  
+
   if (radio.receiveDone())
   {
     for (byte i = 0; i < radio.DATALEN; i++)

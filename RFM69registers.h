@@ -21,7 +21,7 @@
 #define REG_FRFMID			  0x08
 #define REG_FRFLSB		  	0x09
 #define REG_OSC1		  	  0x0A
-#define REG_REGAFCCTRL		0x0B
+#define REG_AFCCTRL   		0x0B
 #define REG_LOWBAT			  0x0C
 #define REG_LISTEN1			  0x0D
 #define REG_LISTEN2			  0x0E

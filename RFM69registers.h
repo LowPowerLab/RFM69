@@ -93,6 +93,7 @@
 #define REG_TESTPA1       0x5A //only present on RFM69HW/SX1231H
 #define REG_TESTPA2       0x5C //only present on RFM69HW/SX1231H
 #define REG_TESTDAGC      0x6F
+#define REG_TESTAFC       0x71
 
 //******************************************************
 // RF69/SX1231 bit control definition
@@ -1046,6 +1047,8 @@
 #define RF_TEMP1_ADCLOWPOWER_ON			0x01  // Default
 #define RF_TEMP1_ADCLOWPOWER_OFF		0x00
 
-// RegTestDagc 0x6F: demodulator config and IO mode config
-#define RF_DAGC_CONTINUOUS          0x20    // true = DAGC updated every two bits
+// RegTestDagc
+#define RF_DAGC_NORMAL              0x00  // Reset value
+#define RF_DAGC_IMPROVED_LOWBETA1   0x20  //
+#define RF_DAGC_IMPROVED_LOWBETA0   0x30  // Recommended default
 

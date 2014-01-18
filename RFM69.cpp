@@ -287,13 +287,21 @@ void RFM69::receiveBegin() {
 bool RFM69::receiveDone() {
 // ATOMIC_BLOCK(ATOMIC_FORCEON)
 // {
-  noInterrupts(); //re-enabled in unselect() via setMode()
-  if (_mode == RF69_MODE_RX && PAYLOADLEN>0)
+  noInterrupts();
+  if (_mode == RF69_MODE_RX && PAYLOADLEN>0)  // Receiving and payload received.
   {
-    setMode(RF69_MODE_STANDBY);
+    setMode(RF69_MODE_STANDBY); //Interrupts re-enabled in unselect() via setMode()
     return true;
   }
-  receiveBegin();
+
+  if (_mode == RF69_MODE_RX)  // Already receiving but no payload yet.
+  {
+    interrupts(); // Not calling setMode() so explicitly re-enable interrupts.
+    return false;
+  }
+
+  // Not yet receiving.
+  receiveBegin(); //Interrupts re-enabled in unselect() via setMode()
   return false;
 //}
 }

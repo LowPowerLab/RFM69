@@ -12,8 +12,7 @@
 
 #define MAX_DATA_LEN         61 // to take advantage of the built in AES/CRC we want to limit the frame size to the internal FIFO size (66 bytes - 3 bytes overhead)
 #define SPI_CS               SS // SS is the SPI slave select pin, for instance D10 on atmega328
-#define RF69_IRQ_PIN          2 // INT0 on AVRs should be connected to DIO0
-                                // ex on Atmega328 it's D2
+#define RF69_IRQ_PIN          2 // INT0 on AVRs should be connected to DIO0 (ex on Atmega328 it's D2)
 #define CSMA_LIMIT          -90 // upper RX signal sensitivity threshold in dBm for carrier sense access
 #define RF69_MODE_SLEEP       0 // XTAL OFF
 #define	RF69_MODE_STANDBY     1 // XTAL ON
@@ -27,8 +26,9 @@
 #define RF69_868MHZ     86
 #define RF69_915MHZ     91
 
-#define null            0
-#define COURSE_TEMP_COEF  -90 // puts the temperature reading in the ballpark, user can fine tune the returned value
+#define null                  0
+#define COURSE_TEMP_COEF    -90 // puts the temperature reading in the ballpark, user can fine tune the returned value
+#define RF69_BROADCAST_ADDR 255
 
 class RFM69 {
   public:
@@ -74,7 +74,7 @@ class RFM69 {
     byte readReg(byte addr);
     void writeReg(byte addr, byte val);
     void readAllRegs();
-    
+
   protected:
     static void isr0();
     void virtual interruptHandler();

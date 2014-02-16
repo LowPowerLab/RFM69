@@ -68,9 +68,9 @@ void loop() {
       while(flash.busy());
       Serial.println();
     }
-    if (input == 'e')
+    if (input == 'D')
     {
-      Serial.print("Erasing Flash chip ... ");
+      Serial.print("Deleting Flash chip content... ");
       flash.chipErase();
       while(flash.busy());
       Serial.println("DONE");

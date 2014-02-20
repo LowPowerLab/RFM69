@@ -12,6 +12,7 @@
 
 volatile byte RFM69::DATA[MAX_DATA_LEN];
 volatile byte RFM69::_mode;       // current transceiver state
+volatile byte RFM69::dataReceived;
 volatile byte RFM69::DATALEN;
 volatile byte RFM69::SENDERID;
 volatile byte RFM69::TARGETID; //should match _address
@@ -237,36 +238,7 @@ void RFM69::sendFrame(byte toAddress, const void* buffer, byte bufferSize, bool 
 void RFM69::interruptHandler() {
   //pinMode(4, OUTPUT);
   //digitalWrite(4, 1);
-  if (_mode == RF69_MODE_RX && (readReg(REG_IRQFLAGS2) & RF_IRQFLAGS2_PAYLOADREADY))
-  {
-    setMode(RF69_MODE_STANDBY);
-    select();
-    SPI.transfer(REG_FIFO & 0x7f);
-    PAYLOADLEN = SPI.transfer(0);
-    PAYLOADLEN = PAYLOADLEN > 66 ? 66 : PAYLOADLEN; //precaution
-    TARGETID = SPI.transfer(0);
-    if(!(_promiscuousMode || TARGETID==_address || TARGETID==RF69_BROADCAST_ADDR)) //match this node's address, or broadcast address or anything in promiscuous mode
-    {
-      PAYLOADLEN = 0;
-      unselect();
-      //digitalWrite(4, 0);
-      return;
-    }
-    DATALEN = PAYLOADLEN - 3;
-    SENDERID = SPI.transfer(0);
-    byte CTLbyte = SPI.transfer(0);
-    
-    ACK_RECEIVED = CTLbyte & 0x80; //extract ACK-requested flag
-    ACK_REQUESTED = CTLbyte & 0x40; //extract ACK-received flag
-    
-    for (byte i= 0; i < DATALEN; i++)
-    {
-      DATA[i] = SPI.transfer(0);
-    }
-    unselect();
-    setMode(RF69_MODE_RX);
-  }
-  RSSI = readRSSI();
+  dataReceived = true;
   //digitalWrite(4, 0);
 }
 
@@ -286,10 +258,48 @@ void RFM69::receiveBegin() {
   setMode(RF69_MODE_RX);
 }
 
+void RFM69::readReceivedData(){
+  if (_mode == RF69_MODE_RX && (readReg(REG_IRQFLAGS2) & RF_IRQFLAGS2_PAYLOADREADY))
+  {
+		setMode(RF69_MODE_STANDBY);
+		select();
+		SPI.transfer(REG_FIFO & 0x7f);
+		PAYLOADLEN = SPI.transfer(0);
+		PAYLOADLEN = PAYLOADLEN > 66 ? 66 : PAYLOADLEN; //precaution
+		TARGETID = SPI.transfer(0);
+		if(!(_promiscuousMode || TARGETID==_address || TARGETID==RF69_BROADCAST_ADDR)) //match this node's address, or broadcast address or anything in promiscuous mode
+		{
+		  PAYLOADLEN = 0;
+		  unselect();
+		  return;
+		}
+		DATALEN = PAYLOADLEN - 3;
+		SENDERID = SPI.transfer(0);
+		byte CTLbyte = SPI.transfer(0);
+
+		ACK_RECEIVED = CTLbyte & 0x80; //extract ACK-requested flag
+		ACK_REQUESTED = CTLbyte & 0x40; //extract ACK-received flag
+
+		for (byte i= 0; i < DATALEN; i++)
+		{
+		  DATA[i] = SPI.transfer(0);
+		}
+		unselect();
+		setMode(RF69_MODE_RX);
+  }
+  RSSI = readRSSI();
+
+  dataReceived = false;
+}
+
 bool RFM69::receiveDone() {
 // ATOMIC_BLOCK(ATOMIC_FORCEON)
 // {
   noInterrupts(); //re-enabled in unselect() via setMode() or via receiveBegin()
+  
+  if(dataReceived) 
+  	readReceivedData();
+  
   if (_mode == RF69_MODE_RX && PAYLOADLEN>0)
   {
     setMode(RF69_MODE_STANDBY); //enables interrupts

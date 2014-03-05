@@ -53,7 +53,7 @@ void setup(){
   pinMode(LED, OUTPUT);
   Serial.begin(SERIAL_BAUD);
   radio.initialize(FREQUENCY,MYID,NETWORKID);
-  //radio.encrypt(ENCRYPTKEY); //OPTIONAL
+  radio.encrypt(ENCRYPTKEY); //OPTIONAL
 #ifdef IS_RFM69HW
   radio.setHighPower(); //only for RFM69HW!
 #endif

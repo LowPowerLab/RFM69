@@ -5,8 +5,8 @@
 // Library and code by Felix Rusu - felix@lowpowerlab.com
 // Get the RFM69 and SPIFlash library at: https://github.com/LowPowerLab/
 
-#include <RFM69.h>
-#include <SPI.h>
+#include <RFM69.h>    //get it here: https://www.github.com/lowpowerlab/rfm69
+#include <SPI.h>      //get it here: https://github.com/lowpowerlab/spiflash
 #include <LowPower.h> //get library from: https://github.com/rocketscream/Low-Power
                       //writeup here: http://www.rocketscream.com/blog/2011/07/04/lightweight-low-power-arduino-library/
 
@@ -24,7 +24,6 @@
 #define SERIAL_BAUD   115200
 #define MOTIONPIN     1 //hardware interrupt 1 (D3)
 
-int TRANSMITPERIOD = 300; //transmit a packet to gateway so often (in ms)
 RFM69 radio;
 volatile boolean motionDetected=false;
 

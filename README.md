@@ -2,10 +2,13 @@ RFM69 Library
 ----------------
 By Felix Rusu (felix@lowpowerlab.com)
 <br/>
-Creative Commons Attrib Share-Alike License
-http://creativecommons.org/licenses/by-sa/3.0/
-
 RFM69 library for RFM69W, RFM69HW, RFM69CW, RFM69HCW (semtech SX1231, SX1231H)
+
+##License
+Creative Commons Attrib Share-Alike License
+https://creativecommons.org/licenses/by-sa/4.0/
+You are free to share and adapt. But you need to give attribution and use the same license to redistribute.
+
 
 
 ##Features

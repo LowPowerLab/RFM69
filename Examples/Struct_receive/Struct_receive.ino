@@ -105,7 +105,7 @@ void loop() {
       Serial.print(theData.temp);
     }
     
-    if (radio.ACK_REQUESTED)
+    if (radio.ACKRequested())
     {
       byte theNodeID = radio.SENDERID;
       radio.sendACK();

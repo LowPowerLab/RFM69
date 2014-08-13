@@ -98,7 +98,7 @@ void loop() {
       Serial.print((char)radio.DATA[i]);
     Serial.print("   [RSSI:");Serial.print(radio.RSSI);Serial.print("]");
     
-    if (radio.ACK_REQUESTED)
+    if (radio.ACKRequested())
     {
       byte theNodeID = radio.SENDERID;
       radio.sendACK();

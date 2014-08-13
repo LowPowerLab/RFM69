@@ -96,7 +96,7 @@ void loop() {
       Serial.print((char)radio.DATA[i]);
     Serial.print("   [RX_RSSI:");Serial.print(radio.readRSSI());Serial.print("]");
 
-    if (radio.ACK_REQUESTED)
+    if (radio.ACKRequested())
     {
       radio.sendACK();
       Serial.print(" - ACK sent");

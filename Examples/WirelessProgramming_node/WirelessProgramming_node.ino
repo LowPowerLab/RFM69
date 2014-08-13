@@ -29,12 +29,19 @@
 //#define FREQUENCY   RF69_433MHZ
 //#define FREQUENCY   RF69_868MHZ
 #define FREQUENCY     RF69_915MHZ
-//#define IS_RFM69HW  //uncomment only for RFM69HW! Leave out if you have RFM69W!
+#define IS_RFM69HW  //uncomment only for RFM69HW! Leave out if you have RFM69W!
 #define SERIAL_BAUD 115200
-#define ACK_TIME    50  // # of ms to wait for an ack
-#define ENCRYPTKEY  "sampleEncryptKey"
-#define LED         9
-#define BLINKPERIOD 200
+#define ACK_TIME    30  // # of ms to wait for an ack
+#define ENCRYPTKEY "sampleEncryptKey" //(16 bytes of your choice - keep the same on all encrypted nodes)
+#define BLINKPERIOD 500
+
+#ifdef __AVR_ATmega1284P__
+  #define LED           15 // Moteino MEGAs have LEDs on D15
+  #define FLASH_SS      23 // and FLASH SS on D23
+#else
+  #define LED           9 // Moteinos hsave LEDs on D9
+  #define FLASH_SS      8 // and FLASH SS on D8
+#endif
 
 RFM69 radio;
 char input = 0;
@@ -47,7 +54,7 @@ long lastPeriod = -1;
 //                             0xEF30 for windbond 4mbit flash
 //                             0xEF40 for windbond 16/64mbit flash
 /////////////////////////////////////////////////////////////////////////////
-SPIFlash flash(8, 0xEF30); //EF30 for windbond 4mbit flash
+SPIFlash flash(FLASH_SS, 0xEF30); //EF30 for windbond 4mbit flash
 
 void setup(){
   pinMode(LED, OUTPUT);
@@ -128,6 +135,7 @@ void loop(){
     CheckForWirelessHEX(radio, flash, true);
     Serial.println();
   }
+  //else Serial.print('.');
   
   ////////////////////////////////////////////////////////////////////////////////////////////
   // Real sketch code here, let's blink the onboard LED

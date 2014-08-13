@@ -24,18 +24,23 @@
 #include <WirelessHEX69.h>
 
 #define NETWORKID          250  //what network this node is on
-#define NODEID               5  //this node's ID, should be unique among nodes on this NETWORKID
+#define NODEID             254  //this node's ID, should be unique among nodes on this NETWORKID
 //Match frequency to the hardware version of the radio on your Moteino (uncomment one):
 //#define FREQUENCY   RF69_433MHZ
 //#define FREQUENCY   RF69_868MHZ
 #define FREQUENCY     RF69_915MHZ
 #define ENCRYPTKEY "sampleEncryptKey" //(16 bytes of your choice - keep the same on all encrypted nodes)
-//#define IS_RFM69HW            //uncomment only for RFM69HW! Leave out if you have RFM69W!
+//#define IS_RFM69HW             //uncomment only for RFM69HW! Leave out if you have RFM69W!
 
-#define LED         9
 #define SERIAL_BAUD 115200
 #define ACK_TIME    50  // # of ms to wait for an ack
 #define TIMEOUT     3000
+
+#ifdef __AVR_ATmega1284P__
+  #define LED           15 // Moteino MEGAs have LEDs on D15
+#else
+  #define LED           9 // Moteinos hsave LEDs on D9
+#endif
 
 RFM69 radio;
 char c = 0;

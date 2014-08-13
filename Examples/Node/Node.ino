@@ -3,7 +3,6 @@
 // It also looks for an onboard FLASH chip, if present
 // Library and code by Felix Rusu - felix@lowpowerlab.com
 // Get the RFM69 and SPIFlash library at: https://github.com/LowPowerLab/
-
 #include <RFM69.h>
 #include <SPI.h>
 #include <SPIFlash.h>
@@ -18,7 +17,14 @@
 #define ENCRYPTKEY    "sampleEncryptKey" //exactly the same 16 characters/bytes on all nodes!
 //#define IS_RFM69HW    //uncomment only for RFM69HW! Leave out if you have RFM69W!
 #define ACK_TIME      30 // max # of ms to wait for an ack
-#define LED           9  // Moteinos have LEDs on D9
+#ifdef __AVR_ATmega1284P__
+  #define LED           15 // Moteino MEGAs have LEDs on D15
+  #define FLASH_SS      23 // and FLASH SS on D23
+#else
+  #define LED           9 // Moteinos have LEDs on D9
+  #define FLASH_SS      8 // and FLASH SS on D8
+#endif
+
 #define SERIAL_BAUD   115200
 
 int TRANSMITPERIOD = 300; //transmit a packet to gateway so often (in ms)
@@ -26,7 +32,7 @@ char payload[] = "123 ABCDEFGHIJKLMNOPQRSTUVWXYZ";
 char buff[20];
 byte sendSize=0;
 boolean requestACK = false;
-SPIFlash flash(8, 0xEF30); //EF40 for 16mbit windbond chip
+SPIFlash flash(FLASH_SS, 0xEF30); //EF30 for 4mbit  Windbond chip (W25X40CL)
 RFM69 radio;
 
 void setup() {
@@ -41,7 +47,16 @@ void setup() {
   Serial.println(buff);
   
   if (flash.initialize())
-    Serial.println("SPI Flash Init OK!");
+  {
+    Serial.print("SPI Flash Init OK ... UniqueID (MAC): ");
+    flash.readUniqueId();
+    for (byte i=0;i<8;i++)
+    {
+      Serial.print(flash.UNIQUEID[i], HEX);
+      Serial.print(' ');
+    }
+    Serial.println();
+  }
   else
     Serial.println("SPI Flash Init FAIL! (is chip present?)");
 }
@@ -60,19 +75,20 @@ void loop() {
       Serial.print(TRANSMITPERIOD);
       Serial.println("ms\n");
     }
-    
+
     if (input == 'r') //d=dump register values
       radio.readAllRegs();
     //if (input == 'E') //E=enable encryption
     //  radio.encrypt(KEY);
     //if (input == 'e') //e=disable encryption
     //  radio.encrypt(null);
-    
+
     if (input == 'd') //d=dump flash area
     {
       Serial.println("Flash content:");
-      int counter = 0;
+      uint16_t counter = 0;
 
+      Serial.print("0-256: ");
       while(counter<=256){
         Serial.print(flash.readByte(counter++), HEX);
         Serial.print('.');
@@ -103,16 +119,15 @@ void loop() {
       Serial.print((char)radio.DATA[i]);
     Serial.print("   [RX_RSSI:");Serial.print(radio.RSSI);Serial.print("]");
 
-    if (radio.ACK_REQUESTED)
+    if (radio.ACKRequested())
     {
       radio.sendACK();
       Serial.print(" - ACK sent");
-      delay(10);
     }
     Blink(LED,5);
     Serial.println();
   }
-  
+
   //send FLASH id
   if(sendSize==0)
   {
@@ -121,7 +136,7 @@ void loop() {
     radio.sendWithRetry(GATEWAYID, buff, buffLen);
     delay(TRANSMITPERIOD);
   }
-  
+
   int currPeriod = millis()/TRANSMITPERIOD;
   if (currPeriod != lastPeriod)
   {

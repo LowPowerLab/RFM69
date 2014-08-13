@@ -17,11 +17,18 @@
 #define ENCRYPTKEY    "sampleEncryptKey" //exactly the same 16 characters/bytes on all nodes!
 //#define IS_RFM69HW    //uncomment only for RFM69HW! Leave out if you have RFM69W!
 #define ACK_TIME      30 // max # of ms to wait for an ack
-#define LED           9  // Moteinos have LEDs on D9
 #define SERIAL_BAUD   115200
 
+#ifdef __AVR_ATmega1284P__
+  #define LED           15 // Moteino MEGAs have LEDs on D15
+  #define FLASH_SS      23 // and FLASH SS on D23
+#else
+  #define LED           9 // Moteinos have LEDs on D9
+  #define FLASH_SS      8 // and FLASH SS on D8
+#endif
+
 RFM69 radio;
-SPIFlash flash(8, 0xEF30); //EF40 for 16mbit windbond chip
+SPIFlash flash(FLASH_SS, 0xEF30); //EF30 for 4mbit  Windbond chip (W25X40CL)
 bool promiscuousMode = false; //set to 'true' to sniff all packets on the same network
 
 void setup() {
@@ -29,7 +36,7 @@ void setup() {
   delay(10);
   radio.initialize(FREQUENCY,NODEID,NETWORKID);
 #ifdef IS_RFM69HW
-  radio.setHighPower(); //uncomment only for RFM69HW!
+  radio.setHighPower(); //only for RFM69HW!
 #endif
   radio.encrypt(ENCRYPTKEY);
   radio.promiscuous(promiscuousMode);
@@ -37,7 +44,23 @@ void setup() {
   sprintf(buff, "\nListening at %d Mhz...", FREQUENCY==RF69_433MHZ ? 433 : FREQUENCY==RF69_868MHZ ? 868 : 915);
   Serial.println(buff);
   if (flash.initialize())
-    Serial.println("SPI Flash Init OK!");
+  {
+    Serial.print("SPI Flash Init OK ... UniqueID (MAC): ");
+    flash.readUniqueId();
+    for (byte i=0;i<8;i++)
+    {
+      Serial.print(flash.UNIQUEID[i], HEX);
+      Serial.print(' ');
+    }
+
+    //alternative way to read it:
+    //byte* MAC = flash.readUniqueId();
+    //for (byte i=0;i<8;i++)
+    //{
+    //  Serial.print(MAC[i], HEX);
+    //  Serial.print(' ');
+    //}
+  }
   else
     Serial.println("SPI Flash Init FAIL! (is chip present?)");
 }
@@ -75,7 +98,7 @@ void loop() {
     }
     if (input == 'D')
     {
-      Serial.print("Deleting Flash chip content... ");
+      Serial.print("Deleting Flash chip ... ");
       flash.chipErase();
       while(flash.busy());
       Serial.println("DONE");
@@ -109,7 +132,7 @@ void loop() {
       Serial.print((char)radio.DATA[i]);
     Serial.print("   [RX_RSSI:");Serial.print(radio.RSSI);Serial.print("]");
     
-    if (radio.ACK_REQUESTED)
+    if (radio.ACKRequested())
     {
       byte theNodeID = radio.SENDERID;
       radio.sendACK();
@@ -128,7 +151,6 @@ void loop() {
           Serial.print("ok!");
         else Serial.print("nothing");
       }
-      
     }
     Serial.println();
     Blink(LED,3);

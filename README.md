@@ -10,7 +10,6 @@ https://creativecommons.org/licenses/by-sa/4.0/
 You are free to share and adapt. But you need to give attribution and use the same license to redistribute.
 
 
-
 ##Features
 Among others, this is a set of features implemented in this library:
 
@@ -58,3 +57,6 @@ http://lowpowerlab.com/blog/2013/06/20/rfm69-library/
 - I have tested open-air range on these transceivers (the W only) in various combinations.
 - I am happy to say that a range of upwards of 350m can be achieved. I went to local parks and in very large parking spaces and I ran out of space, so more than 350m is possible. Some users reported upwards of 500m by lowering the bitrate, and a forum user reported 1.5miles at 1.2Kbps: see http://lowpowerlab.com/forum/index.php/topic,112.msg288.html and http://lowpowerlab.com/moteino/#antennas
 - The caveat with these higher RF power units is that they need more DC power when they transmit. For battery powered motes, you will need to keep them powered down and only transmit periodically. Use the sleep() function to put the radios in low power mode and use the [LowPower](https://github.com/rocketscream/Low-Power) or [Narcoleptic](https://code.google.com/p/narcoleptic/) libraries to power down your arduino
+
+##License
+GPL 3.0. See License.txt file.

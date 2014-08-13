@@ -1,16 +1,39 @@
 // **********************************************************************************
-// Driver definition for HopeRF RFM69W/RFM69HW, Semtech SX1231/1231H
+// Driver definition for HopeRF RFM69W/RFM69HW/RFM69CW/RFM69HCW, Semtech SX1231/1231H
 // **********************************************************************************
-// Creative Commons Attrib Share-Alike License
-// You are free to use/extend this library but please abide with the CCSA license:
-// http://creativecommons.org/licenses/by-sa/3.0/
-// 2013-06-14 (C) felix@lowpowerlab.com
+// Copyright Felix Rusu (2014), felix@lowpowerlab.com
+// http://lowpowerlab.com/
+// **********************************************************************************
+// License
+// **********************************************************************************
+// This program is free software; you can redistribute it 
+// and/or modify it under the terms of the GNU General    
+// Public License as published by the Free Software       
+// Foundation; either version 2 of the License, or        
+// (at your option) any later version.                    
+//                                                        
+// This program is distributed in the hope that it will   
+// be useful, but WITHOUT ANY WARRANTY; without even the  
+// implied warranty of MERCHANTABILITY or FITNESS FOR A   
+// PARTICULAR PURPOSE.  See the GNU General Public        
+// License for more details.                              
+//                                                        
+// You should have received a copy of the GNU General    
+// Public License along with this program; if not, write 
+// to the Free Software Foundation, Inc.,                
+// 59 Temple Place, Suite 330, Boston, MA  02111-1307 USA
+//                                                        
+// Licence can be viewed at                               
+// http://www.fsf.org/licenses/gpl.txt                    
+//
+// Please maintain this license information along with authorship
+// and copyright notices in any redistribution of this code
 // **********************************************************************************
 #include <RFM69.h>
 #include <RFM69registers.h>
 #include <SPI.h>
 
-volatile byte RFM69::DATA[MAX_DATA_LEN];
+volatile byte RFM69::DATA[RF69_MAX_DATA_LEN];
 volatile byte RFM69::_mode;       // current transceiver state
 volatile byte RFM69::DATALEN;
 volatile byte RFM69::SENDERID;
@@ -44,10 +67,9 @@ bool RFM69::initialize(byte freqBand, byte nodeID, byte networkID)
     ///* 0x11 */ { REG_PALEVEL, RF_PALEVEL_PA0_ON | RF_PALEVEL_PA1_OFF | RF_PALEVEL_PA2_OFF | RF_PALEVEL_OUTPUTPOWER_11111},
     ///* 0x13 */ { REG_OCP, RF_OCP_ON | RF_OCP_TRIM_95 }, //over current protection (default is 95mA)
     
-    ///* 0x18*/ { REG_LNA,  RF_LNA_ZIN_200 | RF_LNA_CURRENTGAIN }, //as suggested by mav here: http://lowpowerlab.com/forum/index.php/topic,296.msg1571.html
-    
     // RXBW defaults are { REG_RXBW, RF_RXBW_DCCFREQ_010 | RF_RXBW_MANT_24 | RF_RXBW_EXP_5} (RxBw: 10.4khz)
     /* 0x19 */ { REG_RXBW, RF_RXBW_DCCFREQ_010 | RF_RXBW_MANT_16 | RF_RXBW_EXP_2 }, //(BitRate < 2 * RxBw)
+    //for BR-19200: //* 0x19 */ { REG_RXBW, RF_RXBW_DCCFREQ_010 | RF_RXBW_MANT_24 | RF_RXBW_EXP_3 },
     /* 0x25 */ { REG_DIOMAPPING1, RF_DIOMAPPING1_DIO0_01 }, //DIO0 is the only IRQ we're using
     /* 0x29 */ { REG_RSSITHRESH, 220 }, //must be set to dBm = (-Sensitivity / 2) - default is 0xE4=228 so -114dBm
     ///* 0x2d */ { REG_PREAMBLELSB, RF_PREAMBLESIZE_LSB_VALUE } // default 3 preamble bytes 0xAAAAAA
@@ -59,19 +81,18 @@ bool RFM69::initialize(byte freqBand, byte nodeID, byte networkID)
     //* 0x39 */ { REG_NODEADRS, nodeID }, //turned off because we're not using address filtering
     /* 0x3C */ { REG_FIFOTHRESH, RF_FIFOTHRESH_TXSTART_FIFONOTEMPTY | RF_FIFOTHRESH_VALUE }, //TX on FIFO not empty
     /* 0x3d */ { REG_PACKETCONFIG2, RF_PACKET2_RXRESTARTDELAY_2BITS | RF_PACKET2_AUTORXRESTART_ON | RF_PACKET2_AES_OFF }, //RXRESTARTDELAY must match transmitter PA ramp-down time (bitrate dependent)
+    //for BR-19200: //* 0x3d */ { REG_PACKETCONFIG2, RF_PACKET2_RXRESTARTDELAY_NONE | RF_PACKET2_AUTORXRESTART_ON | RF_PACKET2_AES_OFF }, //RXRESTARTDELAY must match transmitter PA ramp-down time (bitrate dependent)
+    //* 0x6F */ { REG_TESTDAGC, RF_DAGC_CONTINUOUS }, // run DAGC continuously in RX mode
     /* 0x6F */ { REG_TESTDAGC, RF_DAGC_IMPROVED_LOWBETA0 }, // run DAGC continuously in RX mode, recommended default for AfcLowBetaOn=0
     {255, 0}
   };
 
   pinMode(_slaveSelectPin, OUTPUT);
-  SPI.setDataMode(SPI_MODE0);
-  SPI.setBitOrder(MSBFIRST);
-  SPI.setClockDivider(SPI_CLOCK_DIV2); //max speed, except on Due which can run at system clock speed
   SPI.begin();
   
   do writeReg(REG_SYNCVALUE1, 0xaa); while (readReg(REG_SYNCVALUE1) != 0xaa);
 	do writeReg(REG_SYNCVALUE1, 0x55); while (readReg(REG_SYNCVALUE1) != 0x55);
-  
+
   for (byte i = 0; CONFIG[i][0] != 255; i++)
     writeReg(CONFIG[i][0], CONFIG[i][1]);
 
@@ -82,8 +103,8 @@ bool RFM69::initialize(byte freqBand, byte nodeID, byte networkID)
   setHighPower(_isRFM69HW); //called regardless if it's a RFM69W or RFM69HW
   setMode(RF69_MODE_STANDBY);
 	while ((readReg(REG_IRQFLAGS1) & RF_IRQFLAGS1_MODEREADY) == 0x00); // Wait for ModeReady
-  attachInterrupt(0, RFM69::isr0, RISING);
-  
+  attachInterrupt(_interruptNum, RFM69::isr0, RISING);
+
   selfPointer = this;
   _address = nodeID;
   return true;
@@ -159,7 +180,8 @@ bool RFM69::canSend()
 void RFM69::send(byte toAddress, const void* buffer, byte bufferSize, bool requestACK)
 {
   writeReg(REG_PACKETCONFIG2, (readReg(REG_PACKETCONFIG2) & 0xFB) | RF_PACKET2_RXRESTART); // avoid RX deadlocks
-  while (!canSend()) receiveDone();
+  long now = millis();
+  while (!canSend() && millis()-now < RF69_CSMA_LIMIT_MS) receiveDone();
   sendFrame(toAddress, buffer, bufferSize, requestACK, false);
 }
 
@@ -195,6 +217,11 @@ bool RFM69::ACKReceived(byte fromNodeID) {
   return false;
 }
 
+//check whether an ACK was requested in the last received packet (non-broadcasted packet)
+bool RFM69::ACKRequested() {
+  return ACK_REQUESTED && (TARGETID != RF69_BROADCAST_ADDR);
+}
+
 /// Should be called immediately after reception in case sender wants ACK
 void RFM69::sendACK(const void* buffer, byte bufferSize) {
   byte sender = SENDERID;
@@ -207,7 +234,7 @@ void RFM69::sendFrame(byte toAddress, const void* buffer, byte bufferSize, bool 
   setMode(RF69_MODE_STANDBY); //turn off receiver to prevent reception while filling fifo
 	while ((readReg(REG_IRQFLAGS1) & RF_IRQFLAGS1_MODEREADY) == 0x00); // Wait for ModeReady
   writeReg(REG_DIOMAPPING1, RF_DIOMAPPING1_DIO0_00); // DIO0 is "Packet Sent"
-  if (bufferSize > MAX_DATA_LEN) bufferSize = MAX_DATA_LEN;
+  if (bufferSize > RF69_MAX_DATA_LEN) bufferSize = RF69_MAX_DATA_LEN;
 
 	//write to FIFO
 	select();
@@ -239,6 +266,7 @@ void RFM69::interruptHandler() {
   //digitalWrite(4, 1);
   if (_mode == RF69_MODE_RX && (readReg(REG_IRQFLAGS2) & RF_IRQFLAGS2_PAYLOADREADY))
   {
+    //RSSI = readRSSI();
     setMode(RF69_MODE_STANDBY);
     select();
     SPI.transfer(REG_FIFO & 0x7f);
@@ -263,6 +291,7 @@ void RFM69::interruptHandler() {
     {
       DATA[i] = SPI.transfer(0);
     }
+    if (DATALEN<RF69_MAX_DATA_LEN) DATA[DATALEN]=0; //add null at end of string
     unselect();
     setMode(RF69_MODE_RX);
   }
@@ -354,12 +383,22 @@ void RFM69::writeReg(byte addr, byte value)
 /// Select the transceiver
 void RFM69::select() {
   noInterrupts();
+  //save current SPI settings
+  _SPCR = SPCR;
+  _SPSR = SPSR;
+  //set RFM69 SPI settings
+  SPI.setDataMode(SPI_MODE0);
+  SPI.setBitOrder(MSBFIRST);
+  SPI.setClockDivider(SPI_CLOCK_DIV4); //decided to slow down from DIV2 after SPI stalling in some instances, especially visible on mega1284p when RFM69 and FLASH chip both present
   digitalWrite(_slaveSelectPin, LOW);
 }
 
 /// UNselect the transceiver chip
 void RFM69::unselect() {
   digitalWrite(_slaveSelectPin, HIGH);
+  //restore SPI settings to what they were before talking to RFM69
+  SPCR = _SPCR;
+  SPSR = _SPSR;
   interrupts();
 }
 

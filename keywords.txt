@@ -27,7 +27,7 @@ encrypt	KEYWORD2
 setCS	KEYWORD2
 readRSSI	KEYWORD2
 promiscuous	KEYWORD2
-setHiPower	KEYWORD2
+setHighPower	KEYWORD2
 CryptFunction	KEYWORD2
 sleep	KEYWORD2
 readReg	KEYWORD2

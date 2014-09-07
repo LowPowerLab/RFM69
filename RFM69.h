@@ -37,7 +37,7 @@
 #define RF69_SPI_CS               SS // SS is the SPI slave select pin, for instance D10 on atmega328
 
 // INT0 on AVRs should be connected to RFM69's DIO0 (ex on Atmega328 it's D2, on Atmega644/1284 it's D2)
-#if defined(__AVR_ATmega168__) || defined(__AVR_ATmega328P__) || defined(__AVR_ATmega88) || defined(__AVR_ATmega8__) || defined(__AVR_ATmega88__)
+#if defined(__AVR_ATmega168__) || defined(__AVR_ATmega328P__) || defined(__AVR_ATmega88) || defined(__AVR_ATmega8__) || defined(__AVR_ATmega88__) || defined(__AVR_ATmega32U4__)
   #define RF69_IRQ_PIN          2
   #define RF69_IRQ_NUM          0
 #elif defined(__AVR_ATmega644P__) || defined(__AVR_ATmega1284P__)

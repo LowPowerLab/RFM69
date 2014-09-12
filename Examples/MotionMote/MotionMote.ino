@@ -7,8 +7,7 @@
 
 #include <RFM69.h>    //get it here: https://www.github.com/lowpowerlab/rfm69
 #include <SPI.h>      //get it here: https://github.com/lowpowerlab/spiflash
-#include <LowPower.h> //get library from: https://github.com/rocketscream/Low-Power
-                      //writeup here: http://www.rocketscream.com/blog/2011/07/04/lightweight-low-power-arduino-library/
+#include <LowPower.h> //get library from: https://github.com/LowPowerLab/LowPower
 
 #define NODEID        18    //unique for each node on same network
 #define NETWORKID     100  //the same on all nodes that talk to each other

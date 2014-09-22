@@ -38,7 +38,7 @@ See [this tutorial](http://learn.adafruit.com/arduino-tips-tricks-and-techniques
 - The library and examples are continuously improved as bugs and stability issues are discovered. Be sure to check back often for changes.
 - Moteino boards are loaded with fuses that will delay startup. This means that other boards like Duemilanove/UNO might need a delay() in the setup() function before doing anything - to allow the transceiver to power up.
 
-###Saple usage
+###Sample usage
 - [Node](https://github.com/LowPowerLab/RFM69/blob/master/Examples/Node/Node.ino)
 - [Gateway](https://github.com/LowPowerLab/RFM69/blob/master/Examples/Gateway/Gateway.ino)
 

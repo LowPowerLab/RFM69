@@ -1,7 +1,7 @@
 // **********************************************************************************************************
 // GarageMote garage door controller sketch that works with Moteinos equipped with HopeRF RFM69W/RFM69HW
 // Can be adapted to use Moteinos using RFM12B
-// 2013-09-13 (C) felix@lowpowerlab.com, http://www.LowPowerLab.com
+// 2014-07-14 (C) felix@lowpowerlab.com, http://www.LowPowerLab.com
 // **********************************************************************************************************
 // It uses 2 hall effect sensors (and magnets mounted on the garage belt/chain) to detect the position of the
 // door, and a small signal relay to be able to toggle the garage opener.
@@ -14,24 +14,25 @@
 // **********************************************************************************************************
 // Creative Commons Attrib Share-Alike License
 // You are free to use/extend this code/library but please abide with the CCSA license:
-// http://creativecommons.org/licenses/by-sa/3.0/
-// **********************************************************************************************************
+// http://creativecommons.org/licenses/by-sa/4.0/
+// **********************************************************************************
 
-#include <RFM69.h>  //install this library in your Arduino library directory from https://github.com/LowPowerLab/RFM69
-#include <SPI.h>
+#include <RFM69.h>         //get it here: http://github.com/lowpowerlab/rfm69
+#include <SPIFlash.h>      //get it here: http://github.com/lowpowerlab/spiflash
+#include <WirelessHEX69.h> //get it here: https://github.com/LowPowerLab/WirelessProgramming
+#include <SPI.h>           //comes with Arduino IDE (www.arduino.cc)
 
 //*****************************************************************************************************************************
 // ADJUST THE SETTINGS BELOW DEPENDING ON YOUR HARDWARE/SITUATION!
 //*****************************************************************************************************************************
-#define GATEWAYID     1
-#define NODEID        99
-#define NETWORKID     100
-//Match frequency to the hardware version of the radio on your Moteino (uncomment one):
-//#define FREQUENCY   RF69_433MHZ
-//#define FREQUENCY   RF69_868MHZ
-#define FREQUENCY     RF69_915MHZ
-#define ENCRYPTKEY    "sampleEncryptKey" //has to be same 16 characters/bytes on all nodes, not more not less!
-//#define IS_RFM69HW  //uncomment only for RFM69HW! Leave out if you have RFM69W!
+#define GATEWAYID   1
+#define NODEID      122
+#define NETWORKID   100
+//#define FREQUENCY     RF69_433MHZ
+//#define FREQUENCY     RF69_868MHZ
+#define FREQUENCY       RF69_915MHZ //Match this with the version of your Moteino! (others: RF69_433MHZ, RF69_868MHZ)
+#define ENCRYPTKEY      "sampleEncryptKey" //has to be same 16 characters/bytes on all nodes, not more not less!
+#define IS_RFM69HW    //uncomment only for RFM69HW! Leave out if you have RFM69W!
 
 #define HALLSENSOR1          A0
 #define HALLSENSOR1_EN        4
@@ -72,12 +73,18 @@
 
 void setStatus(byte newSTATUS, boolean reportStatus=true);
 byte STATUS;
-long lastStatusTimestamp=0;
-byte lastRequesterNodeID=0;
-long ledPulseTimestamp=0;
+unsigned long lastStatusTimestamp=0;
+unsigned long ledPulseTimestamp=0;
+byte lastRequesterNodeID=GATEWAYID;
 int ledPulseValue=0;
 boolean ledPulseDirection=false; //false=down, true=up
 RFM69 radio;
+/////////////////////////////////////////////////////////////////////////////
+// flash(SPI_CS, MANUFACTURER_ID)
+// SPI_CS          - CS pin attached to SPI flash chip (8 in case of Moteino)
+// MANUFACTURER_ID - OPTIONAL, 0xEF30 for windbond 4mbit flash (Moteino OEM)
+/////////////////////////////////////////////////////////////////////////////
+SPIFlash flash(8, 0xEF30);
 
 void setup(void)
 {
@@ -92,13 +99,13 @@ void setup(void)
   
   radio.initialize(FREQUENCY,NODEID,NETWORKID);
 #ifdef IS_RFM69HW
-  radio.setHighPower(); //must include only for RFM69HW!
+  radio.setHighPower(); //uncomment only for RFM69HW!
 #endif
   radio.encrypt(ENCRYPTKEY);
 
   char buff[50];
   sprintf(buff, "GarageMote : %d Mhz...", FREQUENCY==RF69_433MHZ ? 433 : FREQUENCY==RF69_868MHZ ? 868 : 915);
-  Serial.println(buff);
+  DEBUGln(buff);
 
   if (hallSensorRead(HALLSENSOR_OPENSIDE)==true)
     setStatus(STATUS_OPEN);
@@ -107,7 +114,7 @@ void setup(void)
   else setStatus(STATUS_UNKNOWN);
 }
 
-long doorPulseCount = 0;
+unsigned long doorPulseCount = 0;
 char input;
 
 void loop()
@@ -117,13 +124,13 @@ void loop()
     
   if (input=='r')
   {
-    Serial.println("Relay test...");
+    DEBUGln("Relay test...");
     pulseRelay();
     input = 0;
   }
     
   // UNKNOWN => OPEN/CLOSED
-  if (STATUS == STATUS_UNKNOWN && millis()-lastStatusTimestamp>STATUS_CHANGE_MIN)
+  if (STATUS == STATUS_UNKNOWN && millis()-(lastStatusTimestamp)>STATUS_CHANGE_MIN)
   {
     if (hallSensorRead(HALLSENSOR_OPENSIDE)==true)
       setStatus(STATUS_OPEN);
@@ -131,15 +138,15 @@ void loop()
       setStatus(STATUS_CLOSED);
   }
 
-  // OPEN => CLOSING  
-  if (STATUS == STATUS_OPEN && millis()-lastStatusTimestamp>STATUS_CHANGE_MIN)
+  // OPEN => CLOSING
+  if (STATUS == STATUS_OPEN && millis()-(lastStatusTimestamp)>STATUS_CHANGE_MIN)
   {
     if (hallSensorRead(HALLSENSOR_OPENSIDE)==false)
       setStatus(STATUS_CLOSING);
   }
 
   // CLOSED => OPENING  
-  if (STATUS == STATUS_CLOSED && millis()-lastStatusTimestamp>STATUS_CHANGE_MIN)
+  if (STATUS == STATUS_CLOSED && millis()-(lastStatusTimestamp)>STATUS_CHANGE_MIN)
   {
     if (hallSensorRead(HALLSENSOR_CLOSEDSIDE)==false)
       setStatus(STATUS_OPENING);
@@ -148,13 +155,13 @@ void loop()
   // OPENING/CLOSING => OPEN (when door returns to open due to obstacle or toggle action)
   //                 => CLOSED (when door closes normally from OPEN)
   //                 => UNKNOWN (when more time passes than normally would for a door up/down movement)
-  if ((STATUS == STATUS_OPENING || STATUS == STATUS_CLOSING) && millis()-lastStatusTimestamp>STATUS_CHANGE_MIN)
+  if ((STATUS == STATUS_OPENING || STATUS == STATUS_CLOSING) && millis()-(lastStatusTimestamp)>STATUS_CHANGE_MIN)
   {
     if (hallSensorRead(HALLSENSOR_OPENSIDE)==true)
       setStatus(STATUS_OPEN);
     else if (hallSensorRead(HALLSENSOR_CLOSEDSIDE)==true)
       setStatus(STATUS_CLOSED);
-    else if (millis()-lastStatusTimestamp>DOOR_MOVEMENT_TIME)
+    else if (millis()-(lastStatusTimestamp)>DOOR_MOVEMENT_TIME)
       setStatus(STATUS_UNKNOWN);
   }
   
@@ -163,30 +170,37 @@ void loop()
     byte newStatus=STATUS;
     boolean reportStatusRequest=false;
     lastRequesterNodeID = radio.SENDERID;
-    DEBUG('[');Serial.print(radio.SENDERID, DEC);Serial.print("] ");
+    DEBUG('[');DEBUG(radio.SENDERID);DEBUG("] ");
     for (byte i = 0; i < radio.DATALEN; i++)
       DEBUG((char)radio.DATA[i]);
 
-    //check for an OPEN/CLOSE/STATUS request
-    if (radio.DATA[0]=='O' && radio.DATA[1]=='P' && radio.DATA[2]=='N')
+    if (radio.DATALEN==3)
     {
-      if (millis()-lastStatusTimestamp > STATUS_CHANGE_MIN && (STATUS == STATUS_CLOSED || STATUS == STATUS_CLOSING || STATUS == STATUS_UNKNOWN))
-        newStatus = STATUS_OPENING;
-      //else radio.Send(requester, "INVALID", 7);
+      //check for an OPEN/CLOSE/STATUS request
+      if (radio.DATA[0]=='O' && radio.DATA[1]=='P' && radio.DATA[2]=='N')
+      {
+        if (millis()-(lastStatusTimestamp) > STATUS_CHANGE_MIN && (STATUS == STATUS_CLOSED || STATUS == STATUS_CLOSING || STATUS == STATUS_UNKNOWN))
+          newStatus = STATUS_OPENING;
+        //else radio.Send(requester, "INVALID", 7);
+      }
+      if (radio.DATA[0]=='C' && radio.DATA[1]=='L' && radio.DATA[2]=='S')
+      {
+        if (millis()-(lastStatusTimestamp) > STATUS_CHANGE_MIN && (STATUS == STATUS_OPEN || STATUS == STATUS_OPENING || STATUS == STATUS_UNKNOWN))
+          newStatus = STATUS_CLOSING;
+        //else radio.Send(requester, "INVALID", 7);
+      }
+      if (radio.DATA[0]=='S' && radio.DATA[1]=='T' && radio.DATA[2]=='S')
+      {
+        reportStatusRequest = true;
+      }
     }
-    if (radio.DATA[0]=='C' && radio.DATA[1]=='L' && radio.DATA[2]=='S')
-    {
-      if (millis()-lastStatusTimestamp > STATUS_CHANGE_MIN && (STATUS == STATUS_OPEN || STATUS == STATUS_OPENING || STATUS == STATUS_UNKNOWN))
-        newStatus = STATUS_CLOSING;
-      //else radio.Send(requester, "INVALID", 7);
-    }
-    if (radio.DATA[0]=='S' && radio.DATA[1]=='T' && radio.DATA[2]=='S')
-    {
-      reportStatusRequest = true;
-    }
+    
+    // wireless programming token check
+    // DO NOT REMOVE, or GarageMote will not be wirelessly programmable any more!
+    CheckForWirelessHEX(radio, flash, true);
 
     //first send any ACK to request
-    DEBUG("   [RX_RSSI:");DEBUG(radio.readRSSI());DEBUG("]");
+    DEBUG("   [RX_RSSI:");DEBUG(radio.RSSI);DEBUG("]");
     if (radio.ACKRequested())
     {
       radio.sendACK();
@@ -214,7 +228,7 @@ void loop()
   }
   if (STATUS == STATUS_OPENING || STATUS == STATUS_CLOSING) //pulse
   {
-    if (millis()-ledPulseTimestamp > LED_PULSE_PERIOD/256)
+    if (millis()-(ledPulseTimestamp) > LED_PULSE_PERIOD/256)
     {
       ledPulseValue = ledPulseDirection ? ledPulseValue + LED_PULSE_PERIOD/256 : ledPulseValue - LED_PULSE_PERIOD/256;
 
@@ -235,7 +249,7 @@ void loop()
   }
   if (STATUS == STATUS_UNKNOWN) //blink
   {
-    if (millis()-ledPulseTimestamp > LED_PULSE_PERIOD/20)
+    if (millis()-(ledPulseTimestamp) > LED_PULSE_PERIOD/20)
     {
       ledPulseDirection = !ledPulseDirection;
       digitalWrite(LED, ledPulseDirection ? HIGH : LOW);

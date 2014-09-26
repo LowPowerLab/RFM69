@@ -1,4 +1,5 @@
 // Sample RFM69 sender/node sketch for motion sensor
+// http://www.lowpowerlab.com/mailbox
 // PIR motion sensor connected to D3 (INT1)
 // When RISE happens on D3, the sketch transmits a "MOTION" msg to receiver Moteino and goes back to sleep
 // In sleep mode, Moteino + PIR motion sensor use about ~78uA

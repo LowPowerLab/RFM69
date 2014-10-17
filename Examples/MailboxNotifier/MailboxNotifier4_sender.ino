@@ -1,11 +1,14 @@
-// Sample RFM69 sender/node sketch for motion sensor
+// Sample RFM69 sender/node sketch for mailbox motion sensor
 // http://www.lowpowerlab.com/mailbox
 // PIR motion sensor connected to D3 (INT1)
 // When RISE happens on D3, the sketch transmits a "MOTION" msg to receiver Moteino and goes back to sleep
+// It then wakes up every 32 seconds and sends a message indicating when the last
+//    motion event happened (days, hours, minutes, seconds ago) and the battery level
 // In sleep mode, Moteino + PIR motion sensor use about ~78uA
+// Make sure you adjust the settings in the configuration section below !!!
 
 // **********************************************************************************
-// Copyright LowPowerLab.com
+// Copyright Felix Rusu, LowPowerLab.com
 // Library and code by Felix Rusu - felix@lowpowerlab.com
 // Get the RFM69 and SPIFlash library at: https://github.com/LowPowerLab/
 // **********************************************************************************
@@ -14,22 +17,21 @@
 // This program is free software; you can redistribute it 
 // and/or modify it under the terms of the GNU General    
 // Public License as published by the Free Software       
-// Foundation; either version 2 of the License, or        
+// Foundation; either version 3 of the License, or        
 // (at your option) any later version.                    
 //                                                        
 // This program is distributed in the hope that it will   
 // be useful, but WITHOUT ANY WARRANTY; without even the  
 // implied warranty of MERCHANTABILITY or FITNESS FOR A   
-// PARTICULAR PURPOSE.  See the GNU General Public        
+// PARTICULAR PURPOSE. See the GNU General Public        
 // License for more details.                              
 //                                                        
 // You should have received a copy of the GNU General    
-// Public License along with this program; if not, write 
-// to the Free Software Foundation, Inc.,                
-// 59 Temple Place, Suite 330, Boston, MA  02111-1307 USA
+// Public License along with this program.
+// If not, see <http://www.gnu.org/licenses/>.
 //                                                        
 // Licence can be viewed at                               
-// http://www.fsf.org/licenses/gpl.txt                    
+// http://www.gnu.org/licenses/gpl-3.0.txt
 //
 // Please maintain this license information along with authorship
 // and copyright notices in any redistribution of this code
@@ -40,27 +42,28 @@
 #include <LowPower.h> //get library from: https://github.com/LowPowerLab/LowPower
                       //writeup here: http://www.rocketscream.com/blog/2011/07/04/lightweight-low-power-arduino-library/
 
+//*********************************************************************************************
+// *********** IMPORTANT SETTINGS - YOU MUST CHANGE/ONFIGURE TO FIT YOUR HARDWARE *************
+//*********************************************************************************************
 #define NODEID        55    //unique for each node on same network
 #define NETWORKID     250  //the same on all nodes that talk to each other
 #define GATEWAYID     1
-
 //Match frequency to the hardware version of the radio on your Moteino (uncomment one):
 //#define FREQUENCY     RF69_433MHZ
 //#define FREQUENCY     RF69_868MHZ
-//#define IS_RFM69HW    //uncomment only for RFM69HW! Leave out if you have RFM69W!
-
 #define FREQUENCY     RF69_915MHZ
+#define IS_RFM69HW    //uncomment only for RFM69HW! Leave out if you have RFM69W!
 #define ENCRYPTKEY    "sampleEncryptKey" //exactly the same 16 characters/bytes on all nodes!
+#define SENDEVERYXLOOPS   4 //each loop sleeps 8 seconds, so send status message every this many loops (default "4" = 32 seconds)
+//*********************************************************************************************
 
 #define MOTIONPIN     1  //hardware interrupt 1 (D3)
 #define BATTERYSENSE  A7 //through 1Meg+470Kohm and 0.1uF cap from battery VCC - this ratio divides the voltage to bring it below 3.3V where it is scaled to a readable range
 #define LED           9  // Moteinos have LEDs on D9
-//#define BLINK_EN         //uncomment to make LED flash when messages are sent
-
-#define SENDEVERYXLOOPS   4 //each loop sleeps 8 seconds, so send status message every this many loops
+//#define BLINK_EN         //uncomment to make LED flash when messages are sent, leave out if you want low power
 
 #define SERIAL_BAUD   115200
-//#define SERIAL_EN      //uncomment this line to enable serial IO debug messages
+//#define SERIAL_EN      //uncomment this line to enable serial IO debug messages, leave out if you want low power
 #ifdef SERIAL_EN
   #define DEBUG(input)   {Serial.print(input); delay(1);}
   #define DEBUGln(input) {Serial.println(input); delay(1);}
@@ -69,7 +72,6 @@
   #define DEBUGln(input);
 #endif
 
-int TRANSMITPERIOD = 300; //transmit a packet to gateway so often (in ms)
 RFM69 radio;
 volatile boolean motionDetected=false;
 

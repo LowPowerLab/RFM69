@@ -1,5 +1,6 @@
 // Sample RFM69 sketch for the MotionOLED mote containing the OLED
-// Passes through any wireless received messages to the serial port & responds to ACKs
+// Displays any messages on the network on the OLED display and beeps the buzzer every time a message is received
+// The side button will step through 10 past received messages
 // Library and code by Felix Rusu - felix@lowpowerlab.com
 // Get libraries at: https://github.com/LowPowerLab/
 // Make sure you adjust the settings in the configuration section below !!!

@@ -153,6 +153,7 @@ void checkBatt() {
         DEBUG("BAT ACK:NOK...");
         Blink(ONBOARDLED,50); Blink(ONBOARDLED,50);
       }
+      radio.sleep();
   
       DEBUG(" VIN: ");
       DEBUGln(BATstr);

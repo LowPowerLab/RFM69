@@ -3,9 +3,10 @@
 // It also looks for an onboard FLASH chip, if present
 // Library and code by Felix Rusu - felix@lowpowerlab.com
 // Get the RFM69 and SPIFlash library at: https://github.com/LowPowerLab/
-#include <RFM69.h>
+
+#include <RFM69.h>    //get it here: https://www.github.com/lowpowerlab/rfm69
 #include <SPI.h>
-#include <SPIFlash.h>
+#include <SPIFlash.h> //get it here: https://www.github.com/lowpowerlab/spiflash
 
 #define NODEID        2    //unique for each node on same network
 #define NETWORKID     100  //the same on all nodes that talk to each other
@@ -61,7 +62,7 @@ void setup() {
     Serial.println("SPI Flash Init FAIL! (is chip present?)");
 }
 
-long lastPeriod = -1;
+long lastPeriod = 0;
 void loop() {
   //process any serial input
   if (Serial.available() > 0)
@@ -134,7 +135,7 @@ void loop() {
     sprintf(buff, "FLASH_MEM_ID:0x%X", flash.readDeviceId());
     byte buffLen=strlen(buff);
     radio.sendWithRetry(GATEWAYID, buff, buffLen);
-    delay(TRANSMITPERIOD);
+    sendSize = (sendSize + 1) % 31;
   }
 
   int currPeriod = millis()/TRANSMITPERIOD;

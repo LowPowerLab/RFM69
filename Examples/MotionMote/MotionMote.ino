@@ -76,6 +76,9 @@ float batteryVolts = 5;
 char* BATstr="BAT:5.00v";
 char sendBuf[32];
 byte sendLen;
+float battAvg = 0;                    // Keeping a running average of samples taken in the timer interrupt
+byte battCount = 0;                   // Count of samples taken;
+byte reportCount = 75;                // The count at which to report
 
 void setup() {
   Serial.begin(SERIAL_BAUD);
@@ -102,12 +105,8 @@ void loop() {
   if (motionDetected)
   {
     digitalWrite(EXTLED, HIGH);
-    //TODO: read several samples and take average
-    //TODO: read analog only every N cycles
-    batteryVolts = analogRead(A7) * 0.00322 * 1.42;
-    dtostrf(batteryVolts, 3,2, BATstr);
     //sprintf(sendBuf, "MOTION ............................................ BAT:%sv", BATstr);
-    sprintf(sendBuf, "MOTION BAT:%sv", BATstr);
+    sprintf(sendBuf, "MOTION");
     sendLen = strlen(sendBuf);
 
     if (radio.sendWithRetry(GATEWAYID, sendBuf, sendLen))
@@ -117,15 +116,51 @@ void loop() {
     }
     else DEBUG("MOTION ACK:NOK...");
 
-    DEBUG(" VIN: ");
-    DEBUGln(BATstr);
-
     radio.sleep();
     //Blink(EXTLED,50); //Blink(ONBOARDLED,3);
     motionDetected=false;
     digitalWrite(EXTLED, LOW);
   }
+  checkBatt();        // Check the battery voltage before powering down
   LowPower.powerDown(SLEEP_8S, ADC_OFF, BOD_OFF);
+}
+
+void checkBatt() {
+  if (battCount < reportCount) {
+    batteryVolts = analogRead(A7) * 0.00322 * 1.42;
+    battAvg = ((battAvg * battCount) + batteryVolts) / (battCount + 1);
+    
+    DEBUG("battCount:\t"); DEBUGln(battCount);
+    DEBUG("batteryVolts:\t"); DEBUGln(batteryVolts);
+    DEBUG("battAvg:\t"); DEBUGln(battAvg);
+    DEBUGln("-------");
+
+    ++battCount;
+    
+    if (battCount >= reportCount) {
+      digitalWrite(EXTLED, HIGH);
+      
+      dtostrf(battAvg, 3,2, BATstr);
+      sprintf(sendBuf, "BAT,%s;", BATstr);
+      sendLen = strlen(sendBuf);
+      if (radio.sendWithRetry(GATEWAYID, sendBuf, sendLen))
+      {
+        DEBUG("BAT ACK:OK! RSSI:");
+        DEBUG(radio.RSSI);
+        Blink(ONBOARDLED,50);
+      }
+      else {
+        DEBUG("BAT ACK:NOK...");
+        Blink(ONBOARDLED,50); Blink(ONBOARDLED,50);
+      }
+      radio.sleep();
+  
+      DEBUG(" VIN: ");
+      DEBUGln(BATstr);
+      battCount = battAvg = 0;
+      digitalWrite(EXTLED, LOW);
+    }
+  }
 }
 
 void Blink(byte PIN, int DELAY_MS)

@@ -59,7 +59,7 @@
 #define EXTLED         5  // MotionOLEDMote has an external LED on D5
 #define BATT_MONITOR  A7  // Sense VBAT_COND signal (when powered externally should read ~3.25v/3.3v (1000-1023), when external power is cutoff it should start reading around 2.85v/3.3v * 1023 ~= 880 (ratio given by 10k+4.7K divider from VBAT_COND = 1.47 multiplier)
 #define BATT_CYCLES   30  //read and report battery voltage every this many wakeup cycles (ex 30cycles * 8sec sleep = 240sec/4min)
-#define MOTIONPIN     1 //hardware interrupt 1 (D3)
+#define MOTIONPIN      1 //hardware interrupt 1 (D3)
 
 //#define SERIAL_EN             //comment this out when deploying to an installed SM to save a few KB of sketch size
 #define SERIAL_BAUD    115200
@@ -120,7 +120,6 @@ void loop() {
     DEBUGln(BATstr);
 
     radio.sleep();
-    motionDetected=false;
     digitalWrite(EXTLED, LOW);
   }
   else if (batteryReportCycles == BATT_CYCLES)
@@ -131,6 +130,7 @@ void loop() {
     radio.sleep();
     batteryReportCycles=0;
   }
+  motionDetected=false; //do NOT move this after the SLEEP line below or motion will never be detected
   LowPower.powerDown(SLEEP_8S, ADC_OFF, BOD_OFF);
   batteryReportCycles++;
 }

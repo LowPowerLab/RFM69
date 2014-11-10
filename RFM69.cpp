@@ -432,7 +432,8 @@ void RFM69::setCS(byte newSPISlaveSelect) {
 void RFM69::readAllRegs()
 {
   byte regVal;
-	
+
+  Serial.print ( "Address - HEX - BIN\n" );  
   for (byte regAddr = 1; regAddr <= 0x4F; regAddr++)
 	{
     select();

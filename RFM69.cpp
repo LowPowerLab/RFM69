@@ -429,9 +429,11 @@ void RFM69::setCS(byte newSPISlaveSelect) {
 }
 
 //for debugging
+
 void RFM69::readAllRegs()
 {
   byte regVal;
+  int capVal;
 
   Serial.print ( "Address - HEX - BIN\n" );  
   for (byte regAddr = 1; regAddr <= 0x4F; regAddr++)
@@ -446,6 +448,95 @@ void RFM69::readAllRegs()
     Serial.print(regVal,HEX);
     Serial.print(" - ");
     Serial.println(regVal,BIN);
+
+#if 1 // TODO - make the detailed debug a configurable build option
+    switch ( regAddr ) {
+        case 0x1 :{
+            Serial.print ( "\nControls the automatic Sequencer ( see section 4.2 )\nSequencerOff : " );
+            if ( 0x80 & regVal ) {
+                Serial.println ( "1 -> Mode is forced by the user" );
+            } else {
+                Serial.println ( "0 -> Operating mode as selected with Mode bits in RegOpMode is automatically reached with the Sequencer" );
+            }
+            
+            Serial.print( "\nEnables Listen mode, should be enabled whilst in Standby mode:\nListenOn : " );
+            if ( 0x40 & regVal ) {
+                Serial.println ( "1 -> On" );
+            } else {
+                Serial.println ( "0 -> Off ( see section 4.3)" );
+            }
+            
+            Serial.print( "\nAborts Listen mode when set together with ListenOn=0 See section 4.3.4 for details (Always reads 0.)\n" );
+            if ( 0x20 & regVal ) {
+                Serial.println ( "ERROR - ListenAbort should NEVER return 1" );
+            }
+            
+            Serial.print("\nTransceiver's operating modes:\nMode : ");
+            capVal = (regVal >> 2) & 0x7;
+            if ( capVal == 0b000 ) {
+                Serial.println ( "000 -> Sleep mode (SLEEP)" );
+            } else if ( capVal = 0b001 ) {
+                Serial.println ( "001 -> Standby mode (STDBY)" );
+            } else if ( capVal = 0b010 ) {
+                Serial.println ( "010 -> Frequency Synthesizer mode (FS)" );
+            } else if ( capVal = 0b011 ) {
+                Serial.println ( "011 -> Transmitter mode (TX)" );
+            } else if ( capVal = 0b100 ) {
+                Serial.println ( "100 -> Receiver Mode (RX)" );
+            } else {
+                Serial.print( capVal, BIN );
+                Serial.println ( " -> RESERVED" );
+            }
+            Serial.println ( "" );
+            break;
+        }
+        
+        case 0x2 : {
+        
+            Serial.print("\nData Processing mode:\nDataMode : ");
+            capVal = (regVal >> 5) & 0x3;
+            if ( capVal == 0b00 ) {
+                Serial.println ( "00 -> Packet mode" );
+            } else if ( capVal == 0b01 ) {
+                Serial.println ( "01 -> reserved" );
+            } else if ( capVal == 0b10 ) {
+                Serial.println ( "10 -> Continuous mode with bit synchronizer" );
+            } else if ( capVal == 0b11 ) {
+                Serial.println ( "11 -> Continuous mode without bit synchronizer" );
+            }
+            
+            Serial.print("\nModulation scheme:\nModulation Type : ");
+            capVal = (regVal >> 3) & 0x3;
+            if ( capVal == 0b00 ) {
+                Serial.println ( "00 -> FSK" );
+            } else if ( capVal == 0b01 ) {
+                Serial.println ( "01 -> OOK" );
+            } else if ( capVal == 0b10 ) {
+                Serial.println ( "10 -> reserved" );
+            } else if ( capVal == 0b11 ) {
+                Serial.println ( "11 -> reserved" );
+            }
+            
+            
+            break;
+        }
+        default : {
+        }
+            
+            
+        
+    }
+#endif
+
+
+
+
+
+
+
+
+
+
 	}
   unselect();
 }

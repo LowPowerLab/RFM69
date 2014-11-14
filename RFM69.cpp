@@ -102,7 +102,7 @@ bool RFM69::initialize(byte freqBand, byte nodeID, byte networkID)
 
   setHighPower(_isRFM69HW); //called regardless if it's a RFM69W or RFM69HW
   setMode(RF69_MODE_STANDBY);
-	while ((readReg(REG_IRQFLAGS1) & RF_IRQFLAGS1_MODEREADY) == 0x00); // Wait for ModeReady
+  while ((readReg(REG_IRQFLAGS1) & RF_IRQFLAGS1_MODEREADY) == 0x00); // Wait for ModeReady
   attachInterrupt(_interruptNum, RFM69::isr0, RISING);
 
   selfPointer = this;
@@ -143,7 +143,7 @@ void RFM69::setMode(byte newMode)
 	}
 
 	// we are using packet mode, so this check is not really needed
-  // but waiting for mode ready is necessary when going from sleep because the FIFO may not be immediately available from previous mode
+    // but waiting for mode ready is necessary when going from sleep because the FIFO may not be immediately available from previous mode
 	while (_mode == RF69_MODE_SLEEP && (readReg(REG_IRQFLAGS1) & RF_IRQFLAGS1_MODEREADY) == 0x00); // Wait for ModeReady
 
 	_mode = newMode;
@@ -156,7 +156,7 @@ void RFM69::sleep() {
 void RFM69::setAddress(byte addr)
 {
   _address = addr;
-	writeReg(REG_NODEADRS, _address);
+  writeReg(REG_NODEADRS, _address);
 }
 
 // set output power: 0=min, 31=max
@@ -188,7 +188,7 @@ void RFM69::send(byte toAddress, const void* buffer, byte bufferSize, bool reque
 // to increase the chance of getting a packet across, call this function instead of send
 // and it handles all the ACK requesting/retrying for you :)
 // The only twist is that you have to manually listen to ACK requests on the other side and send back the ACKs
-// The reason for the semi-automaton is that the lib is ingterrupt driven and
+// The reason for the semi-automaton is that the lib is interrupt driven and
 // requires user action to read the received data and decide what to do with it
 // replies usually take only 5-8ms at 50kbps@915Mhz
 bool RFM69::sendWithRetry(byte toAddress, const void* buffer, byte bufferSize, byte retries, byte retryWaitTime) {
@@ -222,25 +222,41 @@ bool RFM69::ACKRequested() {
   return ACK_REQUESTED && (TARGETID != RF69_BROADCAST_ADDR);
 }
 
-/// Should be called immediately after reception in case sender wants ACK
+// Should be called immediately after reception in case sender wants ACK
+// Fixed by Martins Ierags (http://openminihub.com)
 void RFM69::sendACK(const void* buffer, byte bufferSize) {
-  byte sender = SENDERID;
-  while (!canSend()) receiveDone();
-  sendFrame(sender, buffer, bufferSize, false, true);
+  setMode(RF69_MODE_RX); //Switching from STANDBY to RX before TX
+  int _RSSI = RSSI; //save payload received RSSI value
+  bool canSendACK = false; 
+  long now = millis();
+  while (millis()-now < ACK_CSMA_LIMIT_MS) //wait for free network the same time as sender waits for ACK
+  {
+    if (readRSSI() < CSMA_LIMIT) //if signal weaker than -90dBm(CSMA_LIMIT) is detected channel should be free
+	{
+	  canSendACK = true;
+	  break;
+	}
+  }
+  if (canSendACK) // channel is free let's send ACK
+  {
+//    Serial.print("ACK sent:");Serial.print(millis()-now, DEC); Serial.print("ms;RSSI:");Serial.println(readRSSI(), DEC); Serial.flush();
+    sendFrame(SENDERID, buffer, bufferSize, false, true);
+  }
+  RSSI = _RSSI; //restore payload RSSI
 }
 
 void RFM69::sendFrame(byte toAddress, const void* buffer, byte bufferSize, bool requestACK, bool sendACK)
 {
   setMode(RF69_MODE_STANDBY); //turn off receiver to prevent reception while filling fifo
-	while ((readReg(REG_IRQFLAGS1) & RF_IRQFLAGS1_MODEREADY) == 0x00); // Wait for ModeReady
+  while ((readReg(REG_IRQFLAGS1) & RF_IRQFLAGS1_MODEREADY) == 0x00); // Wait for ModeReady
   writeReg(REG_DIOMAPPING1, RF_DIOMAPPING1_DIO0_00); // DIO0 is "Packet Sent"
   if (bufferSize > RF69_MAX_DATA_LEN) bufferSize = RF69_MAX_DATA_LEN;
 
-	//write to FIFO
-	select();
-	SPI.transfer(REG_FIFO | 0x80);
-	SPI.transfer(bufferSize + 3);
-	SPI.transfer(toAddress);
+  //write to FIFO
+  select();
+  SPI.transfer(REG_FIFO | 0x80);
+  SPI.transfer(bufferSize + 3);
+  SPI.transfer(toAddress);
   SPI.transfer(_address);
   
   //control byte
@@ -250,13 +266,13 @@ void RFM69::sendFrame(byte toAddress, const void* buffer, byte bufferSize, bool 
     SPI.transfer(0x40);
   else SPI.transfer(0x00);
   
-	for (byte i = 0; i < bufferSize; i++)
-    SPI.transfer(((byte*)buffer)[i]);
-	unselect();
+  for (byte i = 0; i < bufferSize; i++)
+  SPI.transfer(((byte*)buffer)[i]);
+  unselect();
 
-	/* no need to wait for transmit mode to be ready since its handled by the radio */
-	setMode(RF69_MODE_TX);
-	while (digitalRead(_interruptPin) == 0); //wait for DIO0 to turn HIGH signalling transmission finish
+  /* no need to wait for transmit mode to be ready since its handled by the radio */
+  setMode(RF69_MODE_TX);
+  while (digitalRead(_interruptPin) == 0); //wait for DIO0 to turn HIGH signalling transmission finish
   //while (readReg(REG_IRQFLAGS2) & RF_IRQFLAGS2_PACKETSENT == 0x00); // Wait for ModeReady
   setMode(RF69_MODE_STANDBY);
 }
@@ -434,7 +450,7 @@ void RFM69::readAllRegs()
   byte regVal;
 	
   for (byte regAddr = 1; regAddr <= 0x4F; regAddr++)
-	{
+  {
     select();
     SPI.transfer(regAddr & 0x7f);	// send address + r/w bit
     regVal = SPI.transfer(0);
@@ -445,7 +461,7 @@ void RFM69::readAllRegs()
     Serial.print(regVal,HEX);
     Serial.print(" - ");
     Serial.println(regVal,BIN);
-	}
+  }
   unselect();
 }
 

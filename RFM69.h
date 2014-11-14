@@ -50,7 +50,7 @@
 #define	RF69_MODE_STANDBY     1 // XTAL ON
 #define RF69_MODE_SYNTH	      2 // PLL ON
 #define RF69_MODE_RX          3 // RX MODE
-#define RF69_MODE_TX		      4 // TX MODE
+#define RF69_MODE_TX		  4 // TX MODE
 
 //available frequency bands
 #define RF69_315MHZ     31  // non trivial values to avoid misconfiguration
@@ -62,6 +62,7 @@
 #define COURSE_TEMP_COEF    -90 // puts the temperature reading in the ballpark, user can fine tune the returned value
 #define RF69_BROADCAST_ADDR 255
 #define RF69_CSMA_LIMIT_MS 1000
+#define ACK_CSMA_LIMIT_MS    40
 
 class RFM69 {
   public:
@@ -89,7 +90,7 @@ class RFM69 {
     void setAddress(byte addr);
     bool canSend();
     void send(byte toAddress, const void* buffer, byte bufferSize, bool requestACK=false);
-    bool sendWithRetry(byte toAddress, const void* buffer, byte bufferSize, byte retries=2, byte retryWaitTime=40); //40ms roundtrip req for  61byte packets
+    bool sendWithRetry(byte toAddress, const void* buffer, byte bufferSize, byte retries=2, byte retryWaitTime=ACK_CSMA_LIMIT_MS); //40ms roundtrip req for  61byte packets
     bool receiveDone();
     bool ACKReceived(byte fromNodeID);
     bool ACKRequested();

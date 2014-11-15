@@ -200,7 +200,7 @@ void RFM69::send(byte toAddress, const void* buffer, byte bufferSize, bool reque
 // to increase the chance of getting a packet across, call this function instead of send
 // and it handles all the ACK requesting/retrying for you :)
 // The only twist is that you have to manually listen to ACK requests on the other side and send back the ACKs
-// The reason for the semi-automaton is that the lib is ingterrupt driven and
+// The reason for the semi-automaton is that the lib is interrupt driven and
 // requires user action to read the received data and decide what to do with it
 // replies usually take only 5-8ms at 50kbps@915Mhz
 bool RFM69::sendWithRetry(byte toAddress, const void* buffer, byte bufferSize, byte retries, byte retryWaitTime) {
@@ -236,10 +236,24 @@ bool RFM69::ACKRequested() {
 
 /// Should be called immediately after reception in case sender wants ACK
 void RFM69::sendACK(const void* buffer, byte bufferSize) {
-  byte sender = SENDERID;
+  setMode(RF69_MODE_RX); //Switching from STANDBY to RX before TX
+  int _RSSI = RSSI; //save payload received RSSI value
+  bool canSendACK = false; 
   long now = millis();
-  while (!canSend() && millis()-now < RF69_CSMA_LIMIT_MS) receiveDone();
-  sendFrame(sender, buffer, bufferSize, false, true);
+  while (millis()-now < ACK_CSMA_LIMIT_MS) //wait for free network the same time as sender waits for ACK
+  {
+    if (readRSSI() < CSMA_LIMIT) //if signal weaker than -90dBm(CSMA_LIMIT) is detected channel should be free
+	{
+	  canSendACK = true;
+	  break;
+	}
+  }
+  if (canSendACK) // channel is free let's send ACK
+  {
+    writeReg(REG_PACKETCONFIG2, (readReg(REG_PACKETCONFIG2) & 0xFB) | RF_PACKET2_RXRESTART); // avoid RX deadlocks
+    sendFrame(SENDERID, buffer, bufferSize, false, true);
+  }
+  RSSI = _RSSI; //restore payload RSSI
 }
 
 void RFM69::sendFrame(byte toAddress, const void* buffer, byte bufferSize, bool requestACK, bool sendACK)

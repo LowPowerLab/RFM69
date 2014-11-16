@@ -291,7 +291,7 @@ void RFM69::interruptHandler() {
     TARGETID = SPI.transfer(0);
     if(!(_promiscuousMode || TARGETID==_address || TARGETID==RF69_BROADCAST_ADDR)) //match this node's address, or broadcast address or anything in promiscuous mode
     {
-      DATALEN = 0;
+      //DATALEN = 0;
       PAYLOADLEN = 0;
       unselect();
       //digitalWrite(4, 0);
@@ -300,7 +300,7 @@ void RFM69::interruptHandler() {
     // Address situation could receive packets that are malformed and don't fit this libraries extra fields
     if( PAYLOADLEN < 3 )
     {
-      DATALEN = 0;
+     // DATALEN = 0;
       PAYLOADLEN = 0;
       unselect();
       return;

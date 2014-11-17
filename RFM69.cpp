@@ -118,6 +118,7 @@ uint32_t RFM69::getFrequency()
 //set the frequency (in Hz)
 void RFM69::setFrequency(uint32_t freqHz)
 {
+  //TODO: p38 hopping sequence may need to be followed in some cases
   freqHz /= RF69_FSTEP; //divide down by FSTEP to get FRF
   writeReg(REG_FRFMSB, freqHz >> 16);
   writeReg(REG_FRFMID, freqHz >> 8);
@@ -192,7 +193,7 @@ bool RFM69::canSend()
 void RFM69::send(byte toAddress, const void* buffer, byte bufferSize, bool requestACK)
 {
   writeReg(REG_PACKETCONFIG2, (readReg(REG_PACKETCONFIG2) & 0xFB) | RF_PACKET2_RXRESTART); // avoid RX deadlocks
-  long now = millis();
+  unsigned long now = millis();
   while (!canSend() && millis()-now < RF69_CSMA_LIMIT_MS) receiveDone();
   sendFrame(toAddress, buffer, bufferSize, requestACK, false);
 }
@@ -204,7 +205,7 @@ void RFM69::send(byte toAddress, const void* buffer, byte bufferSize, bool reque
 // requires user action to read the received data and decide what to do with it
 // replies usually take only 5-8ms at 50kbps@915Mhz
 bool RFM69::sendWithRetry(byte toAddress, const void* buffer, byte bufferSize, byte retries, byte retryWaitTime) {
-  long sentTime;
+  unsigned long sentTime;
   for (byte i=0; i<=retries; i++)
   {
     send(toAddress, buffer, bufferSize, true);
@@ -237,9 +238,12 @@ bool RFM69::ACKRequested() {
 /// Should be called immediately after reception in case sender wants ACK
 void RFM69::sendACK(const void* buffer, byte bufferSize) {
   byte sender = SENDERID;
-  long now = millis();
+  int _RSSI = RSSI; //save payload received RSSI value
+  writeReg(REG_PACKETCONFIG2, (readReg(REG_PACKETCONFIG2) & 0xFB) | RF_PACKET2_RXRESTART); // avoid RX deadlocks
+  unsigned long now = millis();
   while (!canSend() && millis()-now < RF69_CSMA_LIMIT_MS) receiveDone();
   sendFrame(sender, buffer, bufferSize, false, true);
+  RSSI = _RSSI; //restore payload RSSI
 }
 
 void RFM69::sendFrame(byte toAddress, const void* buffer, byte bufferSize, bool requestACK, bool sendACK)
@@ -269,7 +273,8 @@ void RFM69::sendFrame(byte toAddress, const void* buffer, byte bufferSize, bool 
 
 	/* no need to wait for transmit mode to be ready since its handled by the radio */
 	setMode(RF69_MODE_TX);
-	while (digitalRead(_interruptPin) == 0); //wait for DIO0 to turn HIGH signalling transmission finish
+  unsigned long txStart = millis();
+	while (digitalRead(_interruptPin) == 0 && millis()-txStart < RF69_TX_LIMIT_MS); //wait for DIO0 to turn HIGH signalling transmission finish
   //while (readReg(REG_IRQFLAGS2) & RF_IRQFLAGS2_PACKETSENT == 0x00); // Wait for ModeReady
   setMode(RF69_MODE_STANDBY);
 }
@@ -286,13 +291,16 @@ void RFM69::interruptHandler() {
     PAYLOADLEN = SPI.transfer(0);
     PAYLOADLEN = PAYLOADLEN > 66 ? 66 : PAYLOADLEN; //precaution
     TARGETID = SPI.transfer(0);
-    if(!(_promiscuousMode || TARGETID==_address || TARGETID==RF69_BROADCAST_ADDR)) //match this node's address, or broadcast address or anything in promiscuous mode
+    if(!(_promiscuousMode || TARGETID==_address || TARGETID==RF69_BROADCAST_ADDR) //match this node's address, or broadcast address or anything in promiscuous mode
+       || PAYLOADLEN < 3) //address situation could receive packets that are malformed and don't fit this libraries extra fields
     {
       PAYLOADLEN = 0;
       unselect();
+      receiveBegin();
       //digitalWrite(4, 0);
       return;
     }
+
     DATALEN = PAYLOADLEN - 3;
     SENDERID = SPI.transfer(0);
     byte CTLbyte = SPI.transfer(0);

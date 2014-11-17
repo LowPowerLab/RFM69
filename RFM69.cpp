@@ -283,7 +283,8 @@ void RFM69::sendFrame(byte toAddress, const void* buffer, byte bufferSize, bool 
 
 	/* no need to wait for transmit mode to be ready since its handled by the radio */
 	setMode(RF69_MODE_TX);
-	while (digitalRead(_interruptPin) == 0); //wait for DIO0 to turn HIGH signalling transmission finish
+	unsigned long now = millis();
+	while (digitalRead(_interruptPin) == 0 && millis()-now < RF69_TX_LIMIT_MS); //wait for DIO0 to turn HIGH signalling transmission finish no longer than 1000ms
   //while (readReg(REG_IRQFLAGS2) & RF_IRQFLAGS2_PACKETSENT == 0x00); // Wait for ModeReady
   setMode(RF69_MODE_STANDBY);
 }

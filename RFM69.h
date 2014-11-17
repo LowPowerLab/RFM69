@@ -65,6 +65,8 @@
 #define COURSE_TEMP_COEF    -90 // puts the temperature reading in the ballpark, user can fine tune the returned value
 #define RF69_BROADCAST_ADDR 255
 #define RF69_CSMA_LIMIT_MS 1000
+#define RF69_TX_LIMIT_MS   1000
+#define ACK_CSMA_LIMIT_MS    40
 #define RF69_FSTEP 61.03515625 // == FXOSC/2^19 = 32mhz/2^19 (p13 in DS)
 
 class RFM69 {
@@ -94,7 +96,7 @@ class RFM69 {
     void setNetwork(byte networkID);
     bool canSend();
     void send(byte toAddress, const void* buffer, byte bufferSize, bool requestACK=false);
-    bool sendWithRetry(byte toAddress, const void* buffer, byte bufferSize, byte retries=2, byte retryWaitTime=40); //40ms roundtrip req for  61byte packets
+    bool sendWithRetry(byte toAddress, const void* buffer, byte bufferSize, byte retries=2, byte retryWaitTime=ACK_CSMA_LIMIT_MS); //40ms roundtrip req for  61byte packets
     bool receiveDone();
     bool ACKReceived(byte fromNodeID);
     bool ACKRequested();

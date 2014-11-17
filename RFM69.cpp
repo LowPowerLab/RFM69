@@ -192,7 +192,7 @@ bool RFM69::canSend()
 void RFM69::send(byte toAddress, const void* buffer, byte bufferSize, bool requestACK)
 {
   writeReg(REG_PACKETCONFIG2, (readReg(REG_PACKETCONFIG2) & 0xFB) | RF_PACKET2_RXRESTART); // avoid RX deadlocks
-  long now = millis();
+  unsigned long now = millis();
   while (!canSend() && millis()-now < RF69_CSMA_LIMIT_MS) receiveDone();
   sendFrame(toAddress, buffer, bufferSize, requestACK, false);
 }
@@ -200,11 +200,11 @@ void RFM69::send(byte toAddress, const void* buffer, byte bufferSize, bool reque
 // to increase the chance of getting a packet across, call this function instead of send
 // and it handles all the ACK requesting/retrying for you :)
 // The only twist is that you have to manually listen to ACK requests on the other side and send back the ACKs
-// The reason for the semi-automaton is that the lib is ingterrupt driven and
+// The reason for the semi-automaton is that the lib is interrupt driven and
 // requires user action to read the received data and decide what to do with it
 // replies usually take only 5-8ms at 50kbps@915Mhz
 bool RFM69::sendWithRetry(byte toAddress, const void* buffer, byte bufferSize, byte retries, byte retryWaitTime) {
-  long sentTime;
+  unsigned long sentTime;
   for (byte i=0; i<=retries; i++)
   {
     send(toAddress, buffer, bufferSize, true);
@@ -236,10 +236,24 @@ bool RFM69::ACKRequested() {
 
 /// Should be called immediately after reception in case sender wants ACK
 void RFM69::sendACK(const void* buffer, byte bufferSize) {
-  byte sender = SENDERID;
-  long now = millis();
-  while (!canSend() && millis()-now < RF69_CSMA_LIMIT_MS) receiveDone();
-  sendFrame(sender, buffer, bufferSize, false, true);
+  setMode(RF69_MODE_RX); //Switching from STANDBY to RX before TX
+  int _RSSI = RSSI; //save payload received RSSI value
+  bool canSendACK = false; 
+  unsigned long now = millis();
+  while (millis()-now < ACK_CSMA_LIMIT_MS) //wait for free network the same time as sender waits for ACK
+  {
+    if (readRSSI() < CSMA_LIMIT) //if signal weaker than -90dBm(CSMA_LIMIT) is detected channel should be free
+	{
+	  canSendACK = true;
+	  break;
+	}
+  }
+  if (canSendACK) // channel is free let's send ACK
+  {
+    writeReg(REG_PACKETCONFIG2, (readReg(REG_PACKETCONFIG2) & 0xFB) | RF_PACKET2_RXRESTART); // avoid RX deadlocks
+    sendFrame(SENDERID, buffer, bufferSize, false, true);
+  }
+  RSSI = _RSSI; //restore payload RSSI
 }
 
 void RFM69::sendFrame(byte toAddress, const void* buffer, byte bufferSize, bool requestACK, bool sendACK)
@@ -269,7 +283,8 @@ void RFM69::sendFrame(byte toAddress, const void* buffer, byte bufferSize, bool 
 
 	/* no need to wait for transmit mode to be ready since its handled by the radio */
 	setMode(RF69_MODE_TX);
-	while (digitalRead(_interruptPin) == 0); //wait for DIO0 to turn HIGH signalling transmission finish
+	unsigned long now = millis();
+	while (digitalRead(_interruptPin) == 0 && millis()-now < RF69_TX_LIMIT_MS); //wait for DIO0 to turn HIGH signalling transmission finish no longer than 1000ms
   //while (readReg(REG_IRQFLAGS2) & RF_IRQFLAGS2_PACKETSENT == 0x00); // Wait for ModeReady
   setMode(RF69_MODE_STANDBY);
 }
@@ -286,7 +301,7 @@ void RFM69::interruptHandler() {
     PAYLOADLEN = SPI.transfer(0);
     PAYLOADLEN = PAYLOADLEN > 66 ? 66 : PAYLOADLEN; //precaution
     TARGETID = SPI.transfer(0);
-    if(!(_promiscuousMode || TARGETID==_address || TARGETID==RF69_BROADCAST_ADDR)) //match this node's address, or broadcast address or anything in promiscuous mode
+    if(!(_promiscuousMode || TARGETID==_address || TARGETID==RF69_BROADCAST_ADDR || PAYLOADLEN < 3)) //match this node's address, or broadcast address or anything in promiscuous mode, and is payload valid?
     {
       PAYLOADLEN = 0;
       unselect();

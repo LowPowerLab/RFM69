@@ -300,7 +300,7 @@ void RFM69::interruptHandler() {
     PAYLOADLEN = SPI.transfer(0);
     PAYLOADLEN = PAYLOADLEN > 66 ? 66 : PAYLOADLEN; //precaution
     TARGETID = SPI.transfer(0);
-    if(!(_promiscuousMode || TARGETID==_address || TARGETID==RF69_BROADCAST_ADDR)) //match this node's address, or broadcast address or anything in promiscuous mode
+    if(!(_promiscuousMode || TARGETID==_address || TARGETID==RF69_BROADCAST_ADDR || PAYLOADLEN < 3)) //match this node's address, or broadcast address or anything in promiscuous mode, and is payload valid?
     {
       PAYLOADLEN = 0;
       unselect();

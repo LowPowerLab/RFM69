@@ -3,9 +3,10 @@
 // It also looks for an onboard FLASH chip, if present
 // Library and code by Felix Rusu - felix@lowpowerlab.com
 // Get the RFM69 and SPIFlash library at: https://github.com/LowPowerLab/
-#include <RFM69.h>
+
+#include <RFM69.h>    //get it here: https://www.github.com/lowpowerlab/rfm69
 #include <SPI.h>
-#include <SPIFlash.h>
+#include <SPIFlash.h> //get it here: https://www.github.com/lowpowerlab/spiflash
 
 #define NODEID        2    //unique for each node on same network
 #define NETWORKID     100  //the same on all nodes that talk to each other
@@ -27,7 +28,7 @@
 
 #define SERIAL_BAUD   115200
 
-int TRANSMITPERIOD = 300; //transmit a packet to gateway so often (in ms)
+int TRANSMITPERIOD = 150; //transmit a packet to gateway so often (in ms)
 char payload[] = "123 ABCDEFGHIJKLMNOPQRSTUVWXYZ";
 char buff[20];
 byte sendSize=0;
@@ -42,6 +43,7 @@ void setup() {
   radio.setHighPower(); //uncomment only for RFM69HW!
 #endif
   radio.encrypt(ENCRYPTKEY);
+  //radio.setFrequency(919000000); //set frequency to some custom frequency
   char buff[50];
   sprintf(buff, "\nTransmitting at %d Mhz...", FREQUENCY==RF69_433MHZ ? 433 : FREQUENCY==RF69_868MHZ ? 868 : 915);
   Serial.println(buff);
@@ -61,7 +63,7 @@ void setup() {
     Serial.println("SPI Flash Init FAIL! (is chip present?)");
 }
 
-long lastPeriod = -1;
+long lastPeriod = 0;
 void loop() {
   //process any serial input
   if (Serial.available() > 0)
@@ -124,33 +126,37 @@ void loop() {
       radio.sendACK();
       Serial.print(" - ACK sent");
     }
-    Blink(LED,5);
+    Blink(LED,3);
     Serial.println();
-  }
-
-  //send FLASH id
-  if(sendSize==0)
-  {
-    sprintf(buff, "FLASH_MEM_ID:0x%X", flash.readDeviceId());
-    byte buffLen=strlen(buff);
-    radio.sendWithRetry(GATEWAYID, buff, buffLen);
-    delay(TRANSMITPERIOD);
   }
 
   int currPeriod = millis()/TRANSMITPERIOD;
   if (currPeriod != lastPeriod)
   {
     lastPeriod=currPeriod;
-    Serial.print("Sending[");
-    Serial.print(sendSize);
-    Serial.print("]: ");
-    for(byte i = 0; i < sendSize; i++)
-      Serial.print((char)payload[i]);
-
-    if (radio.sendWithRetry(GATEWAYID, payload, sendSize))
-     Serial.print(" ok!");
-    else Serial.print(" nothing...");
-
+    
+    //send FLASH id
+    if(sendSize==0)
+    {
+      sprintf(buff, "FLASH_MEM_ID:0x%X", flash.readDeviceId());
+      byte buffLen=strlen(buff);
+      if (radio.sendWithRetry(GATEWAYID, buff, buffLen))
+        Serial.print(" ok!");
+      else Serial.print(" nothing...");
+      //sendSize = (sendSize + 1) % 31;
+    }
+    else
+    {
+      Serial.print("Sending[");
+      Serial.print(sendSize);
+      Serial.print("]: ");
+      for(byte i = 0; i < sendSize; i++)
+        Serial.print((char)payload[i]);
+  
+      if (radio.sendWithRetry(GATEWAYID, payload, sendSize))
+       Serial.print(" ok!");
+      else Serial.print(" nothing...");
+    }
     sendSize = (sendSize + 1) % 31;
     Serial.println();
     Blink(LED,3);

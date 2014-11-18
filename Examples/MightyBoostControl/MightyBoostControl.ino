@@ -45,7 +45,10 @@
 #define LED                 5     // LED pin, should be analog for fading effect (PWM)
 #define BUTTON              3     // Power button pin
 #define SIG_REQUESTHALT     6     // Signal to Pi to ask for a shutdown
-#define SIG_OKTOCUTOFF      7     // Signal from Pi that it's OK to cutoff power
+#define SIG_OKTOCUTOFF     A0     // Signal from Pi that it's OK to cutoff power
+                                  // !!NOTE!! Originally this was D7 but it was moved to A0 at least temporarily.
+                                  // On MightyBoost R1 you need to connect D7 and A0 with a jumper wire.
+                                  // The explanation for this is given here: http://lowpowerlab.com/mightyboost/#source
 #define OUTPUT_5V           4     // HIGH on this pin will switch the "5V*" output ON
 #define BATTERYSENSE       A7     // Sense VBAT_COND signal (when powered externally should read ~3.25v/3.3v (1000-1023), when external power is cutoff it should start reading around 2.85v/3.3v * 1023 ~= 880 (ratio given by 10k+4.7K divider from VBAT_COND = 1.47 multiplier)
                                   // hence the actual input voltage = analogRead(A7) * 0.00322 (3.3v/1024) * 1.47 (10k+4.7k voltage divider ratio)
@@ -105,7 +108,8 @@ void loop() {
           
       //SIG_OKTOCUTOFF must be HIGH when Pi is ON. During boot, this will take a while to happen (till it executes the "shutdowncheck" script
       //so I dont want to cutoff power before it had a chance to fully boot up
-      if (batteryLow || (PowerState == 1 && digitalRead(SIG_OKTOCUTOFF)==1))
+      //if (batteryLow || (PowerState == 1 && digitalRead(SIG_OKTOCUTOFF)==1))
+      if (batteryLow || (PowerState == 1 && analogRead(SIG_OKTOCUTOFF)>800))
       {
         // signal Pi to shutdown
         digitalWrite(SIG_REQUESTHALT, HIGH);
@@ -138,7 +142,8 @@ void loop() {
           if (millis() - now > PIShutdownDelay_Min)
           {
             // Pi signaling OK to turn off
-            if (digitalRead(SIG_OKTOCUTOFF) == 0)
+            //if (digitalRead(SIG_OKTOCUTOFF) == 0)
+            if (analogRead(SIG_OKTOCUTOFF) < 800)
             {
               PowerState = 0;
               digitalWrite(LED, PowerState); //turn off LED to indicate power is being cutoff
@@ -170,7 +175,8 @@ void loop() {
         
         digitalWrite(SIG_REQUESTHALT, LOW);
       }
-      else if (PowerState == 1 && digitalRead(SIG_OKTOCUTOFF)==0)
+      //else if (PowerState == 1 && digitalRead(SIG_OKTOCUTOFF)==0)
+      else if (PowerState == 1 && analogRead(SIG_OKTOCUTOFF)<800)
       {
         now = millis();
         unsigned long now2 = millis();

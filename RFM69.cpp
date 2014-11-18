@@ -9,22 +9,21 @@
 // This program is free software; you can redistribute it 
 // and/or modify it under the terms of the GNU General    
 // Public License as published by the Free Software       
-// Foundation; either version 2 of the License, or        
+// Foundation; either version 3 of the License, or        
 // (at your option) any later version.                    
 //                                                        
 // This program is distributed in the hope that it will   
 // be useful, but WITHOUT ANY WARRANTY; without even the  
 // implied warranty of MERCHANTABILITY or FITNESS FOR A   
-// PARTICULAR PURPOSE.  See the GNU General Public        
+// PARTICULAR PURPOSE. See the GNU General Public        
 // License for more details.                              
 //                                                        
 // You should have received a copy of the GNU General    
-// Public License along with this program; if not, write 
-// to the Free Software Foundation, Inc.,                
-// 59 Temple Place, Suite 330, Boston, MA  02111-1307 USA
+// Public License along with this program.
+// If not, see <http://www.gnu.org/licenses/>.
 //                                                        
 // Licence can be viewed at                               
-// http://www.fsf.org/licenses/gpl.txt                    
+// http://www.gnu.org/licenses/gpl-3.0.txt
 //
 // Please maintain this license information along with authorship
 // and copyright notices in any redistribution of this code
@@ -110,11 +109,20 @@ bool RFM69::initialize(byte freqBand, byte nodeID, byte networkID)
   return true;
 }
 
-void RFM69::setFrequency(uint32_t FRF)
+//return the frequency (in Hz)
+uint32_t RFM69::getFrequency()
 {
-  writeReg(REG_FRFMSB, FRF >> 16);
-  writeReg(REG_FRFMID, FRF >> 8);
-  writeReg(REG_FRFLSB, FRF);
+  return RF69_FSTEP * (((uint32_t)readReg(REG_FRFMSB)<<16) + ((uint16_t)readReg(REG_FRFMID)<<8) + readReg(REG_FRFLSB));
+}
+
+//set the frequency (in Hz)
+void RFM69::setFrequency(uint32_t freqHz)
+{
+  //TODO: p38 hopping sequence may need to be followed in some cases
+  freqHz /= RF69_FSTEP; //divide down by FSTEP to get FRF
+  writeReg(REG_FRFMSB, freqHz >> 16);
+  writeReg(REG_FRFMID, freqHz >> 8);
+  writeReg(REG_FRFLSB, freqHz);
 }
 
 void RFM69::setMode(byte newMode)
@@ -159,6 +167,11 @@ void RFM69::setAddress(byte addr)
 	writeReg(REG_NODEADRS, _address);
 }
 
+void RFM69::setNetwork(byte networkID)
+{
+	writeReg(REG_SYNCVALUE2, networkID);
+}
+
 // set output power: 0=min, 31=max
 // this results in a "weaker" transmitted signal, and directly results in a lower RSSI at the receiver
 void RFM69::setPowerLevel(byte powerLevel)
@@ -180,7 +193,7 @@ bool RFM69::canSend()
 void RFM69::send(byte toAddress, const void* buffer, byte bufferSize, bool requestACK)
 {
   writeReg(REG_PACKETCONFIG2, (readReg(REG_PACKETCONFIG2) & 0xFB) | RF_PACKET2_RXRESTART); // avoid RX deadlocks
-  long now = millis();
+  unsigned long now = millis();
   while (!canSend() && millis()-now < RF69_CSMA_LIMIT_MS) receiveDone();
   sendFrame(toAddress, buffer, bufferSize, requestACK, false);
 }
@@ -192,7 +205,7 @@ void RFM69::send(byte toAddress, const void* buffer, byte bufferSize, bool reque
 // requires user action to read the received data and decide what to do with it
 // replies usually take only 5-8ms at 50kbps@915Mhz
 bool RFM69::sendWithRetry(byte toAddress, const void* buffer, byte bufferSize, byte retries, byte retryWaitTime) {
-  long sentTime;
+  unsigned long sentTime;
   for (byte i=0; i<=retries; i++)
   {
     send(toAddress, buffer, bufferSize, true);
@@ -225,8 +238,12 @@ bool RFM69::ACKRequested() {
 /// Should be called immediately after reception in case sender wants ACK
 void RFM69::sendACK(const void* buffer, byte bufferSize) {
   byte sender = SENDERID;
-  while (!canSend()) receiveDone();
+  int _RSSI = RSSI; //save payload received RSSI value
+  writeReg(REG_PACKETCONFIG2, (readReg(REG_PACKETCONFIG2) & 0xFB) | RF_PACKET2_RXRESTART); // avoid RX deadlocks
+  unsigned long now = millis();
+  while (!canSend() && millis()-now < RF69_CSMA_LIMIT_MS) receiveDone();
   sendFrame(sender, buffer, bufferSize, false, true);
+  RSSI = _RSSI; //restore payload RSSI
 }
 
 void RFM69::sendFrame(byte toAddress, const void* buffer, byte bufferSize, bool requestACK, bool sendACK)
@@ -256,7 +273,8 @@ void RFM69::sendFrame(byte toAddress, const void* buffer, byte bufferSize, bool 
 
 	/* no need to wait for transmit mode to be ready since its handled by the radio */
 	setMode(RF69_MODE_TX);
-	while (digitalRead(_interruptPin) == 0); //wait for DIO0 to turn HIGH signalling transmission finish
+  unsigned long txStart = millis();
+	while (digitalRead(_interruptPin) == 0 && millis()-txStart < RF69_TX_LIMIT_MS); //wait for DIO0 to turn HIGH signalling transmission finish
   //while (readReg(REG_IRQFLAGS2) & RF_IRQFLAGS2_PACKETSENT == 0x00); // Wait for ModeReady
   setMode(RF69_MODE_STANDBY);
 }
@@ -273,13 +291,16 @@ void RFM69::interruptHandler() {
     PAYLOADLEN = SPI.transfer(0);
     PAYLOADLEN = PAYLOADLEN > 66 ? 66 : PAYLOADLEN; //precaution
     TARGETID = SPI.transfer(0);
-    if(!(_promiscuousMode || TARGETID==_address || TARGETID==RF69_BROADCAST_ADDR)) //match this node's address, or broadcast address or anything in promiscuous mode
+    if(!(_promiscuousMode || TARGETID==_address || TARGETID==RF69_BROADCAST_ADDR) //match this node's address, or broadcast address or anything in promiscuous mode
+       || PAYLOADLEN < 3) //address situation could receive packets that are malformed and don't fit this libraries extra fields
     {
       PAYLOADLEN = 0;
       unselect();
+      receiveBegin();
       //digitalWrite(4, 0);
       return;
     }
+
     DATALEN = PAYLOADLEN - 3;
     SENDERID = SPI.transfer(0);
     byte CTLbyte = SPI.transfer(0);

@@ -238,10 +238,7 @@ bool RFM69::ACKRequested() {
 /// Should be called immediately after reception in case sender wants ACK
 void RFM69::sendACK(const void* buffer, byte bufferSize) {
   byte sender = SENDERID;
-<<<<<<< HEAD
-=======
   int _RSSI = RSSI; //save payload received RSSI value
->>>>>>> 0518667c1908b35933709d091dd62663ba7c3f5e
   writeReg(REG_PACKETCONFIG2, (readReg(REG_PACKETCONFIG2) & 0xFB) | RF_PACKET2_RXRESTART); // avoid RX deadlocks
   unsigned long now = millis();
   while (!canSend() && millis()-now < RF69_CSMA_LIMIT_MS) receiveDone();
@@ -277,12 +274,7 @@ void RFM69::sendFrame(byte toAddress, const void* buffer, byte bufferSize, bool 
 	/* no need to wait for transmit mode to be ready since its handled by the radio */
 	setMode(RF69_MODE_TX);
   unsigned long txStart = millis();
-<<<<<<< HEAD
-	//wait for DIO0 to turn HIGH signalling transmission finish
-  while (digitalRead(_interruptPin) == 0 && millis()-txStart < RF69_TX_LIMIT_GUARD_MS);
-=======
 	while (digitalRead(_interruptPin) == 0 && millis()-txStart < RF69_TX_LIMIT_MS); //wait for DIO0 to turn HIGH signalling transmission finish
->>>>>>> 0518667c1908b35933709d091dd62663ba7c3f5e
   //while (readReg(REG_IRQFLAGS2) & RF_IRQFLAGS2_PACKETSENT == 0x00); // Wait for ModeReady
   setMode(RF69_MODE_STANDBY);
 }
@@ -302,24 +294,12 @@ void RFM69::interruptHandler() {
     if(!(_promiscuousMode || TARGETID==_address || TARGETID==RF69_BROADCAST_ADDR) //match this node's address, or broadcast address or anything in promiscuous mode
        || PAYLOADLEN < 3) //address situation could receive packets that are malformed and don't fit this libraries extra fields
     {
-      //DATALEN = 0;
       PAYLOADLEN = 0;
       unselect();
       receiveBegin();
       //digitalWrite(4, 0);
       return;
     }
-<<<<<<< HEAD
-    // Address situation could receive packets that are malformed and don't fit this libraries extra fields
-    if( PAYLOADLEN < 3 )
-    {
-     // DATALEN = 0;
-      PAYLOADLEN = 0;
-      unselect();
-      return;
-    }
-=======
->>>>>>> 0518667c1908b35933709d091dd62663ba7c3f5e
 
     DATALEN = PAYLOADLEN - 3;
     SENDERID = SPI.transfer(0);
@@ -366,9 +346,7 @@ bool RFM69::receiveDone() {
     return true;
   }
   else if (_mode == RF69_MODE_RX)  //already in RX no payload yet
-  {    
-    // Trigger a packet read, just in case we missed an interrupt, avoids a potential deadlock
-    interruptHandler();
+  {
     interrupts(); //explicitly re-enable interrupts
     return false;
   }

@@ -474,7 +474,7 @@ byte RFM69::readTemperature(byte calFactor)  //returns centigrade
 {
   setMode(RF69_MODE_STANDBY);
   writeReg(REG_TEMP1, RF_TEMP1_MEAS_START);
-  while ((readReg(REG_TEMP1) & RF_TEMP1_MEAS_RUNNING)) Serial.print('*');
+  while ((readReg(REG_TEMP1) & RF_TEMP1_MEAS_RUNNING));
   return ~readReg(REG_TEMP2) + COURSE_TEMP_COEF + calFactor; //'complement'corrects the slope, rising temp = rising val
 }												   	  // COURSE_TEMP_COEF puts reading in the ballpark, user can add additional correction
 

@@ -14,7 +14,7 @@ RFM69 radio;
 SPIFlash flash(8, 0xEF30); //EF40 for 16mbit windbond chip
 bool promiscuousMode = false; //set to 'true' to sniff all packets on the same network
 
-typedef struct {		
+typedef struct {
   int           nodeId; //store this nodeId
   unsigned long uptime; //uptime in ms
   float         temp;   //temperature maybe?
@@ -88,10 +88,10 @@ void loop() {
     Serial.print('[');Serial.print(radio.SENDERID, DEC);Serial.print("] ");
     Serial.print(" [RX_RSSI:");Serial.print(radio.readRSSI());Serial.print("]");
     if (promiscuousMode)
-	{
+    {
       Serial.print("to [");Serial.print(radio.TARGETID, DEC);Serial.print("] ");
     }
-	
+
     if (radio.DATALEN != sizeof(Payload))
       Serial.print("Invalid payload received, not matching Payload struct!");
     else

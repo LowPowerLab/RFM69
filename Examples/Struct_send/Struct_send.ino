@@ -17,7 +17,7 @@ boolean requestACK = false;
 SPIFlash flash(8, 0xEF30); //EF40 for 16mbit windbond chip
 RFM69 radio;
 
-typedef struct {		
+typedef struct {
   int           nodeId; //store this nodeId
   unsigned long uptime; //uptime in ms
   float         temp;   //temperature maybe?

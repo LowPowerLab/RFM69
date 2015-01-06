@@ -111,8 +111,8 @@
 #define REG_AESKEY16      0x4D
 #define REG_TEMP1         0x4E
 #define REG_TEMP2         0x4F
-#define REG_TESTPA1       0x5A //only present on RFM69HW/SX1231H
-#define REG_TESTPA2       0x5C //only present on RFM69HW/SX1231H
+#define REG_TESTPA1       0x5A // only present on RFM69HW/SX1231H
+#define REG_TESTPA2       0x5C // only present on RFM69HW/SX1231H
 #define REG_TESTDAGC      0x6F
 
 //******************************************************
@@ -192,7 +192,7 @@
 #define RF_BITRATELSB_300000          0x6B
 #define RF_BITRATEMSB_32768           0x03
 #define RF_BITRATELSB_32768           0xD1
-//custom bit rates
+// custom bit rates
 #define RF_BITRATEMSB_55555           0x02
 #define RF_BITRATELSB_55555           0x40
 #define RF_BITRATEMSB_200KBPS         0x00
@@ -1066,4 +1066,3 @@
 #define RF_DAGC_NORMAL              0x00  // Reset value
 #define RF_DAGC_IMPROVED_LOWBETA1   0x20  //
 #define RF_DAGC_IMPROVED_LOWBETA0   0x30  // Recommended default
-

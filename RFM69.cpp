@@ -119,16 +119,24 @@ uint32_t RFM69::getFrequency()
 // set the frequency (in Hz)
 void RFM69::setFrequency(uint32_t freqHz)
 {
-  // TODO: datasheet p38 hopping sequence may need to be followed in some cases
+  uint8_t oldMode = _mode;
+  if (oldMode == RF69_MODE_TX) {
+    setMode(RF69_MODE_RX);
+  }
   freqHz /= RF69_FSTEP; // divide down by FSTEP to get FRF
   writeReg(REG_FRFMSB, freqHz >> 16);
   writeReg(REG_FRFMID, freqHz >> 8);
   writeReg(REG_FRFLSB, freqHz);
+  if (oldMode == RF69_MODE_RX) {
+    setMode(RF69_MODE_SYNTH);
+  }
+  setMode(oldMode);
 }
 
 void RFM69::setMode(uint8_t newMode)
 {
-  if (newMode == _mode) return; // TODO: can remove this?
+  if (newMode == _mode)
+    return;
 
   switch (newMode) {
     case RF69_MODE_TX:
@@ -148,7 +156,8 @@ void RFM69::setMode(uint8_t newMode)
     case RF69_MODE_SLEEP:
       writeReg(REG_OPMODE, (readReg(REG_OPMODE) & 0xE3) | RF_OPMODE_SLEEP);
       break;
-    default: return;
+    default:
+      return;
   }
 
   // we are using packet mode, so this check is not really needed

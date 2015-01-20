@@ -70,6 +70,7 @@ bool RFM69::initialize(uint8_t freqBand, uint8_t nodeID, uint8_t networkID)
     /* 0x19 */ { REG_RXBW, RF_RXBW_DCCFREQ_010 | RF_RXBW_MANT_16 | RF_RXBW_EXP_2 }, // (BitRate < 2 * RxBw)
     //for BR-19200: /* 0x19 */ { REG_RXBW, RF_RXBW_DCCFREQ_010 | RF_RXBW_MANT_24 | RF_RXBW_EXP_3 },
     /* 0x25 */ { REG_DIOMAPPING1, RF_DIOMAPPING1_DIO0_01 }, // DIO0 is the only IRQ we're using
+    /* 0x28 */ { REG_IRQFLAGS2, RF_IRQFLAGS2_FIFOOVERRUN }, // writing to this bit ensures that the FIFO & status flags are reset
     /* 0x29 */ { REG_RSSITHRESH, 220 }, // must be set to dBm = (-Sensitivity / 2), default is 0xE4 = 228 so -114dBm
     ///* 0x2D */ { REG_PREAMBLELSB, RF_PREAMBLESIZE_LSB_VALUE } // default 3 preamble bytes 0xAAAAAA
     /* 0x2E */ { REG_SYNCCONFIG, RF_SYNC_ON | RF_SYNC_FIFOFILL_AUTO | RF_SYNC_SIZE_2 | RF_SYNC_TOL_0 },
@@ -86,6 +87,7 @@ bool RFM69::initialize(uint8_t freqBand, uint8_t nodeID, uint8_t networkID)
     {255, 0}
   };
 
+  digitalWrite(_slaveSelectPin, HIGH);
   pinMode(_slaveSelectPin, OUTPUT);
   SPI.begin();
 
@@ -118,16 +120,24 @@ uint32_t RFM69::getFrequency()
 // set the frequency (in Hz)
 void RFM69::setFrequency(uint32_t freqHz)
 {
-  // TODO: datasheet p38 hopping sequence may need to be followed in some cases
+  uint8_t oldMode = _mode;
+  if (oldMode == RF69_MODE_TX) {
+    setMode(RF69_MODE_RX);
+  }
   freqHz /= RF69_FSTEP; // divide down by FSTEP to get FRF
   writeReg(REG_FRFMSB, freqHz >> 16);
   writeReg(REG_FRFMID, freqHz >> 8);
   writeReg(REG_FRFLSB, freqHz);
+  if (oldMode == RF69_MODE_RX) {
+    setMode(RF69_MODE_SYNTH);
+  }
+  setMode(oldMode);
 }
 
 void RFM69::setMode(uint8_t newMode)
 {
-  if (newMode == _mode) return; // TODO: can remove this?
+  if (newMode == _mode)
+    return;
 
   switch (newMode) {
     case RF69_MODE_TX:
@@ -147,7 +157,8 @@ void RFM69::setMode(uint8_t newMode)
     case RF69_MODE_SLEEP:
       writeReg(REG_OPMODE, (readReg(REG_OPMODE) & 0xE3) | RF_OPMODE_SLEEP);
       break;
-    default: return;
+    default:
+      return;
   }
 
   // we are using packet mode, so this check is not really needed
@@ -446,6 +457,7 @@ void RFM69::setHighPowerRegs(bool onOff) {
 
 void RFM69::setCS(uint8_t newSPISlaveSelect) {
   _slaveSelectPin = newSPISlaveSelect;
+  digitalWrite(_slaveSelectPin, HIGH);
   pinMode(_slaveSelectPin, OUTPUT);
 }
 

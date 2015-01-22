@@ -14,9 +14,9 @@
 #include <SPIFlash.h>      //get it here: http://github.com/lowpowerlab/spiflash
 #include <WirelessHEX69.h> //get it here: https://github.com/LowPowerLab/WirelessProgramming
 #include <SPI.h>           //comes with Arduino IDE (www.arduino.cc)
-#include "ST7036.h"
-#include "LCD_C0220BiZ.h"
-#include <Wire.h>
+#include "ST7036.h"        //get it from here: https://bitbucket.org/fmalpartida/st7036-display-driver/src/
+#include "LCD_C0220BiZ.h"  //get it from here: https://bitbucket.org/fmalpartida/st7036-display-driver/src/
+#include <Wire.h>          //comes with Arduino
 
 //*****************************************************************************************************************************
 // ADJUST THE SETTINGS BELOW DEPENDING ON YOUR HARDWARE/SITUATION!

@@ -748,8 +748,8 @@
 
 
 // RegLna
-#define RF_LNA_ZIN_50                 0x00
-#define RF_LNA_ZIN_200                0x80  // Default
+#define RF_LNA_ZIN_50                 0x00  // Reset value
+#define RF_LNA_ZIN_200                0x80  // Recommended default
 
 #define RF_LNA_LOWPOWER_OFF           0x00  // Default
 #define RF_LNA_LOWPOWER_ON            0x40
@@ -768,24 +768,24 @@
 // RegRxBw
 #define RF_RXBW_DCCFREQ_000           0x00
 #define RF_RXBW_DCCFREQ_001           0x20
-#define RF_RXBW_DCCFREQ_010           0x40  // Default
+#define RF_RXBW_DCCFREQ_010           0x40  // Recommended default
 #define RF_RXBW_DCCFREQ_011           0x60
-#define RF_RXBW_DCCFREQ_100           0x80
+#define RF_RXBW_DCCFREQ_100           0x80  // Reset value
 #define RF_RXBW_DCCFREQ_101           0xA0
 #define RF_RXBW_DCCFREQ_110           0xC0
 #define RF_RXBW_DCCFREQ_111           0xE0
 
-#define RF_RXBW_MANT_16               0x00
+#define RF_RXBW_MANT_16               0x00  // Reset value
 #define RF_RXBW_MANT_20               0x08
-#define RF_RXBW_MANT_24               0x10  // Default
+#define RF_RXBW_MANT_24               0x10  // Recommended default
 
 #define RF_RXBW_EXP_0                 0x00
 #define RF_RXBW_EXP_1                 0x01
 #define RF_RXBW_EXP_2                 0x02
 #define RF_RXBW_EXP_3                 0x03
 #define RF_RXBW_EXP_4                 0x04
-#define RF_RXBW_EXP_5                 0x05  // Default
-#define RF_RXBW_EXP_6                 0x06
+#define RF_RXBW_EXP_5                 0x05  // Recommended default
+#define RF_RXBW_EXP_6                 0x06  // Reset value
 #define RF_RXBW_EXP_7                 0x07
 
 
@@ -805,8 +805,8 @@
 
 #define RF_AFCBW_EXPAFC_0             0x00
 #define RF_AFCBW_EXPAFC_1             0x01
-#define RF_AFCBW_EXPAFC_2             0x02
-#define RF_AFCBW_EXPAFC_3             0x03  // Default
+#define RF_AFCBW_EXPAFC_2             0x02  // Reset value
+#define RF_AFCBW_EXPAFC_3             0x03  // Recommended default
 #define RF_AFCBW_EXPAFC_4             0x04
 #define RF_AFCBW_EXPAFC_5             0x05
 #define RF_AFCBW_EXPAFC_6             0x06
@@ -908,9 +908,9 @@
 #define RF_DIOMAPPING2_CLKOUT_8           0x02
 #define RF_DIOMAPPING2_CLKOUT_4           0x03
 #define RF_DIOMAPPING2_CLKOUT_2           0x04
-#define RF_DIOMAPPING2_CLKOUT_1           0x05
+#define RF_DIOMAPPING2_CLKOUT_1           0x05  // Reset value
 #define RF_DIOMAPPING2_CLKOUT_RC          0x06
-#define RF_DIOMAPPING2_CLKOUT_OFF         0x07  // Default
+#define RF_DIOMAPPING2_CLKOUT_OFF         0x07  // Recommended default
 
 
 // RegIrqFlags1
@@ -1042,8 +1042,8 @@
 
 
 // RegFifoThresh
-#define RF_FIFOTHRESH_TXSTART_FIFOTHRESH      0x00
-#define RF_FIFOTHRESH_TXSTART_FIFONOTEMPTY    0x80  // Default
+#define RF_FIFOTHRESH_TXSTART_FIFOTHRESH      0x00  // Reset value
+#define RF_FIFOTHRESH_TXSTART_FIFONOTEMPTY    0x80  // Recommended default
 
 #define RF_FIFOTHRESH_VALUE                   0x0F  // Default
 

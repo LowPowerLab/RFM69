@@ -1,7 +1,7 @@
 // **********************************************************************************
 // Registers used in driver definition for HopeRF RFM69W/RFM69HW, Semtech SX1231/1231H
 // **********************************************************************************
-// Copyright Felix Rusu (2014), felix@lowpowerlab.com
+// Copyright Felix Rusu (2015), felix@lowpowerlab.com
 // http://lowpowerlab.com/
 // **********************************************************************************
 // License
@@ -51,10 +51,10 @@
 #define REG_PALEVEL       0x11
 #define REG_PARAMP        0x12
 #define REG_OCP           0x13
-#define REG_AGCREF        0x14
-#define REG_AGCTHRESH1    0x15
-#define REG_AGCTHRESH2    0x16
-#define REG_AGCTHRESH3    0x17
+#define REG_AGCREF        0x14  // not present on RFM69/SX1231
+#define REG_AGCTHRESH1    0x15  // not present on RFM69/SX1231
+#define REG_AGCTHRESH2    0x16  // not present on RFM69/SX1231
+#define REG_AGCTHRESH3    0x17  // not present on RFM69/SX1231
 #define REG_LNA           0x18
 #define REG_RXBW          0x19
 #define REG_AFCBW         0x1A
@@ -111,13 +111,15 @@
 #define REG_AESKEY16      0x4D
 #define REG_TEMP1         0x4E
 #define REG_TEMP2         0x4F
-#define REG_TESTPA1       0x5A // only present on RFM69HW/SX1231H
-#define REG_TESTPA2       0x5C // only present on RFM69HW/SX1231H
+#define REG_TESTLNA       0x58
+#define REG_TESTPA1       0x5A  // only present on RFM69HW/SX1231H
+#define REG_TESTPA2       0x5C  // only present on RFM69HW/SX1231H
 #define REG_TESTDAGC      0x6F
 
 //******************************************************
 // RF69/SX1231 bit control definition
 //******************************************************
+
 // RegOpMode
 #define RF_OPMODE_SEQUENCER_OFF       0x80
 #define RF_OPMODE_SEQUENCER_ON        0x00  // Default
@@ -133,6 +135,7 @@
 #define RF_OPMODE_TRANSMITTER         0x0C
 #define RF_OPMODE_RECEIVER            0x10
 
+
 // RegDataModul
 #define RF_DATAMODUL_DATAMODE_PACKET            0x00  // Default
 #define RF_DATAMODUL_DATAMODE_CONTINUOUS        0x40
@@ -145,6 +148,7 @@
 #define RF_DATAMODUL_MODULATIONSHAPING_01       0x01
 #define RF_DATAMODUL_MODULATIONSHAPING_10       0x02
 #define RF_DATAMODUL_MODULATIONSHAPING_11       0x03
+
 
 // RegBitRate (bits/sec) example bit rates
 #define RF_BITRATEMSB_1200            0x68
@@ -197,6 +201,7 @@
 #define RF_BITRATELSB_55555           0x40
 #define RF_BITRATEMSB_200KBPS         0x00
 #define RF_BITRATELSB_200KBPS         0xa0
+
 
 // RegFdev - frequency deviation (Hz)
 #define RF_FDEVMSB_2000             0x00
@@ -283,6 +288,7 @@
 #define RF_FDEVLSB_290000           0x8F
 #define RF_FDEVMSB_300000           0x13
 #define RF_FDEVLSB_300000           0x33
+
 
 // RegFrf (MHz) - carrier frequency
 // 315Mhz band
@@ -418,6 +424,12 @@
 #define RF_OSC1_RCCAL_START       0x80
 #define RF_OSC1_RCCAL_DONE        0x40
 
+
+// RegAfcCtrl
+#define RF_AFCCTRL_LOWBETA_OFF    0x00  // Default
+#define RF_AFCCTRL_LOWBETA_ON     0x20
+
+
 // RegLowBat
 #define RF_LOWBAT_MONITOR         0x10
 #define RF_LOWBAT_ON              0x08
@@ -438,6 +450,14 @@
 #define RF_LISTEN1_RESOL_4100     0xA0  // Default
 #define RF_LISTEN1_RESOL_262000   0xF0
 
+#define RF_LISTEN1_RESOL_IDLE_64     0x40
+#define RF_LISTEN1_RESOL_IDLE_4100   0x80  // Default
+#define RF_LISTEN1_RESOL_IDLE_262000 0xC0
+
+#define RF_LISTEN1_RESOL_RX_64       0x10
+#define RF_LISTEN1_RESOL_RX_4100     0x20  // Default
+#define RF_LISTEN1_RESOL_RX_262000   0x30
+
 #define RF_LISTEN1_CRITERIA_RSSI          0x00  // Default
 #define RF_LISTEN1_CRITERIA_RSSIANDSYNC   0x08
 
@@ -449,8 +469,14 @@
 // RegListen2
 #define RF_LISTEN2_COEFIDLE_VALUE         0xF5 // Default
 
+
 // RegListen3
 #define RF_LISTEN3_COEFRX_VALUE           0x20 // Default
+
+
+// RegVersion
+#define RF_VERSION_VER        0x24  // Default
+
 
 // RegPaLevel
 #define RF_PALEVEL_PA0_ON     0x80  // Default
@@ -527,15 +553,15 @@
 #define RF_OCP_TRIM_80            0x07
 #define RF_OCP_TRIM_85            0x08
 #define RF_OCP_TRIM_90            0x09
-#define RF_OCP_TRIM_95            0x0A
-#define RF_OCP_TRIM_100           0x0B  // Default
+#define RF_OCP_TRIM_95            0x0A  // Default
+#define RF_OCP_TRIM_100           0x0B
 #define RF_OCP_TRIM_105           0x0C
 #define RF_OCP_TRIM_110           0x0D
 #define RF_OCP_TRIM_115           0x0E
 #define RF_OCP_TRIM_120           0x0F
 
 
-// RegAgcRef
+// RegAgcRef - not present on RFM69/SX1231
 #define RF_AGCREF_AUTO_ON         0x40  // Default
 #define RF_AGCREF_AUTO_OFF        0x00
 
@@ -605,7 +631,7 @@
 #define RF_AGCREF_LEVEL_MINUS143  0x3F
 
 
-// RegAgcThresh1
+// RegAgcThresh1 - not present on RFM69/SX1231
 #define RF_AGCTHRESH1_SNRMARGIN_000   0x00
 #define RF_AGCTHRESH1_SNRMARGIN_001   0x20
 #define RF_AGCTHRESH1_SNRMARGIN_010   0x40
@@ -649,7 +675,7 @@
 #define RF_AGCTHRESH1_STEP1_31        0x1F
 
 
-// RegAgcThresh2
+// RegAgcThresh2 - not present on RFM69/SX1231
 #define RF_AGCTHRESH2_STEP2_0         0x00
 #define RF_AGCTHRESH2_STEP2_1         0x10
 #define RF_AGCTHRESH2_STEP2_2         0x20
@@ -685,7 +711,7 @@
 #define RF_AGCTHRESH2_STEP3_15        0x0F
 
 
-// RegAgcThresh3
+// RegAgcThresh3 - not present on RFM69/SX1231
 #define RF_AGCTHRESH3_STEP4_0         0x00
 #define RF_AGCTHRESH3_STEP4_1         0x10
 #define RF_AGCTHRESH3_STEP4_2         0x20
@@ -835,9 +861,11 @@
 #define RF_AFCFEI_AFC_CLEAR               0x02
 #define RF_AFCFEI_AFC_START               0x01
 
+
 // RegRssiConfig
-#define RF_RSSI_FASTRX_ON                 0x08
+#define RF_RSSI_FASTRX_ON                 0x08  // not present on RFM69/SX1231
 #define RF_RSSI_FASTRX_OFF                0x00  // Default
+
 #define RF_RSSI_DONE                      0x02
 #define RF_RSSI_START                     0x01
 
@@ -895,6 +923,7 @@
 #define RF_IRQFLAGS1_AUTOMODE             0x02
 #define RF_IRQFLAGS1_SYNCADDRESSMATCH     0x01
 
+
 // RegIrqFlags2
 #define RF_IRQFLAGS2_FIFOFULL             0x80
 #define RF_IRQFLAGS2_FIFONOTEMPTY         0x40
@@ -903,16 +932,20 @@
 #define RF_IRQFLAGS2_PACKETSENT           0x08
 #define RF_IRQFLAGS2_PAYLOADREADY         0x04
 #define RF_IRQFLAGS2_CRCOK                0x02
-#define RF_IRQFLAGS2_LOWBAT               0x01
+#define RF_IRQFLAGS2_LOWBAT               0x01  // not present on RFM69/SX1231
+
 
 // RegRssiThresh
 #define RF_RSSITHRESH_VALUE               0xE4  // Default
 
+
 // RegRxTimeout1
 #define RF_RXTIMEOUT1_RXSTART_VALUE       0x00  // Default
 
+
 // RegRxTimeout2
 #define RF_RXTIMEOUT2_RSSITHRESH_VALUE    0x00  // Default
+
 
 // RegPreamble
 #define RF_PREAMBLESIZE_MSB_VALUE         0x00  // Default
@@ -977,6 +1010,7 @@
 
 // RegPayloadLength
 #define RF_PAYLOADLENGTH_VALUE          0x40  // Default
+
 
 // RegBroadcastAdrs
 #define RF_BROADCASTADDRESS_VALUE       0x00
@@ -1059,10 +1093,17 @@
 // RegTemp1
 #define RF_TEMP1_MEAS_START         0x08
 #define RF_TEMP1_MEAS_RUNNING       0x04
+// not present on RFM69/SX1231
 #define RF_TEMP1_ADCLOWPOWER_ON     0x01  // Default
 #define RF_TEMP1_ADCLOWPOWER_OFF    0x00
 
-// RegTestDagc 0x6F: demodulator config and IO mode config
+
+// RegTestLna
+#define RF_TESTLNA_NORMAL           0x1B
+#define RF_TESTLNA_HIGH_SENSITIVITY 0x2D
+
+
+// RegTestDagc
 #define RF_DAGC_NORMAL              0x00  // Reset value
-#define RF_DAGC_IMPROVED_LOWBETA1   0x20  //
+#define RF_DAGC_IMPROVED_LOWBETA1   0x20
 #define RF_DAGC_IMPROVED_LOWBETA0   0x30  // Recommended default

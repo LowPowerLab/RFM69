@@ -104,6 +104,10 @@ bool RFM69::initialize(uint8_t freqBand, uint8_t nodeID, uint8_t networkID)
   setHighPower(_isRFM69HW); // called regardless if it's a RFM69W or RFM69HW
   setMode(RF69_MODE_STANDBY);
   while ((readReg(REG_IRQFLAGS1) & RF_IRQFLAGS1_MODEREADY) == 0x00); // wait for ModeReady
+
+#ifdef SPI_HAS_TRANSACTION
+  SPI.usingInterrupt(_interruptNum);
+#endif
   attachInterrupt(_interruptNum, RFM69::isr0, RISING);
 
   selfPointer = this;
@@ -351,9 +355,13 @@ bool RFM69::receiveDone() {
 //ATOMIC_BLOCK(ATOMIC_FORCEON)
 //{
   noInterrupts(); // re-enabled in unselect() via setMode() or via receiveBegin()
+  // Note: New SPI library doest disable interrupts, hence they need to be explicitly re-enabled below
   if (_mode == RF69_MODE_RX && PAYLOADLEN > 0)
   {
     setMode(RF69_MODE_STANDBY); // enables interrupts
+#ifdef SPI_HAS_TRANSACTION
+    interrupts(); // New SPI Library doesn't disable interrupts
+#endif
     return true;
   }
   else if (_mode == RF69_MODE_RX) // already in RX no payload yet
@@ -362,6 +370,9 @@ bool RFM69::receiveDone() {
     return false;
   }
   receiveBegin();
+#ifdef SPI_HAS_TRANSACTION
+  interrupts(); // New SPI Library doesn't disable interrupts
+#endif
   return false;
 //}
 }
@@ -414,6 +425,9 @@ void RFM69::writeReg(uint8_t addr, uint8_t value)
 
 // select the transceiver
 void RFM69::select() {
+#ifdef SPI_HAS_TRANSACTION
+  SPI.beginTransaction(SPISettings(4000000, MSBFIRST, SPI_MODE0));
+#else
   noInterrupts();
   // save current SPI settings
   _SPCR = SPCR;
@@ -422,16 +436,21 @@ void RFM69::select() {
   SPI.setDataMode(SPI_MODE0);
   SPI.setBitOrder(MSBFIRST);
   SPI.setClockDivider(SPI_CLOCK_DIV4); // decided to slow down from DIV2 after SPI stalling in some instances, especially visible on mega1284p when RFM69 and FLASH chip both present
+#endif
   digitalWrite(_slaveSelectPin, LOW);
 }
 
 // UNselect the transceiver chip
 void RFM69::unselect() {
   digitalWrite(_slaveSelectPin, HIGH);
+#ifdef SPI_HAS_TRANSACTION
+  SPI.endTransaction();
+#else  
   // restore SPI settings to what they were before talking to RFM69
   SPCR = _SPCR;
   SPSR = _SPSR;
   interrupts();
+#endif
 }
 
 // ON  = disable filtering to capture all frames on network
@@ -479,7 +498,7 @@ void RFM69::readAllRegs()
     Serial.print(" - ");
     Serial.println(regVal,BIN);
   }
-  unselect();
+  // unselect(); - This statement is unnecessary.
 }
 
 uint8_t RFM69::readTemperature(uint8_t calFactor) // returns centigrade

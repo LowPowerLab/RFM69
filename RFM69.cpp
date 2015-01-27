@@ -355,13 +355,16 @@ bool RFM69::receiveDone() {
 //ATOMIC_BLOCK(ATOMIC_FORCEON)
 //{
   noInterrupts(); // re-enabled in unselect() via setMode() or via receiveBegin()
-  // Note: New SPI library doest disable interrupts, hence they need to be explicitly re-enabled below
+  // Note: New SPI library prefers to use EIMSK (external interrupt mask) if available 
+  // to mask (only) interrupts registered via SPI::usingInterrupt(). It only 
+  // falls back to disabling ALL interrupts SREG if EIMSK cannot be used.
+  // Hence We cannot assume that methods calls below that call select() unselect() 
+  // will result in a call to noInterrupts(). 
+  // Thus the code below needs to explicitly do this to be safe.
   if (_mode == RF69_MODE_RX && PAYLOADLEN > 0)
   {
     setMode(RF69_MODE_STANDBY); // enables interrupts
-#ifdef SPI_HAS_TRANSACTION
-    interrupts(); // New SPI Library doesn't disable interrupts
-#endif
+    interrupts(); 
     return true;
   }
   else if (_mode == RF69_MODE_RX) // already in RX no payload yet
@@ -370,9 +373,7 @@ bool RFM69::receiveDone() {
     return false;
   }
   receiveBegin();
-#ifdef SPI_HAS_TRANSACTION
-  interrupts(); // New SPI Library doesn't disable interrupts
-#endif
+  interrupts();
   return false;
 //}
 }
@@ -425,13 +426,13 @@ void RFM69::writeReg(uint8_t addr, uint8_t value)
 
 // select the transceiver
 void RFM69::select() {
+  // save current SPI settings
+  _SPCR = SPCR;
+  _SPSR = SPSR;
 #ifdef SPI_HAS_TRANSACTION
   SPI.beginTransaction(SPISettings(4000000, MSBFIRST, SPI_MODE0));
 #else
   noInterrupts();
-  // save current SPI settings
-  _SPCR = SPCR;
-  _SPSR = SPSR;
   // set RFM69 SPI settings
   SPI.setDataMode(SPI_MODE0);
   SPI.setBitOrder(MSBFIRST);
@@ -446,11 +447,11 @@ void RFM69::unselect() {
 #ifdef SPI_HAS_TRANSACTION
   SPI.endTransaction();
 #else  
+  interrupts();
+#endif
   // restore SPI settings to what they were before talking to RFM69
   SPCR = _SPCR;
   SPSR = _SPSR;
-  interrupts();
-#endif
 }
 
 // ON  = disable filtering to capture all frames on network
@@ -498,7 +499,6 @@ void RFM69::readAllRegs()
     Serial.print(" - ");
     Serial.println(regVal,BIN);
   }
-  // unselect(); - This statement is unnecessary.
 }
 
 uint8_t RFM69::readTemperature(uint8_t calFactor) // returns centigrade

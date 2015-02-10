@@ -264,19 +264,20 @@ void RFM69::sendFrame(uint8_t toAddress, const void* buffer, uint8_t bufferSize,
   writeReg(REG_DIOMAPPING1, RF_DIOMAPPING1_DIO0_00); // DIO0 is "Packet Sent"
   if (bufferSize > RF69_MAX_DATA_LEN) bufferSize = RF69_MAX_DATA_LEN;
 
+  // control byte
+  uint8_t CTLbyte = 0x00;
+  if (sendACK)
+    CTLbyte = 0x80;
+  else if (requestACK)
+    CTLbyte = 0x40;
+
   // write to FIFO
   select();
   SPI.transfer(REG_FIFO | 0x80);
   SPI.transfer(bufferSize + 3);
   SPI.transfer(toAddress);
   SPI.transfer(_address);
-
-  // control byte
-  if (sendACK)
-    SPI.transfer(0x80);
-  else if (requestACK)
-    SPI.transfer(0x40);
-  else SPI.transfer(0x00);
+  SPI.transfer(CTLbyte);
 
   for (uint8_t i = 0; i < bufferSize; i++)
     SPI.transfer(((uint8_t*) buffer)[i]);

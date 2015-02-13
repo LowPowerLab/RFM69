@@ -354,7 +354,7 @@ void RFM69::receiveBegin() {
 bool RFM69::receiveDone() {
 //ATOMIC_BLOCK(ATOMIC_FORCEON)
 //{
-  noInterrupts(); // re-enabled in unselect() via setMode() or via receiveBegin()
+  uint8_t rd_SREG = SREG;
   // Note: New SPI library prefers to use EIMSK (external interrupt mask) if available 
   // to mask (only) interrupts registered via SPI::usingInterrupt(). It only 
   // falls back to disabling ALL interrupts SREG if EIMSK cannot be used.
@@ -364,16 +364,16 @@ bool RFM69::receiveDone() {
   if (_mode == RF69_MODE_RX && PAYLOADLEN > 0)
   {
     setMode(RF69_MODE_STANDBY); // enables interrupts
-    interrupts(); 
+    SREG = rd_SREG;
     return true;
   }
   else if (_mode == RF69_MODE_RX) // already in RX no payload yet
   {
-    interrupts(); // explicitly re-enable interrupts
+    SREG = rd_SREG;
     return false;
   }
   receiveBegin();
-  interrupts();
+  SREG = rd_SREG;
   return false;
 //}
 }
@@ -429,6 +429,7 @@ void RFM69::select() {
   // save current SPI settings
   _SPCR = SPCR;
   _SPSR = SPSR;
+  _SREG = SREG;
 #ifdef SPI_HAS_TRANSACTION
   SPI.beginTransaction(SPISettings(4000000, MSBFIRST, SPI_MODE0));
 #else
@@ -447,7 +448,7 @@ void RFM69::unselect() {
 #ifdef SPI_HAS_TRANSACTION
   SPI.endTransaction();
 #else  
-  interrupts();
+  SREG = _SREG;
 #endif
   // restore SPI settings to what they were before talking to RFM69
   SPCR = _SPCR;

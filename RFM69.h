@@ -132,6 +132,7 @@ class RFM69 {
     bool _isRFM69HW;
     uint8_t _SPCR;
     uint8_t _SPSR;
+    uint8_t _SREG;
 
     void receiveBegin();
     void setMode(uint8_t mode);

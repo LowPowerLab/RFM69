@@ -12,7 +12,7 @@
 // On the sender, hook up a momentary tactile button to D3 like this:
 //          __-__
 //        __|   |___
-// GND ----> BTN ----> D3
+// GND ----> BTN ----> D3 (D11 on MoteinoMEGA)
 // Load this sketch on the RECEIVER with NODEID=RECEIVER (adjust in config section below)
 // Load this sketch on the SENDER with NODEID=SENDER (adjust in config section below)
 // RFM69 library and code by Felix Rusu - felix@lowpowerlab.com
@@ -65,11 +65,21 @@
 #define ENCRYPTKEY    "sampleEncryptKey" //exactly the same 16 characters/bytes on all nodes!
 #define IS_RFM69HW    //uncomment only for RFM69HW! Remove/comment if you have RFM69W!
 //*********************************************************************************************
-
 #define SERIAL_BAUD   115200
-#define LED           9 //Moteinos have onboard LEDs on D9
-#define BUTTON_INT    1 //user button on interrupt 1 (D3)
-#define BUTTON_PIN    3 //user button on interrupt 1 (D3)
+#ifdef __AVR_ATmega1284P__
+  #define LED           15 // Moteino MEGAs have LEDs on D15
+  #define BUTTON_INT    1 //user button on interrupt 1 (D3)
+  #define BUTTON_PIN    11 //user button on interrupt 1 (D3)
+#else
+  #define LED           9 // Moteinos have LEDs on D9
+  #define BUTTON_INT    1 //user button on interrupt 1 (D3)
+  #define BUTTON_PIN    3 //user button on interrupt 1 (D3)
+#endif
+
+#define LED_GREEN       4 //GREEN LED on the SENDER
+#define LED_RED         5 //RED LED on the SENDER
+#define RX_TOGGLE_PIN   7 //GPIO to toggle on the RECEIVER
+
 RFM69 radio;
 
 void setup() {
@@ -86,6 +96,12 @@ void setup() {
   pinMode(BUTTON_PIN, INPUT_PULLUP);
   pinMode(LED, OUTPUT);
   attachInterrupt(BUTTON_INT, handleButton, FALLING);
+
+  pinMode(LED_GREEN, OUTPUT);
+  pinMode(LED_RED, OUTPUT);
+  pinMode(RX_TOGGLE_PIN, OUTPUT);
+  digitalWrite(LED_GREEN, LOW);
+  digitalWrite(LED_RED, HIGH);
 }
 
 //******** THIS IS INTERRUPT BASED DEBOUNCING FOR BUTTON ATTACHED TO D3 (INTERRUPT 1)
@@ -102,7 +118,7 @@ void loop() {
   //******** THIS IS INTERRUPT BASED DEBOUNCING FOR BUTTON ATTACHED TO D3 (INTERRUPT 1)
   if (mainEventFlags & FLAG_INTERRUPT)
   {
-    LowPower.powerDown(SLEEP_30MS, ADC_OFF, BOD_ON);
+    LowPower.powerDown(SLEEP_120MS, ADC_OFF, BOD_ON);
     mainEventFlags &= ~FLAG_INTERRUPT;
     if (!digitalRead(BUTTON_PIN)) {
       buttonPressed=true;
@@ -113,6 +129,20 @@ void loop() {
   {
     Serial.println("Button pressed!");
     buttonPressed = false;
+    
+    if(LEDSTATE==LOW)
+    {
+      LEDSTATE=HIGH;
+      digitalWrite(LED_GREEN, HIGH);
+      digitalWrite(LED_RED, LOW);
+    }
+    else
+    {
+      LEDSTATE=LOW;
+      digitalWrite(LED_GREEN, LOW);
+      digitalWrite(LED_RED, HIGH);
+    }
+
     if (radio.sendWithRetry(RECEIVER, "Hi", 2)) //target node Id, message as string or byte array, message length
       Blink(LED, 40, 3); //blink LED 3 times, 40ms between blinks
   }
@@ -133,6 +163,7 @@ void loop() {
         LEDSTATE=HIGH;
       else LEDSTATE=LOW;
       digitalWrite(LED, LEDSTATE);
+      digitalWrite(RX_TOGGLE_PIN, LEDSTATE);
     }
    
     //check if sender wanted an ACK

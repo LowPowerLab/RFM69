@@ -355,6 +355,7 @@ bool RFM69::receiveDone() {
 //ATOMIC_BLOCK(ATOMIC_FORCEON)
 //{
   uint8_t rd_SREG = SREG;
+  noInterrupts(); 
   // Note: New SPI library prefers to use EIMSK (external interrupt mask) if available 
   // to mask (only) interrupts registered via SPI::usingInterrupt(). It only 
   // falls back to disabling ALL interrupts SREG if EIMSK cannot be used.

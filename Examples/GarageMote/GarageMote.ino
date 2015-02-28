@@ -1,7 +1,8 @@
 // **********************************************************************************************************
-// GarageMote garage door controller sketch that works with Moteinos equipped with HopeRF RFM69W/RFM69HW
-// Can be adapted to use Moteinos using RFM12B
-// 2014-07-14 (C) felix@lowpowerlab.com, http://www.LowPowerLab.com
+// GarageMote garage door controller sketch that works with Moteinos equipped with RFM69W/RFM69HW
+// Can be adapted to use Moteinos/Arduinos using RFM12B or other RFM69 variants (RFM69CW, RFM69HCW)
+// http://www.LowPowerLab.com/GarageMote
+// 2015-02-02 (C) Felix Rusu of http://www.LowPowerLab.com/
 // **********************************************************************************************************
 // It uses 2 hall effect sensors (and magnets mounted on the garage belt/chain) to detect the position of the
 // door, and a small signal relay to be able to toggle the garage opener.
@@ -11,28 +12,54 @@
 //    - solid OFF - door is in closed position
 //    - blinking - door is not in either open/close position
 //    - pulsing - door is in motion
-// **********************************************************************************************************
-// Creative Commons Attrib Share-Alike License
-// You are free to use/extend this code/library but please abide with the CCSA license:
-// http://creativecommons.org/licenses/by-sa/4.0/
 // **********************************************************************************
-
+// License
+// **********************************************************************************
+// This program is free software; you can redistribute it 
+// and/or modify it under the terms of the GNU General    
+// Public License as published by the Free Software       
+// Foundation; either version 3 of the License, or        
+// (at your option) any later version.                    
+//                                                        
+// This program is distributed in the hope that it will   
+// be useful, but WITHOUT ANY WARRANTY; without even the  
+// implied warranty of MERCHANTABILITY or FITNESS FOR A   
+// PARTICULAR PURPOSE. See the GNU General Public        
+// License for more details.                              
+//                                                        
+// You should have received a copy of the GNU General    
+// Public License along with this program.
+// If not, see <http://www.gnu.org/licenses/>.
+//                                                        
+// Licence can be viewed at                               
+// http://www.gnu.org/licenses/gpl-3.0.txt
+//
+// Please maintain this license information along with authorship
+// and copyright notices in any redistribution of this code
+// ***************************************************************************************************************************
+//#define WEATHERSHIELD            //uncomment if WeatherShield is present to report temp/humidity/pressure periodically
+// ***************************************************************************************************************************
 #include <RFM69.h>         //get it here: http://github.com/lowpowerlab/rfm69
 #include <SPIFlash.h>      //get it here: http://github.com/lowpowerlab/spiflash
 #include <WirelessHEX69.h> //get it here: https://github.com/LowPowerLab/WirelessProgramming
 #include <SPI.h>           //comes with Arduino IDE (www.arduino.cc)
 
+#ifdef WEATHERSHIELD
+  #include <SFE_BMP180.h>    //get it here: https://github.com/LowPowerLab/SFE_BMP180
+  #include <SI7021.h>        //get it here: https://github.com/LowPowerLab/SI7021
+  #include <Wire.h>
+#endif
 //*****************************************************************************************************************************
-// ADJUST THE SETTINGS BELOW DEPENDING ON YOUR HARDWARE/SITUATION!
+// ADJUST THE SETTINGS BELOW DEPENDING ON YOUR HARDWARE/TRANSCEIVER SETTINGS/REQUIREMENTS
 //*****************************************************************************************************************************
 #define GATEWAYID   1
-#define NODEID      122
-#define NETWORKID   100
+#define NODEID      11
+#define NETWORKID   250
 //#define FREQUENCY     RF69_433MHZ
 //#define FREQUENCY     RF69_868MHZ
 #define FREQUENCY       RF69_915MHZ //Match this with the version of your Moteino! (others: RF69_433MHZ, RF69_868MHZ)
+//#define IS_RFM69HW    //uncomment only for RFM69HW! Leave out if you have RFM69W!
 #define ENCRYPTKEY      "sampleEncryptKey" //has to be same 16 characters/bytes on all nodes, not more not less!
-#define IS_RFM69HW    //uncomment only for RFM69HW! Leave out if you have RFM69W!
 
 #define HALLSENSOR1          A0
 #define HALLSENSOR1_EN        4
@@ -48,6 +75,8 @@
 #define STATUS_CHANGE_MIN  1500  // this has to be at least as long as the delay 
                                  // between a opener button press and door movement start
                                  // most garage doors will start moving immediately (within half a second)
+//*****************************************************************************************************************************
+#define WEATHERSENDDELAY  300000 // send WeatherShield data every so often (ms). Ie 300000 ~ 5 min
 //*****************************************************************************************************************************
 #define HALLSENSOR_OPENSIDE   0
 #define HALLSENSOR_CLOSEDSIDE 1
@@ -71,20 +100,29 @@
   #define DEBUGln(input);
 #endif
 
+#ifdef WEATHERSHIELD
+  SI7021 weatherShield_SI7021;
+  SFE_BMP180 weatherShield_BMP180;
+#endif
+
+//function prototypes
 void setStatus(byte newSTATUS, boolean reportStatus=true);
+boolean hallSensorRead(byte which);
+void pulseRelay();
+boolean reportStatus();
+
+//global program variables
 byte STATUS;
 unsigned long lastStatusTimestamp=0;
 unsigned long ledPulseTimestamp=0;
+unsigned long lastWeatherSent=0;
 byte lastRequesterNodeID=GATEWAYID;
 int ledPulseValue=0;
 boolean ledPulseDirection=false; //false=down, true=up
 RFM69 radio;
-/////////////////////////////////////////////////////////////////////////////
-// flash(SPI_CS, MANUFACTURER_ID)
-// SPI_CS          - CS pin attached to SPI flash chip (8 in case of Moteino)
-// MANUFACTURER_ID - OPTIONAL, 0xEF30 for windbond 4mbit flash (Moteino OEM)
-/////////////////////////////////////////////////////////////////////////////
-SPIFlash flash(8, 0xEF30);
+char* Pstr = "123.45";
+char sendBuf[30];
+SPIFlash flash(8, 0xEF30); //WINDBOND 4MBIT flash chip on CS pin D8 (default for Moteino)
 
 void setup(void)
 {
@@ -112,6 +150,14 @@ void setup(void)
   if (hallSensorRead(HALLSENSOR_CLOSEDSIDE)==true)
     setStatus(STATUS_CLOSED);
   else setStatus(STATUS_UNKNOWN);
+
+#ifdef WEATHERSHIELD
+  //initialize weather shield sensors  
+  weatherShield_SI7021.begin();
+  if (weatherShield_BMP180.begin())
+  { DEBUGln("BMP180 init success"); }
+  else { DEBUGln("BMP180 init fail\n"); }
+#endif
 }
 
 unsigned long doorPulseCount = 0;
@@ -256,6 +302,19 @@ void loop()
       ledPulseTimestamp = millis();
     }
   }
+  
+#ifdef WEATHERSHIELD
+  if (millis()-lastWeatherSent > WEATHERSENDDELAY)
+  {
+    lastWeatherSent = millis();
+    double P = getPressure();
+    P*=0.0295333727; //transform to inHg
+    dtostrf(P, 3,2, Pstr);
+    sprintf(sendBuf, "F:%d H:%d P:%s", weatherShield_SI7021.getFahrenheitHundredths(), weatherShield_SI7021.getHumidityPercent(), Pstr);    
+    byte sendLen = strlen(sendBuf);
+    radio.send(GATEWAYID, sendBuf, sendLen);
+  }
+#endif
 }
 
 //returns TRUE if magnet is next to sensor, FALSE if magnet is away
@@ -303,3 +362,57 @@ void Blink(byte PIN, byte DELAY_MS)
   delay(DELAY_MS);
   digitalWrite(PIN,LOW);
 }
+
+#ifdef WEATHERSHIELD
+double getPressure()
+{
+  char status;
+  double T,P,p0,a;
+  // If you want sea-level-compensated pressure, as used in weather reports,
+  // you will need to know the altitude at which your measurements are taken.
+  // We're using a constant called ALTITUDE in this sketch:
+  
+  // If you want to measure altitude, and not pressure, you will instead need
+  // to provide a known baseline pressure. This is shown at the end of the sketch.
+  // You must first get a temperature measurement to perform a pressure reading.
+  // Start a temperature measurement:
+  // If request is successful, the number of ms to wait is returned.
+  // If request is unsuccessful, 0 is returned.
+  status = weatherShield_BMP180.startTemperature();
+  if (status != 0)
+  {
+    // Wait for the measurement to complete:
+    delay(status);
+
+    // Retrieve the completed temperature measurement:
+    // Note that the measurement is stored in the variable T.
+    // Function returns 1 if successful, 0 if failure.
+    status = weatherShield_BMP180.getTemperature(T);
+    if (status != 0)
+    {
+      // Start a pressure measurement:
+      // The parameter is the oversampling setting, from 0 to 3 (highest res, longest wait).
+      // If request is successful, the number of ms to wait is returned.
+      // If request is unsuccessful, 0 is returned.
+      status = weatherShield_BMP180.startPressure(3);
+      if (status != 0)
+      {
+        // Wait for the measurement to complete:
+        delay(status);
+
+        // Retrieve the completed pressure measurement:
+        // Note that the measurement is stored in the variable P.
+        // Note also that the function requires the previous temperature measurement (T).
+        // (If temperature is stable, you can do one temperature measurement for a number of pressure measurements.)
+        // Function returns 1 if successful, 0 if failure.
+        status = weatherShield_BMP180.getPressure(P,T);
+        if (status != 0)
+        {
+          return P;
+        }
+      }
+    }        
+  }
+  return 0;
+}
+#endif

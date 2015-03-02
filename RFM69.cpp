@@ -361,21 +361,21 @@ bool RFM69::receiveDone() {
   // to mask (only) interrupts registered via SPI::usingInterrupt(). It only 
   // falls back to disabling ALL interrupts SREG if EIMSK cannot be used.
   // Hence We cannot assume that methods calls below that call select() unselect() 
-  // will result in a call to noInterrupts(). 
+  // will result in a call to reenable interrupts(). 
   // Thus the code below needs to explicitly do this to be safe.
   if (_mode == RF69_MODE_RX && PAYLOADLEN > 0)
   {
-    setMode(RF69_MODE_STANDBY); // enables interrupts
-    SREG = rd_SREG;
+    setMode(RF69_MODE_STANDBY); 
+    SREG = rd_SREG; // restore interrupts
     return true;
   }
   else if (_mode == RF69_MODE_RX) // already in RX no payload yet
   {
-    SREG = rd_SREG;
+    SREG = rd_SREG; // restore interrupts
     return false;
   }
   receiveBegin();
-  SREG = rd_SREG;
+  SREG = rd_SREG; // restore interrupts
   return false;
 //}
 }
@@ -428,14 +428,16 @@ void RFM69::writeReg(uint8_t addr, uint8_t value)
 
 // select the transceiver
 void RFM69::select() {
+#ifdef SPI_HAS_TRANSACTION
+  _SPCR = SPCR;
+  _SPSR = SPSR;
+  SPI.beginTransaction(SPISettings(4000000, MSBFIRST, SPI_MODE0));
+#else
+  _SREG = SREG;
+  noInterrupts();
   // save current SPI settings
   _SPCR = SPCR;
   _SPSR = SPSR;
-  _SREG = SREG;
-#ifdef SPI_HAS_TRANSACTION
-  SPI.beginTransaction(SPISettings(4000000, MSBFIRST, SPI_MODE0));
-#else
-  noInterrupts();
   // set RFM69 SPI settings
   SPI.setDataMode(SPI_MODE0);
   SPI.setBitOrder(MSBFIRST);
@@ -449,12 +451,17 @@ void RFM69::unselect() {
   digitalWrite(_slaveSelectPin, HIGH);
 #ifdef SPI_HAS_TRANSACTION
   SPI.endTransaction();
-#else  
-  SREG = _SREG;
-#endif
   // restore SPI settings to what they were before talking to RFM69
   SPCR = _SPCR;
   SPSR = _SPSR;
+#else  
+  // restore SPI settings to what they were before talking to RFM69
+  SPCR = _SPCR;
+  SPSR = _SPSR;
+  // restore the prior interrupt state
+  SREG = _SREG;
+#endif
+
 }
 
 // ON  = disable filtering to capture all frames on network

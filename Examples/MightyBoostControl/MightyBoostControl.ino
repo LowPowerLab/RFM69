@@ -1,8 +1,18 @@
 // *************************************************************************************************************
 //                                          MightyBoost control sample sketch
 // *************************************************************************************************************
-// Copyright Felix Rusu (2014), felix@lowpowerlab.com
-// http://lowpowerlab.com/
+// Copyright (2015) Felix Rusu of http://lowpowerlab.com
+// http://lowpowerlab.com/mightyboost
+// MightyBoost is a smart backup PSU controllable by Moteino, and this sketch is a sample control sketch to run
+// MightyBoost in this mode.
+// Be sure to check back for code updates and patches
+// *************************************************************************************************************
+// This sketch will provide control over the essential features of MightyBoost:
+//   - provide switched 5V power to a sensitive load like RaspberryPi which should not lose power instantly
+//   - Control the "5V*" output via Moteino+PowerButton (momentary tactile)
+//   - Monitor input supply and switch to battery backup when external power is lost
+//   - Monitor battery voltage and issue a shutdown/reboot signal when battery runs low
+// This sketch may be extended to include integration with other LowPowerLab automation products
 // *************************************************************************************************************
 // License
 // *************************************************************************************************************
@@ -29,23 +39,10 @@
 // Please maintain this license information along with authorship
 // and copyright notices in any redistribution of this code
 // *************************************************************************************************************
-// MightyBoost is a smart backup PSU controllable by Moteino, and this sketch is a sample control sketch to run
-// MightyBoost in this mode.
-// http://moteino.com
-// http://github.com/lowpowerlab
-// Be sure to check back for code updates and patches
-// *************************************************************************************************************
-// This sketch will provide control over the essential features of MightyBoost:
-//   - provide switched 5V power to a sensitive load like RaspberryPi which should not lose power instantly
-//   - Control the "5V*" output via Moteino+PowerButton (momentary tactile)
-//   - Monitor input supply and switch to battery backup when external power is lost
-//   - Monitor battery voltage and issue a shutdown signal when battery runs low
-// This sketch may be extended to include integration with other LowPowerLab automation products
-// *************************************************************************************************************
 #define LED                 5     // LED pin, should be analog for fading effect (PWM)
 #define BUTTON              3     // Power button pin
-#define SIG_REQUESTHALT     6     // Signal to Pi to ask for a shutdown
-#define SIG_OKTOCUTOFF     A0     // Signal from Pi that it's OK to cutoff power
+#define SIG_SHUTOFF         6     // Signal to Pi to ask for a shutdown
+#define SIG_BOOTOK         A0     // Signal from Pi that it's OK to cutoff power
                                   // !!NOTE!! Originally this was D7 but it was moved to A0 at least temporarily.
                                   // On MightyBoost R1 you need to connect D7 and A0 with a jumper wire.
                                   // The explanation for this is given here: http://lowpowerlab.com/mightyboost/#source
@@ -55,24 +52,26 @@
                                   // when plugged in this should be 4.80v, nothing to worry about
                                   // when on battery power this should decrease from 4.15v (fully charged Lipoly) to 3.3v (discharged Lipoly)
                                   // trigger a shutdown to the target device once voltage is around 3.4v to allow 30sec safe shutdown
-#define LOWBATTERYTHRESHOLD  3.7  // a shutdown will be triggered to the target device when battery voltage drops below this (Volts)
+#define LOWBATTERYTHRESHOLD  3.5  // a shutdown will be triggered to the target device when battery voltage drops below this (Volts)
 
-#define ButtonHoldTime       1800 // Button must be hold this many mseconds before a shutdown sequence is started (should be much less than PIForceShutdownDelay)
-#define PIShutdownDelay_Min  6000 // will start checking the SIG_OKTOCUTOFF line after this long
-#define PIShutdownDelay_Max 38000 // window of time in which SIG_OKTOCUTOFF is expected to go HIGH
+#define RESETHOLDTIME         500 // Button must be hold this many mseconds before a reset is issued (should be much less than SHUTDOWNHOLDTIME)
+#define SHUTDOWNHOLDTIME     2000 // Button must be hold this many mseconds before a shutdown sequence is started (should be much less than ForcedShutoffDelay)
+#define ShutoffTriggerDelay  6000 // will start checking the SIG_BOOTOK line after this long
+#define RecycleTime         50000 // window of time in which SIG_BOOTOK is expected to go HIGH
                                   // should be at least 3000 more than Min
                                   // if nothing happens after this window, if button is 
                                   // still pressed, force cutoff power, otherwise switch back to normal ON state
-#define PIForceShutdownDelay 6500 // when SIG_OKTOCUTOFF==0 (PI in unknown state): if button is held
-                                  // for this long, force shutdown (this should be less than PIShutdownDelay_Max)
-#define ShutdownFINALDELAY   4000 // after shutdown signal is received, delay for this long
+#define RESETPULSETIME        500 // When reset is issued, the SHUTOFF signal is held HIGH this many ms
+#define ForcedShutoffDelay   7500 // when SIG_BOOTOK==0 (PI in unknown state): if button is held
+                                  // for this long, force shutdown (this should be less than RecycleTime)
+#define ShutdownFinalDelay   4500 // after shutdown signal is received, delay for this long
                                   // to allow all PI LEDs to stop activity (pulse LED faster)
 
-#define PRINTPERIOD              1000
+#define PRINTPERIOD              10000
 
 int lastValidReading = 1;
 unsigned long lastValidReadingTime = 0;
-unsigned long now=0;
+unsigned long NOW=0;
 int PowerState = 0;
 long lastPeriod = -1;
 float systemVoltage = 5;
@@ -80,46 +79,85 @@ float systemVoltage = 5;
 void setup() {
   Serial.begin(115200);
   pinMode(BUTTON, INPUT_PULLUP);
-  pinMode(SIG_OKTOCUTOFF, INPUT);
-  pinMode(SIG_REQUESTHALT, OUTPUT);
+  pinMode(SIG_BOOTOK, INPUT);
+  pinMode(SIG_SHUTOFF, OUTPUT);
   pinMode(LED, OUTPUT);
   pinMode(OUTPUT_5V, OUTPUT);
   pinMode(A7, INPUT);
-  digitalWrite(SIG_REQUESTHALT, LOW);//added after sudden shutdown quirks, DO NOT REMOVE!
+  digitalWrite(SIG_SHUTOFF, LOW);//added after sudden shutdown quirks, DO NOT REMOVE!
   digitalWrite(OUTPUT_5V, LOW);//added after sudden shutdown quirks, DO NOT REMOVE!
 }
 
 void loop() {
   int reading = digitalRead(BUTTON);
-  now = millis();
-  digitalWrite(SIG_REQUESTHALT, LOW);//added after sudden shutdown quirks, DO NOT REMOVE!
-  
+  NOW = millis();
+  digitalWrite(SIG_SHUTOFF, LOW);//added after sudden shutdown quirks, DO NOT REMOVE!
   boolean batteryLow = systemVoltage < LOWBATTERYTHRESHOLD;
-  
-  if (batteryLow || reading != lastValidReading && now - lastValidReadingTime > 200) {
+
+  if (batteryLow || reading != lastValidReading && NOW - lastValidReadingTime > 200)
+  {
     lastValidReading = reading;
-    lastValidReadingTime = now;
-    //((PowerState==0 && ()) || (PowerState==1 && (now - lastValidReadingTime > ButtonHoldTime)))
+    lastValidReadingTime = NOW;
+    
     if (batteryLow || reading == 0)
     {
-      //make sure the button is held down for at least 'ButtonHoldTime' before taking action (this is to avoid accidental button presses and consequently Pi shutdowns)
-      now = millis();
-      while (!batteryLow && (PowerState == 1 && millis()-now < ButtonHoldTime)) { delay(10); if (digitalRead(BUTTON) != 0) return; }
-          
-      //SIG_OKTOCUTOFF must be HIGH when Pi is ON. During boot, this will take a while to happen (till it executes the "shutdowncheck" script
+      //make sure the button is held down for at least 'RESETHOLDTIME' before taking action (this is to avoid accidental button presses and consequently Pi shutdowns)
+      NOW = millis();
+      while (!batteryLow && (PowerState == 1 && millis()-NOW < RESETHOLDTIME)) { delay(10); if (digitalRead(BUTTON) != 0) return; }
+
+      //RESETHOLDTIME is satisfied, now check if button still held until SHUTDOWNHOLDTIME is satisfied
+      analogWrite(LED, 128); //dim the LED to show something's going on
+      while (!batteryLow && (PowerState == 1 && millis()-NOW < SHUTDOWNHOLDTIME))
+      {
+        if (digitalRead(BUTTON) != 0)
+        {
+          if (BOOTOK())       //SIG_BOOTOK is HIGH so Pi is running the shutdowncheck.sh script, ready to intercept the RESET PULSE
+          {
+            digitalWrite(SIG_SHUTOFF, HIGH);
+            delay(RESETPULSETIME);
+            digitalWrite(SIG_SHUTOFF, LOW);
+
+            NOW = millis();
+            boolean recycleDetected=false;
+            while (millis()-NOW < RecycleTime) //blink LED while waiting for BOOTOK to go high
+            {
+              //blink 3 times and pause
+              digitalWrite(LED, LOW);
+              delay(100);
+              digitalWrite(LED, HIGH);
+              delay(100);
+              digitalWrite(LED, LOW);
+              delay(100);
+              digitalWrite(LED, HIGH);
+              delay(100);
+              digitalWrite(LED, LOW);
+              delay(100);
+              digitalWrite(LED, HIGH);
+              delay(500);
+
+              if (!BOOTOK()) recycleDetected = true;
+              else if (BOOTOK() && recycleDetected)
+                return;
+            }
+            return; //reboot pulse sent but it appears a reboot failed; exit all checks
+          }
+          else return; //ignore everything else (button was held for RESETHOLDTIME, but SIG_BOOTOK was LOW)
+        }
+      }
+      
+      //SIG_BOOTOK must be HIGH when Pi is ON. During boot, this will take a while to happen (till it executes the "shutdowncheck" script)
       //so I dont want to cutoff power before it had a chance to fully boot up
-      //if (batteryLow || (PowerState == 1 && digitalRead(SIG_OKTOCUTOFF)==1))
-      if (batteryLow || (PowerState == 1 && analogRead(SIG_OKTOCUTOFF)>800))
+      if (batteryLow || (PowerState == 1 && BOOTOK()))
       {
         // signal Pi to shutdown
-        digitalWrite(SIG_REQUESTHALT, HIGH);
+        digitalWrite(SIG_SHUTOFF, HIGH);
 
         //now wait for the Pi to signal back
-        now = millis();
+        NOW = millis();
         float in, out;
         boolean forceShutdown = true;
         
-        while (millis()-now < PIShutdownDelay_Max)
+        while (millis()-NOW < RecycleTime)
         {
           if (in > 6.283) in = 0;
           in += .00628;
@@ -128,29 +166,26 @@ void loop() {
           analogWrite(LED,out);
           delayMicroseconds(1500);
           
-          //account for force-shutdown action (if button held for PIForceShutdownDelay, then force shutdown regardless)
-          if (millis()-now <= (PIForceShutdownDelay-ButtonHoldTime) && digitalRead(BUTTON) != 0)
+          //account for force-shutdown action (if button held for ForcedShutoffDelay, then force shutdown regardless)
+          if (millis()-NOW <= (ForcedShutoffDelay-SHUTDOWNHOLDTIME) && digitalRead(BUTTON) != 0)
             forceShutdown = false;
-          if (millis()-now >= (PIForceShutdownDelay-ButtonHoldTime) && forceShutdown)
+          if (millis()-NOW >= (ForcedShutoffDelay-SHUTDOWNHOLDTIME) && forceShutdown)
           {
             PowerState = 0;
             digitalWrite(LED, PowerState); //turn off LED to indicate power is being cutoff
-            digitalWrite(OUTPUT_5V, PowerState); //digitalWrite(LED, PowerState); 
+            digitalWrite(OUTPUT_5V, PowerState);
             break;
           }
           
-          if (millis() - now > PIShutdownDelay_Min)
+          if (millis() - NOW > ShutoffTriggerDelay)
           {
             // Pi signaling OK to turn off
-            //if (digitalRead(SIG_OKTOCUTOFF) == 0)
-            if (analogRead(SIG_OKTOCUTOFF) < 800)
+            if (!BOOTOK())
             {
               PowerState = 0;
               digitalWrite(LED, PowerState); //turn off LED to indicate power is being cutoff
-              
-              //delay(3500);   //takes about 3sec between SIG_OKTOCUTOFF going LOW and Pi LEDs activity to stop
-              now = millis();
-              while (millis()-now < ShutdownFINALDELAY)
+              NOW = millis();
+              while (millis()-NOW < ShutdownFinalDelay)
               {
                 if (in > 6.283) in = 0;
                 in += .00628;
@@ -160,7 +195,7 @@ void loop() {
                 delayMicroseconds(300);
               }
               
-              digitalWrite(OUTPUT_5V, PowerState); //digitalWrite(LED, PowerState); 
+              digitalWrite(OUTPUT_5V, PowerState);
               break;
             }
           }
@@ -173,22 +208,21 @@ void loop() {
           digitalWrite(OUTPUT_5V, PowerState);
         }
         
-        digitalWrite(SIG_REQUESTHALT, LOW);
+        digitalWrite(SIG_SHUTOFF, LOW);
       }
-      //else if (PowerState == 1 && digitalRead(SIG_OKTOCUTOFF)==0)
-      else if (PowerState == 1 && analogRead(SIG_OKTOCUTOFF)<800)
+      else if (PowerState == 1 && !BOOTOK())
       {
-        now = millis();
-        unsigned long now2 = millis();
-        int analogstep = 255 / ((PIForceShutdownDelay-ButtonHoldTime)/100); //every 500ms decrease LED intensity
+        NOW = millis();
+        unsigned long NOW2 = millis();
+        int analogstep = 255 / ((ForcedShutoffDelay-SHUTDOWNHOLDTIME)/100); //every 500ms decrease LED intensity
         while (digitalRead(BUTTON) == 0)
         {
-          if (millis()-now2 > 100)
+          if (millis()-NOW2 > 100)
           {
-            analogWrite(LED, 255 - ((millis()-now)/100)*analogstep);
-            now2 = millis();
+            analogWrite(LED, 255 - ((millis()-NOW)/100)*analogstep);
+            NOW2 = millis();
           }
-          if (millis()-now > PIForceShutdownDelay-ButtonHoldTime)
+          if (millis()-NOW > ForcedShutoffDelay-SHUTDOWNHOLDTIME)
           {
             //TODO: add blinking here to signal final shutdown delay
             PowerState = 0;
@@ -203,10 +237,10 @@ void loop() {
         digitalWrite(OUTPUT_5V, PowerState); //digitalWrite(LED, PowerState);
       }
     }
-    
+
     digitalWrite(LED, PowerState);
   }
-  
+
   int currPeriod = millis()/PRINTPERIOD;
   if (currPeriod != lastPeriod)
   {
@@ -218,4 +252,8 @@ void loop() {
       Serial.println("  (plugged in)");
     else Serial.println("  (running from battery!)");
   }
+}
+
+boolean BOOTOK() {
+  return analogRead(SIG_BOOTOK) > 800;
 }

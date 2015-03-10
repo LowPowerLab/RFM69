@@ -2,7 +2,7 @@
 // GarageMote garage door controller sketch that works with Moteinos equipped with RFM69W/RFM69HW
 // Can be adapted to use Moteinos/Arduinos using RFM12B or other RFM69 variants (RFM69CW, RFM69HCW)
 // http://www.LowPowerLab.com/GarageMote
-// 2015-02-02 (C) Felix Rusu of http://www.LowPowerLab.com/
+// 2015-03-10 (C) Felix Rusu of http://www.LowPowerLab.com/
 // **********************************************************************************************************
 // It uses 2 hall effect sensors (and magnets mounted on the garage belt/chain) to detect the position of the
 // door, and a small signal relay to be able to toggle the garage opener.
@@ -38,6 +38,7 @@
 // and copyright notices in any redistribution of this code
 // ***************************************************************************************************************************
 //#define WEATHERSHIELD            //uncomment if WeatherShield is present to report temp/humidity/pressure periodically
+//#define WEATHERSENDDELAY  300000 // send WeatherShield data every so often (ms)
 // ***************************************************************************************************************************
 #include <RFM69.h>         //get it here: http://github.com/lowpowerlab/rfm69
 #include <SPIFlash.h>      //get it here: http://github.com/lowpowerlab/spiflash
@@ -58,8 +59,9 @@
 //#define FREQUENCY     RF69_433MHZ
 //#define FREQUENCY     RF69_868MHZ
 #define FREQUENCY       RF69_915MHZ //Match this with the version of your Moteino! (others: RF69_433MHZ, RF69_868MHZ)
-//#define IS_RFM69HW    //uncomment only for RFM69HW! Leave out if you have RFM69W!
 #define ENCRYPTKEY      "sampleEncryptKey" //has to be same 16 characters/bytes on all nodes, not more not less!
+//#define IS_RFM69HW    //uncomment only for RFM69HW! Leave out if you have RFM69W!
+
 
 #define HALLSENSOR1          A0
 #define HALLSENSOR1_EN        4
@@ -75,8 +77,6 @@
 #define STATUS_CHANGE_MIN  1500  // this has to be at least as long as the delay 
                                  // between a opener button press and door movement start
                                  // most garage doors will start moving immediately (within half a second)
-//*****************************************************************************************************************************
-#define WEATHERSENDDELAY  300000 // send WeatherShield data every so often (ms). Ie 300000 ~ 5 min
 //*****************************************************************************************************************************
 #define HALLSENSOR_OPENSIDE   0
 #define HALLSENSOR_CLOSEDSIDE 1
@@ -339,11 +339,12 @@ void setStatus(byte newSTATUS, boolean reportStatusRequest)
 
 boolean reportStatus()
 {
-  if (lastRequesterNodeID == 0) return false;
+  if (lastRequesterNodeID == 0) lastRequesterNodeID = GATEWAYID;
   char buff[10];
   sprintf(buff, STATUS==STATUS_CLOSED ? "CLOSED" : STATUS==STATUS_CLOSING ? "CLOSING" : STATUS==STATUS_OPENING ? "OPENING" : STATUS==STATUS_OPEN ? "OPEN" : "UNKNOWN");
   byte len = strlen(buff);
   return radio.sendWithRetry(lastRequesterNodeID, buff, len);
+  lastRequesterNodeID = 0;
 }
 
 void pulseRelay()

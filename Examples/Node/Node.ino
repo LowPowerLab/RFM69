@@ -17,7 +17,6 @@
 //#define FREQUENCY     RF69_915MHZ
 #define ENCRYPTKEY    "sampleEncryptKey" //exactly the same 16 characters/bytes on all nodes!
 //#define IS_RFM69HW    //uncomment only for RFM69HW! Leave out if you have RFM69W!
-#define ACK_TIME      30 // max # of ms to wait for an ack
 #ifdef __AVR_ATmega1284P__
   #define LED           15 // Moteino MEGAs have LEDs on D15
   #define FLASH_SS      23 // and FLASH SS on D23

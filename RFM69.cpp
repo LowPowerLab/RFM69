@@ -187,12 +187,18 @@ void RFM69::setNetwork(uint8_t networkID)
   writeReg(REG_SYNCVALUE2, networkID);
 }
 
-// set output power: 0 = min, 31 = max
+// set *transmit/TX* output power: 0=min, 31=max
 // this results in a "weaker" transmitted signal, and directly results in a lower RSSI at the receiver
+// the power configurations are explained in the SX1231H datasheet (Table 10 on p21; RegPaLevel p66): http://www.semtech.com/images/datasheet/sx1231h.pdf
+// valid powerLevel parameter values are 0-31 and result in a directly proportional effect on the output/transmission power
+// this function implements 2 modes as follows:
+//       - for RFM69W the range is from 0-31 [-18dBm to 13dBm] (PA0 only on RFIO pin)
+//       - for RFM69HW the range is from 0-31 [5dBm to 20dBm]  (PA1 & PA2 on PA_BOOST pin & high Power PA settings - see section 3.3.7 in datasheet, p22)
 void RFM69::setPowerLevel(uint8_t powerLevel)
 {
-  _powerLevel = powerLevel;
-  writeReg(REG_PALEVEL, (readReg(REG_PALEVEL) & 0xE0) | (_powerLevel > 31 ? 31 : _powerLevel));
+  _powerLevel = (powerLevel > 31 ? 31 : powerLevel);
+  if (_isRFM69HW) _powerLevel /= 2;
+  writeReg(REG_PALEVEL, (readReg(REG_PALEVEL) & 0xE0) | _powerLevel);
 }
 
 bool RFM69::canSend()

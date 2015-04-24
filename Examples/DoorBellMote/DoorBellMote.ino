@@ -152,6 +152,7 @@ void loop()
     if (ring)
     {
       pulseRelay();
+	  radio.sendWithRetry(GATEWAYID, "RING OK", 4);
       ring = false;
     }
 

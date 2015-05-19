@@ -168,16 +168,19 @@ void RFM69::setMode(uint8_t newMode)
   _mode = newMode;
 }
 
+//put transceiver in sleep mode to save battery - to wake or resume receiving just call receiveDone()
 void RFM69::sleep() {
   setMode(RF69_MODE_SLEEP);
 }
 
+//set this node's address
 void RFM69::setAddress(uint8_t addr)
 {
   _address = addr;
   writeReg(REG_NODEADRS, _address);
 }
 
+//set this node's network id
 void RFM69::setNetwork(uint8_t networkID)
 {
   writeReg(REG_SYNCVALUE2, networkID);
@@ -263,6 +266,7 @@ void RFM69::sendACK(const void* buffer, uint8_t bufferSize) {
   RSSI = _RSSI; // restore payload RSSI
 }
 
+// internal function
 void RFM69::sendFrame(uint8_t toAddress, const void* buffer, uint8_t bufferSize, bool requestACK, bool sendACK)
 {
   setMode(RF69_MODE_STANDBY); // turn off receiver to prevent reception while filling fifo
@@ -297,6 +301,7 @@ void RFM69::sendFrame(uint8_t toAddress, const void* buffer, uint8_t bufferSize,
   setMode(RF69_MODE_STANDBY);
 }
 
+// internal function - interrupt gets called when a packet is received
 void RFM69::interruptHandler() {
   //pinMode(4, OUTPUT);
   //digitalWrite(4, 1);
@@ -338,8 +343,10 @@ void RFM69::interruptHandler() {
   //digitalWrite(4, 0);
 }
 
+// internal function
 void RFM69::isr0() { selfPointer->interruptHandler(); }
 
+// internal function
 void RFM69::receiveBegin() {
   DATALEN = 0;
   SENDERID = 0;
@@ -354,6 +361,7 @@ void RFM69::receiveBegin() {
   setMode(RF69_MODE_RX);
 }
 
+// checks if a packet was received and/or puts transceiver in receive (ie RX or listen) mode
 bool RFM69::receiveDone() {
 //ATOMIC_BLOCK(ATOMIC_FORCEON)
 //{
@@ -389,6 +397,7 @@ void RFM69::encrypt(const char* key) {
   writeReg(REG_PACKETCONFIG2, (readReg(REG_PACKETCONFIG2) & 0xFE) | (key ? 1 : 0));
 }
 
+// get the received signal strength indicator (RSSI)
 int16_t RFM69::readRSSI(bool forceTrigger) {
   int16_t rssi = 0;
   if (forceTrigger)
@@ -419,7 +428,7 @@ void RFM69::writeReg(uint8_t addr, uint8_t value)
   unselect();
 }
 
-// select the transceiver
+// select the RFM69 transceiver (save SPI settings, set CS low)
 void RFM69::select() {
   noInterrupts();
   // save current SPI settings
@@ -432,7 +441,7 @@ void RFM69::select() {
   digitalWrite(_slaveSelectPin, LOW);
 }
 
-// UNselect the transceiver chip
+// unselect the RFM69 transceiver (set CS high, restore SPI settings)
 void RFM69::unselect() {
   digitalWrite(_slaveSelectPin, HIGH);
   // restore SPI settings to what they were before talking to RFM69
@@ -441,13 +450,14 @@ void RFM69::unselect() {
   interrupts();
 }
 
-// ON  = disable filtering to capture all frames on network
-// OFF = enable node/broadcast filtering to capture only frames sent to this/broadcast address
+// true  = disable filtering to capture all frames on network
+// false = enable node/broadcast filtering to capture only frames sent to this/broadcast address
 void RFM69::promiscuous(bool onOff) {
   _promiscuousMode = onOff;
   //writeReg(REG_PACKETCONFIG1, (readReg(REG_PACKETCONFIG1) & 0xF9) | (onOff ? RF_PACKET1_ADRSFILTERING_OFF : RF_PACKET1_ADRSFILTERING_NODEBROADCAST));
 }
 
+// for RFM69HW only: you must call setHighPower(true) after initialize() or else transmission won't work
 void RFM69::setHighPower(bool onOff) {
   _isRFM69HW = onOff;
   writeReg(REG_OCP, _isRFM69HW ? RF_OCP_OFF : RF_OCP_ON);
@@ -457,18 +467,20 @@ void RFM69::setHighPower(bool onOff) {
     writeReg(REG_PALEVEL, RF_PALEVEL_PA0_ON | RF_PALEVEL_PA1_OFF | RF_PALEVEL_PA2_OFF | _powerLevel); // enable P0 only
 }
 
+// internal function
 void RFM69::setHighPowerRegs(bool onOff) {
   writeReg(REG_TESTPA1, onOff ? 0x5D : 0x55);
   writeReg(REG_TESTPA2, onOff ? 0x7C : 0x70);
 }
 
+// set the slave select (CS) pin 
 void RFM69::setCS(uint8_t newSPISlaveSelect) {
   _slaveSelectPin = newSPISlaveSelect;
   digitalWrite(_slaveSelectPin, HIGH);
   pinMode(_slaveSelectPin, OUTPUT);
 }
 
-// for debugging
+// Serial.print all the RFM69 register values
 void RFM69::readAllRegs()
 {
   uint8_t regVal;

@@ -93,32 +93,91 @@ class RFM69 {
       _isRFM69HW = isRFM69HW;
     }
 
+    // initialize the radio
     bool initialize(uint8_t freqBand, uint8_t ID, uint8_t networkID=1);
+
+    // set the node address
     void setAddress(uint8_t addr);
+
+    // set the network address
     void setNetwork(uint8_t networkID);
+
+    // check whether the radio can send a packet
     bool canSend();
+
+    // send a packet
+    // max bufferSize is 61 bytes
     void send(uint8_t toAddress, const void* buffer, uint8_t bufferSize, bool requestACK=false);
-    bool sendWithRetry(uint8_t toAddress, const void* buffer, uint8_t bufferSize, uint8_t retries=2, uint8_t retryWaitTime=40); // 40ms roundtrip req for 61byte packets
+
+    // send a packet with retries to increase chances of success
+    // 40ms roundtrip req for 61byte packets
+    bool sendWithRetry(uint8_t toAddress, const void* buffer, uint8_t bufferSize, uint8_t retries=2, uint8_t retryWaitTime=40);
+
+    // check whether the radio has received a packet
+    // should be polled immediately after sending a packet with ACK request
     bool receiveDone();
+
+    // check whether the radio has received an acknowledgement (ACK) response
+    // should be polled immediately after sending a packet with ACK request
     bool ACKReceived(uint8_t fromNodeID);
+
+    // check whether an acknowledgement (ACK) was requested in the last received packet (non-broadcasted packet)
     bool ACKRequested();
+
+    // send an acknowledgement (ACK) packet back to sender of last received packet
+    // should be called immediately after reception in case sender wants ACK
     void sendACK(const void* buffer = "", uint8_t bufferSize=0);
+
+    // get the frequency band (in Hz)
     uint32_t getFrequency();
+
+    // set the frequency band (in Hz)
     void setFrequency(uint32_t freqHz);
+
+    // set the encryption using a 16 byte key
+    // To disable encryption use NULL or 0 as the key
     void encrypt(const char* key);
+
+    // set the slave select pin
     void setCS(uint8_t newSPISlaveSelect);
+
+    // get the received signal strength indicator (RSSI)
     int16_t readRSSI(bool forceTrigger=false);
+
+    // set promiscuous mode
+    //   true = disable filtering to capture all frames on network
+    //   false = enable node/broadcast filtering to capture only frames sent to this/broadcast address
     void promiscuous(bool onOff=true);
-    void setHighPower(bool onOFF=true); // has to be called after initialize() for RFM69HW
-    void setPowerLevel(uint8_t level); // reduce/increase transmit power level
+
+    // set the radio high power to on/off
+    // has to be called after initialize() for RFM69HW
+    void setHighPower(bool onOFF=true);
+
+    // set the transmit power level
+    void setPowerLevel(uint8_t level);
+
+    // put the radio to sleep
     void sleep();
-    uint8_t readTemperature(uint8_t calFactor=0); // get CMOS temperature (8bit)
-    void rcCalibration(); // calibrate the internal RC oscillator for use in wide temperature variations - see datasheet section [4.3.5. RC Timer Accuracy]
+
+    // get CMOS temperature (8bit)
+    uint8_t readTemperature(uint8_t calFactor=0);
+
+    // calibrate the internal RC oscillator for use in wide temperature variations
+    // see datasheet section [4.3.5. RC Timer Accuracy]
+    void rcCalibration();
+
 
     // allow hacking registers by making these public
+
+    // get the RFM69 internal register value
     uint8_t readReg(uint8_t addr);
+
+    // set the RFM69 internal register
     void writeReg(uint8_t addr, uint8_t val);
+
+    // serial print all the registers for debugging
     void readAllRegs();
+
 
   protected:
     static void isr0();

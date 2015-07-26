@@ -2,7 +2,7 @@
 // DoorBellMote sketch works with Moteinos equipped with RFM69W/RFM69HW
 // Can be adapted to use Moteinos/Arduinos using RFM12B or other RFM69 variants (RFM69CW, RFM69HCW)
 // http://www.LowPowerLab.com/
-// 2015-04-13 (C) Felix Rusu of http://www.LowPowerLab.com/
+// 2015-07-22 (C) Felix Rusu of http://www.LowPowerLab.com/
 // **********************************************************************************
 // It detects current flow at the doorbell transformer and send a message each time to the gateway
 // It can trigger doorbell through a relay powered from pins D6+D7
@@ -47,24 +47,25 @@
 //#define FREQUENCY     RF69_868MHZ
 #define FREQUENCY       RF69_915MHZ //Match this with the version of your Moteino! (others: RF69_433MHZ, RF69_868MHZ)
 #define ENCRYPTKEY      "sampleEncryptKey" //has to be same 16 characters/bytes on all nodes, not more not less!
-#define IS_RFM69HW    //uncomment only for RFM69HW! Leave out if you have RFM69W!
+//#define IS_RFM69HW    //uncomment only for RFM69HW! Leave out if you have RFM69W!
 
 #define CHIMEPIN              4 // active HIGH chime signal from detector H11AA1 circuit
-#define RELAYPIN1             6
-#define RELAYPIN2             7
-#define RELAY_PULSE_MS      250  //just enough that the doorbell chimne will trigger
-#define RINGDELAY          3000
+#define RELAYPIN1             6 //for the bell ring relay we just need 2 digital pins together to activate the relay for a short pulse
+#define RELAYPIN2             7 //for the bell ring relay we just need 2 digital pins together to activate the relay for a short pulse
+#define DISABLE_RELAY         5 //for the bell disable relay we use a single digital pin through a transistor
+#define RELAY_PULSE_MS      250 //just enough that the doorbell chime will trigger
+#define RINGDELAY          3000 //time between rings (avoid fast repeated rings)
 //*****************************************************************************************************************************
 #define LED                  9   //pin connected to onboard LED
 #define SERIAL_BAUD     115200
 #define SERIAL_EN                //comment out if you don't want any serial output
 
 #ifdef SERIAL_EN
-  #define DEBUG(input)   {Serial.print(input); delay(1);}
-  #define DEBUGln(input) {Serial.println(input); delay(1);}
+  #define DEBUG(input)   Serial.print(input)
+  #define DEBUGln(input) Serial.println(input)
 #else
-  #define DEBUG(input);
-  #define DEBUGln(input);
+  #define DEBUG(input)
+  #define DEBUGln(input)
 #endif
 
 RFM69 radio;
@@ -74,13 +75,15 @@ RFM69 radio;
 // MANUFACTURER_ID - OPTIONAL, 0xEF30 for windbond 4mbit flash (Moteino OEM)
 /////////////////////////////////////////////////////////////////////////////
 SPIFlash flash(8, 0xEF30); //regular Moteinos have FLASH MEM on D8, MEGA has it on D4
-
+char buff[50];
+  
 void setup(void)
 {
   Serial.begin(SERIAL_BAUD);
   pinMode(CHIMEPIN, INPUT);
   pinMode(RELAYPIN1, OUTPUT);
   pinMode(RELAYPIN2, OUTPUT);
+  pinMode(DISABLE_RELAY, OUTPUT);
   pinMode(LED, OUTPUT);
   
   radio.initialize(FREQUENCY,NODEID,NETWORKID);
@@ -89,9 +92,18 @@ void setup(void)
 #endif
   radio.encrypt(ENCRYPTKEY);
 
-  char buff[50];
   sprintf(buff, "DoorBellMote : %d Mhz...", FREQUENCY==RF69_433MHZ ? 433 : FREQUENCY==RF69_868MHZ ? 868 : 915);
   DEBUGln(buff);
+  
+  if (flash.initialize())
+    DEBUGln("SPI Flash Init OK");
+  else
+    DEBUGln("SPI Flash Init FAIL! (is chip present?)");
+
+  radio.sendWithRetry(GATEWAYID, "START", 6);
+  Blink(LED, 100);
+  Blink(LED, 100);
+  Blink(LED, 100);
 }
 
 uint32_t doorPulseCount = 0;
@@ -99,7 +111,9 @@ uint32_t lastStatusTimestamp=0;
 uint32_t LEDCYCLETIMER=0;
 byte LEDSTATE=LOW;
 char input;
-byte ring=false;
+boolean ring=false;
+boolean disable=false;
+byte disableStatus=0;
 
 void loop()
 {
@@ -115,7 +129,6 @@ void loop()
  
   if (millis()-(lastStatusTimestamp)>RINGDELAY)
   {
-    delay(50); //some basic debouncing
     if (digitalRead(CHIMEPIN) == HIGH)
     {
       lastStatusTimestamp = millis();
@@ -132,11 +145,23 @@ void loop()
     for (byte i = 0; i < radio.DATALEN; i++)
       DEBUG((char)radio.DATA[i]);
 
-    //
     if (radio.DATALEN==4)
       if (radio.DATA[0]=='R' && radio.DATA[1]=='I' && radio.DATA[2]=='N' && radio.DATA[3]=='G')
         ring = true;
-    
+
+    if (radio.DATALEN==6)
+      if (radio.DATA[0]=='B' && radio.DATA[1]=='E' && radio.DATA[2]=='L' && radio.DATA[3]=='L' && radio.DATA[4]==':')
+        if (radio.DATA[5]=='0')
+        {
+          disableStatus = 1;
+          disable = true;
+        }
+        else if (radio.DATA[5]=='1')
+        {
+          disableStatus = 0;
+          disable = true;
+        }
+
     // wireless programming token check
     // DO NOT REMOVE, or GarageMote will not be wirelessly programmable any more!
     CheckForWirelessHEX(radio, flash, true);
@@ -151,14 +176,26 @@ void loop()
 
     if (ring)
     {
+      //if other relay is ON we must temporarily turn it off while we pulse the RING relay, to avoid any rail collapse and reset
+      if (disableStatus) digitalWrite(DISABLE_RELAY, 0);
       pulseRelay();
+      if (disableStatus) digitalWrite(DISABLE_RELAY, 1);
+      radio.sendWithRetry(GATEWAYID, "RING OK", 4);
       ring = false;
+    }
+
+    if (disable)
+    {
+      digitalWrite(DISABLE_RELAY, disableStatus); //disable it
+      sprintf(buff, "BELL:%d", disableStatus ? 0 : 1);
+      radio.sendWithRetry(GATEWAYID, buff, 6);
+      disable=false;
     }
 
     DEBUGln();
   }
-  
-  if (millis() - LEDCYCLETIMER > 3000)
+
+  if (millis() - LEDCYCLETIMER > 2000) //flip onboard LED state every so often to indicate activity
   {
     LEDCYCLETIMER = millis();
     LEDSTATE = !LEDSTATE;

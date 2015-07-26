@@ -2,7 +2,7 @@
 // GarageMote garage door controller sketch that works with Moteinos equipped with RFM69W/RFM69HW
 // Can be adapted to use Moteinos/Arduinos using RFM12B or other RFM69 variants (RFM69CW, RFM69HCW)
 // http://www.LowPowerLab.com/GarageMote
-// 2015-03-10 (C) Felix Rusu of http://www.LowPowerLab.com/
+// 2015-05-05 (C) Felix Rusu of http://www.LowPowerLab.com/
 // **********************************************************************************************************
 // It uses 2 hall effect sensors (and magnets mounted on the garage belt/chain) to detect the position of the
 // door, and a small signal relay to be able to toggle the garage opener.
@@ -60,8 +60,7 @@
 //#define FREQUENCY     RF69_868MHZ
 #define FREQUENCY       RF69_915MHZ //Match this with the version of your Moteino! (others: RF69_433MHZ, RF69_868MHZ)
 #define ENCRYPTKEY      "sampleEncryptKey" //has to be same 16 characters/bytes on all nodes, not more not less!
-//#define IS_RFM69HW    //uncomment only for RFM69HW! Leave out if you have RFM69W!
-
+#define IS_RFM69HW      //uncomment only for RFM69HW! Leave out if you have RFM69W!
 
 #define HALLSENSOR1          A0
 #define HALLSENSOR1_EN        4
@@ -107,26 +106,27 @@
 
 //function prototypes
 void setStatus(byte newSTATUS, boolean reportStatus=true);
+void reportStatus();
 boolean hallSensorRead(byte which);
 void pulseRelay();
-boolean reportStatus();
 
 //global program variables
 byte STATUS;
 unsigned long lastStatusTimestamp=0;
 unsigned long ledPulseTimestamp=0;
 unsigned long lastWeatherSent=0;
-byte lastRequesterNodeID=GATEWAYID;
 int ledPulseValue=0;
 boolean ledPulseDirection=false; //false=down, true=up
 RFM69 radio;
-char* Pstr = "123.45";
+char Pstr[10];
 char sendBuf[30];
 SPIFlash flash(8, 0xEF30); //WINDBOND 4MBIT flash chip on CS pin D8 (default for Moteino)
 
 void setup(void)
 {
+#ifdef SERIAL_EN
   Serial.begin(SERIAL_BAUD);
+#endif
   pinMode(HALLSENSOR1, INPUT);
   pinMode(HALLSENSOR2, INPUT);
   pinMode(HALLSENSOR1_EN, OUTPUT);
@@ -161,13 +161,16 @@ void setup(void)
 }
 
 unsigned long doorPulseCount = 0;
-char input;
+char input=0;
+double P;
 
 void loop()
 {
+#ifdef SERIAL_EN
   if (Serial.available())
     input = Serial.read();
-    
+#endif
+
   if (input=='r')
   {
     DEBUGln("Relay test...");
@@ -215,7 +218,6 @@ void loop()
   {
     byte newStatus=STATUS;
     boolean reportStatusRequest=false;
-    lastRequesterNodeID = radio.SENDERID;
     DEBUG('[');DEBUG(radio.SENDERID);DEBUG("] ");
     for (byte i = 0; i < radio.DATALEN; i++)
       DEBUG((char)radio.DATA[i]);
@@ -307,7 +309,7 @@ void loop()
   if (millis()-lastWeatherSent > WEATHERSENDDELAY)
   {
     lastWeatherSent = millis();
-    double P = getPressure();
+    P = getPressure();
     P*=0.0295333727; //transform to inHg
     dtostrf(P, 3,2, Pstr);
     sprintf(sendBuf, "F:%d H:%d P:%s", weatherShield_SI7021.getFahrenheitHundredths(), weatherShield_SI7021.getHumidityPercent(), Pstr);    
@@ -328,23 +330,21 @@ boolean hallSensorRead(byte which)
   return reading==0;
 }
 
-void setStatus(byte newSTATUS, boolean reportStatusRequest)
+void setStatus(byte newSTATUS, boolean reportIt)
 {
   if (STATUS != newSTATUS) lastStatusTimestamp = millis();
   STATUS = newSTATUS;
   DEBUGln(STATUS==STATUS_CLOSED ? "CLOSED" : STATUS==STATUS_CLOSING ? "CLOSING" : STATUS==STATUS_OPENING ? "OPENING" : STATUS==STATUS_OPEN ? "OPEN" : "UNKNOWN");
-  if (reportStatusRequest)
+  if (reportIt)
     reportStatus();
 }
 
-boolean reportStatus()
+void reportStatus(void)
 {
-  if (lastRequesterNodeID == 0) lastRequesterNodeID = GATEWAYID;
   char buff[10];
   sprintf(buff, STATUS==STATUS_CLOSED ? "CLOSED" : STATUS==STATUS_CLOSING ? "CLOSING" : STATUS==STATUS_OPENING ? "OPENING" : STATUS==STATUS_OPEN ? "OPEN" : "UNKNOWN");
   byte len = strlen(buff);
-  return radio.sendWithRetry(lastRequesterNodeID, buff, len);
-  lastRequesterNodeID = 0;
+  radio.sendWithRetry(GATEWAYID, buff, len);
 }
 
 void pulseRelay()

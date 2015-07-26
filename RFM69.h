@@ -45,6 +45,9 @@
 #elif defined(__AVR_ATmega32U4__)
   #define RF69_IRQ_PIN          3
   #define RF69_IRQ_NUM          0
+#else 
+  #define RF69_IRQ_PIN          2
+  #define RF69_IRQ_NUM          0  
 #endif
 
 

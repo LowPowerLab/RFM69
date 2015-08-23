@@ -5,7 +5,7 @@
 #define NODEID      1
 #define NETWORKID   100
 #define FREQUENCY   RF69_433MHZ //Match this with the version of your Moteino! (others: RF69_433MHZ, RF69_868MHZ)
-#define KEY         "thisIsEncryptKey" //has to be same 16 characters/bytes on all nodes, not more not less!
+#define KEY         "sampleEncryptKey" //has to be same 16 characters/bytes on all nodes, not more not less!
 #define LED         9
 #define SERIAL_BAUD 115200
 #define ACK_TIME    30  // # of ms to wait for an ack
@@ -14,7 +14,7 @@ RFM69 radio;
 SPIFlash flash(8, 0xEF30); //EF40 for 16mbit windbond chip
 bool promiscuousMode = false; //set to 'true' to sniff all packets on the same network
 
-typedef struct {		
+typedef struct {
   int           nodeId; //store this nodeId
   unsigned long uptime; //uptime in ms
   float         temp;   //temperature maybe?
@@ -88,10 +88,10 @@ void loop() {
     Serial.print('[');Serial.print(radio.SENDERID, DEC);Serial.print("] ");
     Serial.print(" [RX_RSSI:");Serial.print(radio.readRSSI());Serial.print("]");
     if (promiscuousMode)
-	{
+    {
       Serial.print("to [");Serial.print(radio.TARGETID, DEC);Serial.print("] ");
     }
-	
+
     if (radio.DATALEN != sizeof(Payload))
       Serial.print("Invalid payload received, not matching Payload struct!");
     else

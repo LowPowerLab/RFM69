@@ -17,7 +17,6 @@
 //#define FREQUENCY     RF69_915MHZ
 #define ENCRYPTKEY    "sampleEncryptKey" //exactly the same 16 characters/bytes on all nodes!
 //#define IS_RFM69HW    //uncomment only for RFM69HW! Leave out if you have RFM69W!
-#define ACK_TIME      30 // max # of ms to wait for an ack
 #ifdef __AVR_ATmega1284P__
   #define LED           15 // Moteino MEGAs have LEDs on D15
   #define FLASH_SS      23 // and FLASH SS on D23
@@ -28,7 +27,7 @@
 
 #define SERIAL_BAUD   115200
 
-int TRANSMITPERIOD = 300; //transmit a packet to gateway so often (in ms)
+int TRANSMITPERIOD = 150; //transmit a packet to gateway so often (in ms)
 char payload[] = "123 ABCDEFGHIJKLMNOPQRSTUVWXYZ";
 char buff[20];
 byte sendSize=0;
@@ -43,6 +42,7 @@ void setup() {
   radio.setHighPower(); //uncomment only for RFM69HW!
 #endif
   radio.encrypt(ENCRYPTKEY);
+  //radio.setFrequency(919000000); //set frequency to some custom frequency
   char buff[50];
   sprintf(buff, "\nTransmitting at %d Mhz...", FREQUENCY==RF69_433MHZ ? 433 : FREQUENCY==RF69_868MHZ ? 868 : 915);
   Serial.println(buff);
@@ -125,33 +125,37 @@ void loop() {
       radio.sendACK();
       Serial.print(" - ACK sent");
     }
-    Blink(LED,5);
+    Blink(LED,3);
     Serial.println();
-  }
-
-  //send FLASH id
-  if(sendSize==0)
-  {
-    sprintf(buff, "FLASH_MEM_ID:0x%X", flash.readDeviceId());
-    byte buffLen=strlen(buff);
-    radio.sendWithRetry(GATEWAYID, buff, buffLen);
-    sendSize = (sendSize + 1) % 31;
   }
 
   int currPeriod = millis()/TRANSMITPERIOD;
   if (currPeriod != lastPeriod)
   {
     lastPeriod=currPeriod;
-    Serial.print("Sending[");
-    Serial.print(sendSize);
-    Serial.print("]: ");
-    for(byte i = 0; i < sendSize; i++)
-      Serial.print((char)payload[i]);
-
-    if (radio.sendWithRetry(GATEWAYID, payload, sendSize))
-     Serial.print(" ok!");
-    else Serial.print(" nothing...");
-
+    
+    //send FLASH id
+    if(sendSize==0)
+    {
+      sprintf(buff, "FLASH_MEM_ID:0x%X", flash.readDeviceId());
+      byte buffLen=strlen(buff);
+      if (radio.sendWithRetry(GATEWAYID, buff, buffLen))
+        Serial.print(" ok!");
+      else Serial.print(" nothing...");
+      //sendSize = (sendSize + 1) % 31;
+    }
+    else
+    {
+      Serial.print("Sending[");
+      Serial.print(sendSize);
+      Serial.print("]: ");
+      for(byte i = 0; i < sendSize; i++)
+        Serial.print((char)payload[i]);
+  
+      if (radio.sendWithRetry(GATEWAYID, payload, sendSize))
+       Serial.print(" ok!");
+      else Serial.print(" nothing...");
+    }
     sendSize = (sendSize + 1) % 31;
     Serial.println();
     Blink(LED,3);

@@ -4,9 +4,9 @@
 // Library and code by Felix Rusu - felix@lowpowerlab.com
 // Get the RFM69 and SPIFlash library at: https://github.com/LowPowerLab/
 
-#include <RFM69.h>
+#include <RFM69.h>    //get it here: https://www.github.com/lowpowerlab/rfm69
 #include <SPI.h>
-#include <SPIFlash.h>
+#include <SPIFlash.h> //get it here: https://www.github.com/lowpowerlab/spiflash
 
 #define NODEID        1    //unique for each node on same network
 #define NETWORKID     100  //the same on all nodes that talk to each other
@@ -16,7 +16,6 @@
 //#define FREQUENCY     RF69_915MHZ
 #define ENCRYPTKEY    "sampleEncryptKey" //exactly the same 16 characters/bytes on all nodes!
 //#define IS_RFM69HW    //uncomment only for RFM69HW! Leave out if you have RFM69W!
-#define ACK_TIME      30 // max # of ms to wait for an ack
 #define SERIAL_BAUD   115200
 
 #ifdef __AVR_ATmega1284P__
@@ -40,19 +39,21 @@ void setup() {
 #endif
   radio.encrypt(ENCRYPTKEY);
   radio.promiscuous(promiscuousMode);
+  //radio.setFrequency(919000000);
   char buff[50];
   sprintf(buff, "\nListening at %d Mhz...", FREQUENCY==RF69_433MHZ ? 433 : FREQUENCY==RF69_868MHZ ? 868 : 915);
   Serial.println(buff);
   if (flash.initialize())
   {
-    Serial.print("SPI Flash Init OK ... UniqueID (MAC): ");
+    Serial.print("SPI Flash Init OK. Unique MAC = [");
     flash.readUniqueId();
     for (byte i=0;i<8;i++)
     {
       Serial.print(flash.UNIQUEID[i], HEX);
-      Serial.print(' ');
+      if (i!=8) Serial.print(':');
     }
-
+    Serial.println(']');
+    
     //alternative way to read it:
     //byte* MAC = flash.readUniqueId();
     //for (byte i=0;i<8;i++)
@@ -60,12 +61,14 @@ void setup() {
     //  Serial.print(MAC[i], HEX);
     //  Serial.print(' ');
     //}
+    
   }
   else
     Serial.println("SPI Flash Init FAIL! (is chip present?)");
 }
 
 byte ackCount=0;
+uint32_t packetCount = 0;
 void loop() {
   //process any serial input
   if (Serial.available() > 0)
@@ -123,6 +126,9 @@ void loop() {
 
   if (radio.receiveDone())
   {
+    Serial.print("#[");
+    Serial.print(++packetCount);
+    Serial.print(']');
     Serial.print('[');Serial.print(radio.SENDERID, DEC);Serial.print("] ");
     if (promiscuousMode)
     {

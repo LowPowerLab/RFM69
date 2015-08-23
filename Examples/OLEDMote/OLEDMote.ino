@@ -59,7 +59,7 @@
 #define BUTTON_PIN    3 //user button on interrupt 1
 
 RFM69 radio;
-U8GLIB_SSD1306_128X64 u8g(U8G_I2C_OPT_NONE);	// I2C / TWI SSD1306 OLED 128x64
+U8GLIB_SSD1306_128X64 u8g(U8G_I2C_OPT_NONE); // I2C / TWI SSD1306 OLED 128x64
 bool promiscuousMode = true; //set to 'true' to sniff all packets on the same network
 
 void setup() {

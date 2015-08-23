@@ -1,35 +1,54 @@
-/*
- * Copyright (c) 2013 by Felix Rusu <felix@lowpowerlab.com>
- *
- * This file is free software; you can redistribute it and/or modify
- * it under the terms of either the GNU General Public License version 2
- * or the GNU Lesser General Public License version 2.1, both as
- * published by the Free Software Foundation.
- */
-
+// **********************************************************************************
 // This sketch is an example of how wireless programming can be achieved with a Moteino
-// that was loaded with a custom 1k Optiboot that is capable of loading a new sketch from
-// an external SPI flash chip
+// that was loaded with a custom 1k bootloader (DualOptiboot) that is capable of loading
+// a new sketch from an external SPI flash chip
 // The sketch includes logic to receive the new sketch 'over-the-air' and store it in
 // the FLASH chip, then restart the Moteino so the bootloader can continue the job of
 // actually reflashing the internal flash memory from the external FLASH memory chip flash image
 // The handshake protocol that receives the sketch wirelessly by means of the RFM69 radio
 // is handled by the SPIFLash/WirelessHEX69 library, which also relies on the RFM69 library
 // These libraries and custom 1k Optiboot bootloader are at: http://github.com/lowpowerlab
-
-#include <RFM69.h>
+// **********************************************************************************
+// Copyright Felix Rusu, LowPowerLab.com
+// Library and code by Felix Rusu - felix@lowpowerlab.com
+// **********************************************************************************
+// License
+// **********************************************************************************
+// This program is free software; you can redistribute it 
+// and/or modify it under the terms of the GNU General    
+// Public License as published by the Free Software       
+// Foundation; either version 3 of the License, or        
+// (at your option) any later version.                    
+//                                                        
+// This program is distributed in the hope that it will   
+// be useful, but WITHOUT ANY WARRANTY; without even the  
+// implied warranty of MERCHANTABILITY or FITNESS FOR A   
+// PARTICULAR PURPOSE. See the GNU General Public        
+// License for more details.                              
+//                                                        
+// You should have received a copy of the GNU General    
+// Public License along with this program.
+// If not, see <http://www.gnu.org/licenses/>.
+//                                                        
+// Licence can be viewed at                               
+// http://www.gnu.org/licenses/gpl-3.0.txt
+//
+// Please maintain this license information along with authorship
+// and copyright notices in any redistribution of this code
+// **********************************************************************************
+#include <RFM69.h>         //get it here: https://www.github.com/lowpowerlab/rfm69
 #include <SPI.h>
-#include <SPIFlash.h>
+#include <SPIFlash.h>      //get it here: https://www.github.com/lowpowerlab/spiflash
 #include <avr/wdt.h>
-#include <WirelessHEX69.h>
+#include <WirelessHEX69.h> //get it here: https://github.com/LowPowerLab/WirelessProgramming/tree/master/WirelessHEX69
 
-#define MYID        55       // node ID used for this unit
+#define NODEID      123       // node ID used for this unit
 #define NETWORKID   250
 //Match frequency to the hardware version of the radio on your Moteino (uncomment one):
 //#define FREQUENCY   RF69_433MHZ
 //#define FREQUENCY   RF69_868MHZ
 #define FREQUENCY     RF69_915MHZ
-#define IS_RFM69HW  //uncomment only for RFM69HW! Leave out if you have RFM69W!
+//#define IS_RFM69HW  //uncomment only for RFM69HW! Leave out if you have RFM69W!
 #define SERIAL_BAUD 115200
 #define ACK_TIME    30  // # of ms to wait for an ack
 #define ENCRYPTKEY "sampleEncryptKey" //(16 bytes of your choice - keep the same on all encrypted nodes)
@@ -59,7 +78,7 @@ SPIFlash flash(FLASH_SS, 0xEF30); //EF30 for windbond 4mbit flash
 void setup(){
   pinMode(LED, OUTPUT);
   Serial.begin(SERIAL_BAUD);
-  radio.initialize(FREQUENCY,MYID,NETWORKID);
+  radio.initialize(FREQUENCY,NODEID,NETWORKID);
   radio.encrypt(ENCRYPTKEY); //OPTIONAL
 #ifdef IS_RFM69HW
   radio.setHighPower(); //only for RFM69HW!

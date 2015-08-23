@@ -23,15 +23,21 @@ receiveDone	KEYWORD2
 ACKReceived	KEYWORD2
 sendACK	KEYWORD2
 setFrequency	KEYWORD2
+getFrequency	KEYWORD2
 encrypt	KEYWORD2
 setCS	KEYWORD2
 readRSSI	KEYWORD2
 promiscuous	KEYWORD2
 setHighPower	KEYWORD2
-CryptFunction	KEYWORD2
 sleep	KEYWORD2
 readReg	KEYWORD2
 writeReg	KEYWORD2
+setNetwork	KEYWORD2
+ACKRequested	KEYWORD2
+setPowerLevel	KEYWORD2
+readTemperature	KEYWORD2
+rcCalibration	KEYWORD2
+readAllRegs	KEYWORD2
 
 #######################################
 # Constants (LITERAL1)
@@ -50,3 +56,4 @@ TARGETID	LITERAL2
 PAYLOADLEN	LITERAL2
 ACK_REQUESTED	LITERAL2
 ACK_RECEIVED	LITERAL2
+RSSI	LITERAL2

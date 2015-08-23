@@ -481,9 +481,7 @@ void RFM69::setCS(uint8_t newSPISlaveSelect) {
 }
 
 //for debugging
-
-#define REGISTER_DETAIL 1
-
+#define REGISTER_DETAIL 0
 #if REGISTER_DETAIL
 // SERIAL PRINT
 // replace Serial.print("string") with SerialPrint("string")
@@ -511,7 +509,7 @@ void RFM69::readAllRegs()
   long freqCenter = 0;
 #endif
   
-  SerialPrint ( "Address - HEX - BIN\n" );  
+  Serial.println("Address - HEX - BIN");
   for (uint8_t regAddr = 1; regAddr <= 0x4F; regAddr++)
   {
     select();

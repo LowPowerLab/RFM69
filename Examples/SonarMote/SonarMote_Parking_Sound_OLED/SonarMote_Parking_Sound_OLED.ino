@@ -43,7 +43,8 @@
 // Please maintain this license information along with authorship
 // and copyright notices in any redistribution of this code
 // **********************************************************************************
-#include <LowPower.h> // get this library at: http://www.rocketscream.com/blog/2011/07/04/lightweight-low-power-arduino-library/
+#include <LowPower.h> //get library from: https://github.com/lowpowerlab/lowpower
+                      //writeup here: http://www.rocketscream.com/blog/2011/07/04/lightweight-low-power-arduino-library/
 //#define BUZZER_ENABLE  //uncomment this line if you have the BUZZER soldered and want the sketch to make sounds
 //#define OLED_ENABLE    //uncomment this line if you have an OLED attached on the SonarMote and want to see the distance printed on it
                          //the OLED drawing will cause a visible delay in the LED blinking, nothing much to do about it without complicating the sketch a lot more

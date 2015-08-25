@@ -44,7 +44,8 @@
 // and copyright notices in any redistribution of this code
 // **********************************************************************************
 #include <NewPing.h>  // get this library at: https://code.google.com/p/arduino-new-ping/
-#include <LowPower.h> // get this library at: http://www.rocketscream.com/blog/2011/07/04/lightweight-low-power-arduino-library/
+#include <LowPower.h> //get library from: https://github.com/lowpowerlab/lowpower
+                      //writeup here: http://www.rocketscream.com/blog/2011/07/04/lightweight-low-power-arduino-library/
 
 #define TRIG           6  // digital pin wired to TRIG pin of ultrasonic sensor
 #define ECHO           7  // digital pin wired to ECHO pin of ultrasonic sensor

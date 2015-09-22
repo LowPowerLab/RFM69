@@ -1,6 +1,6 @@
 // Sample RFM69 sender/node sketch for the SonarMote - Distance tracker
 // Can be used for inventory control - ex to measure distance in a multi lane cigarette pack rack
-// More info/photos at: http://lowpowerlab.com/sonar
+// http://lowpowerlab.com/sonarmote
 // Ultrasonic sensor (HC-SR04) connected to D6 (Trig), D7 (Echo), and power enabled through D5
 // This sketch sleeps the Moteino and sensor most of the time. It wakes up every few seconds to take
 //   a distance reading. If it detects an approaching object (car) it increases the sampling rate
@@ -14,6 +14,7 @@
 //   If desired this value could be saved to EEPROM to persist if unit is turned off
 // Get the RFM69 at: https://github.com/LowPowerLab/
 // Make sure you adjust the settings in the configuration section below !!!
+
 // **********************************************************************************
 // Copyright Felix Rusu, LowPowerLab.com
 // Library and code by Felix Rusu - felix@lowpowerlab.com
@@ -44,27 +45,25 @@
 // **********************************************************************************
 #include <SPI.h>
 #include <RFM69.h>    //get it here: https://www.github.com/lowpowerlab/rfm69
-#include <SPIFlash.h> //get it here: https://github.com/LowPowerLab/SPIFlash
 #include <LowPower.h> //get library from: https://github.com/lowpowerlab/lowpower
                       //writeup here: http://www.rocketscream.com/blog/2011/07/04/lightweight-low-power-arduino-library/
 
 //*********************************************************************************************
-//************ IMPORTANT SETTINGS - YOU MUST CHANGE/ONFIGURE TO FIT YOUR HARDWARE *************
+//************ IMPORTANT SETTINGS - YOU MUST CHANGE/CONFIGURE TO FIT YOUR HARDWARE *************
 //*********************************************************************************************
-#define NODEID        22    //unique for each node on same network
-#define NETWORKID     100  //the same on all nodes that talk to each other
-#define GATEWAYID     1
-//Match frequency to the hardware version of the radio on your Moteino (uncomment one):
-//#define FREQUENCY     RF69_433MHZ
-//#define FREQUENCY     RF69_868MHZ
-#define FREQUENCY     RF69_915MHZ
-#define IS_RFM69HW    //uncomment only for RFM69HW! Remove/comment if you have RFM69W!
+#define NODEID        22   //unique for each node on same network
+#define GATEWAYID     1    //node Id of the receiver we are sending data to
+#define NETWORKID     100  //the same on all nodes that talk to each other including this node and the gateway
+#define FREQUENCY     RF69_915MHZ //others: RF69_433MHZ, RF69_868MHZ (this must match the RFM69 freq you have on your Moteino)
+define IS_RFM69HW    //uncomment only for RFM69HW! Remove/comment if you have RFM69W!
 #define ENCRYPTKEY    "sampleEncryptKey" //exactly the same 16 characters/bytes on all nodes!
 #define SENDLOOPS    80 //default:80 //if no message was sent for this many sleep loops/cycles, then force a send
 #define READ_SAMPLES 3
+#define HISTERESIS   1.3  //(cm) only send a message when new reading is this many centimeters different
+#define DIST_READ_LOOPS 2 //read distance every this many sleeping loops (ie if sleep time is 8s then 2 loops => a read occurs every 16s)
 //*********************************************************************************************
-//#define BUZZER_ENABLE  //uncomment this line if you have the BUZZER soldered and want the sketch to make sounds
-#define SERIAL_EN         //uncomment if you want serial debugging output
+#define BUZZER_ENABLE  //uncomment this line if you have the BUZZER soldered and want the sketch to make sounds
+//#define SERIAL_EN      //uncomment if you want serial debugging output
 //*********************************************************************************************
 #define SLEEP_FASTEST SLEEP_15MS
 #define SLEEP_FAST SLEEP_250MS
@@ -89,7 +88,6 @@ period_t sleepTime = SLEEP_LONGEST; //period_t is an enum type defined in the Lo
 #define MIN_DISTANCE   2  // minimum valid distance
 #define MAX_ADJUST_DISTANCE (MAX_DISTANCE-GRN_LIMIT_UPPER)   //this is the amount by which the RED_LIMIT_UPPER can by increased
 
-//  
 #ifdef SERIAL_EN
   #define SERIAL_BAUD   115200
   #define DEBUG(input)   {Serial.print(input);}
@@ -102,21 +100,21 @@ period_t sleepTime = SLEEP_LONGEST; //period_t is an enum type defined in the Lo
 #endif
 
 #define BATT_MONITOR  A7  // Sense VBAT_COND signal (when powered externally should read ~3.25v/3.3v (1000-1023), when external power is cutoff it should start reading around 2.85v/3.3v * 1023 ~= 883 (ratio given by 10k+4.7K divider from VBAT_COND = 1.47 multiplier)
-#define BATT_CYCLES   SENDLOOPS  // read and report battery voltage every this many sleep cycles (ex 30cycles * 8sec sleep = 240sec/4min). For 450 cycles you would get ~1 hour intervals between readings
+#define BATT_READ_LOOPS  SENDLOOPS  // read and report battery voltage every this many sleep cycles (ex 30cycles * 8sec sleep = 240sec/4min). For 450 cycles you would get ~1 hour intervals between readings
 #define BATT_FORMULA(reading) reading * 0.00322 * 1.475  // >>> fine tune this parameter to match your voltage when fully charged
-#define BATT_LOW      3.3
+#define BATT_LOW      3.55
 
 byte sendLen;
-byte sendLoops=SENDLOOPS;
+byte sendLoops=0;
+byte distReadLoops=0;
+byte battReadLoops=0;
 float distance=0;
 float prevDistance=0;
 float batteryVolts = 5;
 char buff[50]; //this is just an empty string used as a buffer to place the payload for the radio
 char* BATstr="BAT:5.00v"; //longest battery voltage reading message = 9chars
 char* DISTstr="99999.99cm"; //longest distance reading message = 5chars
-void checkBattery(byte samples=10);    //take 10 samples by default
-float readDistance(byte samples=1);    //take 1 samples by default
-SPIFlash flash(FLASH_SS, 0xEF30); //EF30 for 4mbit  Windbond chip (W25X40CL)
+float readDistance(byte samples=1);  //take 1 samples by default
 RFM69 radio;
 
 void setup() {
@@ -135,7 +133,6 @@ void setup() {
   for (byte i=0;i<strlen(ENCRYPTKEY);i++) DEBUG(ENCRYPTKEY[i]);
   DEBUGln();
   radio.sleep();
-  if (flash.initialize()) flash.sleep();
 
   pinMode(TRIG, OUTPUT);
   pinMode(ECHO, INPUT);
@@ -146,22 +143,37 @@ void setup() {
   buzzer(50,2,100);
 #endif
 
+  radio.sendWithRetry(GATEWAYID, "START", 5);
+
   SERIALFLUSH();
   readDistance(); //first reading seems to always be low
+  readBattery();
 }
 
 void loop() {
-  checkBattery();
-  distance = readDistance(READ_SAMPLES);
+  if (battReadLoops--<=0) //only read battery every BATT_READ_LOOPS cycles
+  {
+    readBattery();
+    battReadLoops = BATT_READ_LOOPS-1;
+  }
+  
+  if (distReadLoops--<=0)
+  {
+    distance = readDistance(READ_SAMPLES);
+    distReadLoops = DIST_READ_LOOPS-1;
+  }
 
   float diff = distance - prevDistance;
-  if ((diff > 1 || diff < -1) || (--sendLoops==0)) //only send a new message if the distance has changed by at least 1cm
+  if ((diff > HISTERESIS || diff < -HISTERESIS) || (sendLoops--<=0)) //only send a new message if the distance has changed more than the HISTERESIS or if sendloops has expired
   {
     if (distance > MAX_DISTANCE || distance < MIN_DISTANCE)
       DISTstr = "0"; // zero, out of range
     else dtostrf(distance,3,2, DISTstr);
 
-    sprintf(buff, "%scm BAT:%s", DISTstr, BATstr);
+    if (diff > HISTERESIS || diff < -HISTERESIS)
+      sprintf(buff, "%scm BAT:%s", DISTstr, BATstr); //send both distance and battery readings
+    else
+      sprintf(buff, "BAT:%s", BATstr); //distance has not changed significantly so only send last battery reading
     sendLen = strlen(buff);
 
     digitalWrite(LED, HIGH);
@@ -174,19 +186,10 @@ void loop() {
     }
     else DEBUGln(" - ACK:NOK...");
     digitalWrite(LED, LOW);
-    sendLoops = SENDLOOPS; //reset loop counter
+    sendLoops = SENDLOOPS-1; //reset send loop counter
   }
   radio.sleep();
   SERIALFLUSH();
-
-//  if (radio.sendWithRetry(1, "123 TEST", 8))
-//  {
-//    //prevDistance = distance;
-//    DEBUG(" - ACK:OK! RSSI:");
-//    DEBUGln(radio.RSSI);
-//  }
-//  else DEBUGln(" - ACK:NOK...");
-//  SERIALFLUSH();
 
   LowPower.powerDown(sleepTime, ADC_OFF, BOD_OFF); //put microcontroller to sleep to save battery life
 }
@@ -222,19 +225,14 @@ long PING()
   return pulseIn(ECHO, HIGH);
 }
 
-byte cycleCount=BATT_CYCLES;
-void checkBattery(byte samples)
+void readBattery()
 {
-  if (cycleCount++ == BATT_CYCLES) //only read battery every BATT_CYCLES sleep cycles
-  {
-    unsigned int readings=0;
-    for (byte i=0; i<samples; i++) //take 10 samples, and average
-      readings+=analogRead(BATT_MONITOR);
-    batteryVolts = BATT_FORMULA(readings / 10.0);
-    dtostrf(batteryVolts,3,2, BATstr); //update the BATStr which gets sent every BATT_CYCLES or along with the MOTION message
-    if (batteryVolts <= BATT_LOW) BATstr = "LOW";
-    cycleCount = 0;
-  }
+  unsigned int readings=0;
+  for (byte i=0; i<5; i++) //take several samples, and average
+    readings+=analogRead(BATT_MONITOR);
+  batteryVolts = BATT_FORMULA(readings / 5.0);
+  dtostrf(batteryVolts,3,2, BATstr); //update the BATStr which gets sent every BATT_CYCLES or along with the MOTION message
+  if (batteryVolts <= BATT_LOW) BATstr = "LOW";
 }
 
 float microsecondsToInches(long microseconds)

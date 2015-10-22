@@ -56,9 +56,7 @@
 #define GATEWAYID   1
 #define NODEID      11
 #define NETWORKID   250
-//#define FREQUENCY     RF69_433MHZ
-//#define FREQUENCY     RF69_868MHZ
-#define FREQUENCY       RF69_915MHZ //Match this with the version of your Moteino! (others: RF69_433MHZ, RF69_868MHZ)
+#define FREQUENCY     RF69_433MHZ  // RF69_868MHZ, RF69_915MHZ
 #define ENCRYPTKEY      "sampleEncryptKey" //has to be same 16 characters/bytes on all nodes, not more not less!
 #define IS_RFM69HW      //uncomment only for RFM69HW! Leave out if you have RFM69W!
 
@@ -73,9 +71,11 @@
 
 #define DOOR_MOVEMENT_TIME 14000 // this has to be at least as long as the max between [door opening time, door closing time]
                                  // my door opens and closes in about 12s
-#define STATUS_CHANGE_MIN  1500  // this has to be at least as long as the delay 
-                                 // between a opener button press and door movement start
-                                 // most garage doors will start moving immediately (within half a second)
+
+#define STATUS_POLLING_INTERVAL 1000  // check new status with this interval
+#define STATUS_PENDING_DELAY  2000    // wait this long before indicating OPEN/CLOSED status.  This eliminates a problem with temporary status as the magnet moves across sensors
+#define STATUS_CHANGE_NOTIFY 60000    // update status every 1 minute even if no change == positive confirmation of current status
+                                      // comment this out if you do not want this
 //*****************************************************************************************************************************
 #define HALLSENSOR_OPENSIDE   0
 #define HALLSENSOR_CLOSEDSIDE 1
@@ -111,6 +111,11 @@ boolean hallSensorRead(byte which);
 void pulseRelay();
 
 //global program variables
+void getStatus();
+byte pendingSTATUS=0;
+unsigned long lastNotifyTimestamp=0;
+unsigned long pendingStatusTimestamp=0;
+
 byte STATUS;
 unsigned long lastStatusTimestamp=0;
 unsigned long ledPulseTimestamp=0;
@@ -177,43 +182,22 @@ void loop()
     pulseRelay();
     input = 0;
   }
-    
-  // UNKNOWN => OPEN/CLOSED
-  if (STATUS == STATUS_UNKNOWN && millis()-(lastStatusTimestamp)>STATUS_CHANGE_MIN)
-  {
-    if (hallSensorRead(HALLSENSOR_OPENSIDE)==true)
-      setStatus(STATUS_OPEN);
-    if (hallSensorRead(HALLSENSOR_CLOSEDSIDE)==true)
-      setStatus(STATUS_CLOSED);
-  }
 
-  // OPEN => CLOSING
-  if (STATUS == STATUS_OPEN && millis()-(lastStatusTimestamp)>STATUS_CHANGE_MIN)
-  {
-    if (hallSensorRead(HALLSENSOR_OPENSIDE)==false)
-      setStatus(STATUS_CLOSING);
-  }
-
-  // CLOSED => OPENING  
-  if (STATUS == STATUS_CLOSED && millis()-(lastStatusTimestamp)>STATUS_CHANGE_MIN)
-  {
-    if (hallSensorRead(HALLSENSOR_CLOSEDSIDE)==false)
-      setStatus(STATUS_OPENING);
-  }
-
-  // OPENING/CLOSING => OPEN (when door returns to open due to obstacle or toggle action)
-  //                 => CLOSED (when door closes normally from OPEN)
-  //                 => UNKNOWN (when more time passes than normally would for a door up/down movement)
-  if ((STATUS == STATUS_OPENING || STATUS == STATUS_CLOSING) && millis()-(lastStatusTimestamp)>STATUS_CHANGE_MIN)
-  {
-    if (hallSensorRead(HALLSENSOR_OPENSIDE)==true)
-      setStatus(STATUS_OPEN);
-    else if (hallSensorRead(HALLSENSOR_CLOSEDSIDE)==true)
-      setStatus(STATUS_CLOSED);
-    else if (millis()-(lastStatusTimestamp)>DOOR_MOVEMENT_TIME)
-      setStatus(STATUS_UNKNOWN);
-  }
   
+  // check new status every few milliseconds
+  if (millis()-(lastStatusTimestamp)>STATUS_POLLING_INTERVAL) {
+    getStatus();
+  }
+
+#ifdef STATUS_CHANGE_NOTIFY
+    // possitive confirmation of status every so often
+  if (millis()-lastNotifyTimestamp>STATUS_CHANGE_NOTIFY)
+  {
+    lastNotifyTimestamp = millis();
+    reportStatus();
+  }
+#endif
+
   if (radio.receiveDone())
   {
     byte newStatus=STATUS;
@@ -227,13 +211,13 @@ void loop()
       //check for an OPEN/CLOSE/STATUS request
       if (radio.DATA[0]=='O' && radio.DATA[1]=='P' && radio.DATA[2]=='N')
       {
-        if (millis()-(lastStatusTimestamp) > STATUS_CHANGE_MIN && (STATUS == STATUS_CLOSED || STATUS == STATUS_CLOSING || STATUS == STATUS_UNKNOWN))
+        if (millis()-(lastStatusTimestamp) > STATUS_POLLING_INTERVAL && (STATUS == STATUS_CLOSED || STATUS == STATUS_CLOSING || STATUS == STATUS_UNKNOWN))
           newStatus = STATUS_OPENING;
         //else radio.Send(requester, "INVALID", 7);
       }
       if (radio.DATA[0]=='C' && radio.DATA[1]=='L' && radio.DATA[2]=='S')
       {
-        if (millis()-(lastStatusTimestamp) > STATUS_CHANGE_MIN && (STATUS == STATUS_OPEN || STATUS == STATUS_OPENING || STATUS == STATUS_UNKNOWN))
+        if (millis()-(lastStatusTimestamp) > STATUS_POLLING_INTERVAL && (STATUS == STATUS_OPEN || STATUS == STATUS_OPENING || STATUS == STATUS_UNKNOWN))
           newStatus = STATUS_CLOSING;
         //else radio.Send(requester, "INVALID", 7);
       }
@@ -259,7 +243,6 @@ void loop()
     if (STATUS != newStatus)
     {
       pulseRelay();
-      setStatus(newStatus);
     }
     if (reportStatusRequest)
     {
@@ -328,6 +311,42 @@ boolean hallSensorRead(byte which)
   byte reading = digitalRead(which ? HALLSENSOR2 : HALLSENSOR1);
   digitalWrite(which ? HALLSENSOR2_EN : HALLSENSOR1_EN, LOW); //turn sensor OFF
   return reading==0;
+}
+
+void getStatus(void)
+{
+  byte newSTATUS = 99;
+  
+  // determine current status
+  if (hallSensorRead(HALLSENSOR_OPENSIDE)==true)
+        newSTATUS = STATUS_OPEN; 
+  else if (hallSensorRead(HALLSENSOR_CLOSEDSIDE)==true)
+      newSTATUS = STATUS_CLOSED;
+  else if (STATUS == STATUS_OPEN)
+      newSTATUS = STATUS_CLOSING;
+  else if (STATUS == STATUS_CLOSED)
+      newSTATUS = STATUS_OPENING;
+  else if (millis()-(lastStatusTimestamp)>DOOR_MOVEMENT_TIME)
+      newSTATUS = STATUS_UNKNOWN;
+
+  // OPEN & CLOSE need to pass a certain amount of time before the status is changed
+  if (STATUS != newSTATUS && (newSTATUS == STATUS_OPEN || newSTATUS == STATUS_CLOSED))
+  {
+      // check to see if we already started the timer, if not start it
+      if (pendingStatusTimestamp == 0 || newSTATUS != pendingSTATUS)
+      {
+          pendingStatusTimestamp = millis();
+          pendingSTATUS = newSTATUS; 
+      }
+      else if (millis()-pendingStatusTimestamp>STATUS_PENDING_DELAY)
+      {
+          pendingStatusTimestamp = 0;
+          setStatus(newSTATUS);        
+      }
+  }
+  else if ( newSTATUS != 99 && newSTATUS != STATUS )
+      setStatus(newSTATUS);
+
 }
 
 void setStatus(byte newSTATUS, boolean reportIt)

@@ -10,6 +10,7 @@
 # Instances (KEYWORD2)
 #######################################
 RFM69	KEYWORD2
+RFM69_ATC	KEYWORD2
 
 #######################################
 # Methods and Functions (KEYWORD2)
@@ -38,6 +39,7 @@ setPowerLevel	KEYWORD2
 readTemperature	KEYWORD2
 rcCalibration	KEYWORD2
 readAllRegs	KEYWORD2
+enableAutoPower	KEYWORD2
 
 #######################################
 # Constants (LITERAL1)

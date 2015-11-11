@@ -123,7 +123,7 @@ void motionIRQ()
   DEBUGln("IRQ");
 }
 
-byte batteryReportCycles=0;
+uint16_t batteryReportCycles=0;
 void loop() {
   checkBattery();
   if (motionDetected)

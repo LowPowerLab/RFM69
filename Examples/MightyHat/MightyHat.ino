@@ -394,7 +394,11 @@ void handlePowerControl() {
 
               if (!BOOTOK()) recycleDetected = true;
               else if (BOOTOK() && recycleDetected)
+              {
+                sprintf(lcdbuff, "Reboot OK!");
+                refreshLCD();
                 return;
+              }
             }
             return; //reboot pulse sent but it appears a reboot failed; exit all checks
           }

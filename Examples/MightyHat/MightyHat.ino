@@ -41,8 +41,8 @@
 //*****************************************************************************************************************************
 // ADJUST THE SETTINGS BELOW DEPENDING ON YOUR HARDWARE/SITUATION!
 //*****************************************************************************************************************************
-#define NODEID          1
-#define NETWORKID     100
+#define NODEID          1  //the gateway has ID=1
+#define NETWORKID     100  //all nodes on the same network can talk to each other
 #define FREQUENCY     RF69_915MHZ //Match this with the version of your Moteino! (others: RF69_433MHZ, RF69_868MHZ)
 #define ENCRYPTKEY    "sampleEncryptKey" //has to be same 16 characters/bytes on all nodes, not more not less!
 #define IS_RFM69HW    //uncomment only for RFM69HW! Leave out if you have RFM69W!
@@ -94,7 +94,7 @@
                                   // should be at least 3000 more than Min
                                   // if nothing happens after this window, if button is 
                                   // still pressed, force cutoff power, otherwise switch back to normal ON state
-#define PRINTPERIOD         1500
+#define BATTERYREADINTERVAL   2000
 
 #ifdef DEBUG_EN
   #define DEBUG(input)   Serial.print(input)
@@ -207,7 +207,7 @@ void clearDisplay() {
 }
 
 void refreshLCD() {
-  
+
   byte lcdwidth = lcd.getWidth();
   byte lcdheight = lcd.getHeight();
   char c;
@@ -226,6 +226,7 @@ void refreshLCD() {
     byte line=0;
     byte done = false;
 
+    //this section splits the textp string into chunks that fit on the screen width and prints each to a new line
     while(textLength && !done)
     {
       //DEBUGln(textLength);
@@ -253,7 +254,7 @@ void refreshLCD() {
 
     lcd.setFontPosBaseline();
 
-    //battery
+    //print battery voltage and icon
     if (systemVoltage >= 4.3) bmpPtr = (byte*)xbmp_batt_c;
     else if (systemVoltage >= 4) bmpPtr = (byte*)xbmp_batt_6;
     else if (systemVoltage >= 3.9) bmpPtr = (byte*)xbmp_batt_5;
@@ -271,14 +272,13 @@ void refreshLCD() {
     }
     lcd.drawStr(50, 48, BATvstr);
 
-    //rssi
+    //print rssi and icon
     if (rssi > -70) bmpPtr = (byte*)xbmp_rssi_3;
     else if (rssi > -80) bmpPtr = (byte*)xbmp_rssi_2;
     else if (rssi > -90) bmpPtr = (byte*)xbmp_rssi_1;
     else if (rssi > -95) bmpPtr = (byte*)xbmp_rssi_0;
     lcd.drawXBMP(0, lcdheight-xbmp_rssi_height, xbmp_rssi_width, xbmp_rssi_height, bmpPtr);
     lcd.drawStr(xbmp_rssi_width+1, 48, RSSIstr);
-
   } while(lcd.nextPage());
 }
 //******************************************** END LCD FUNCTIONS ********************************************************************************
@@ -560,14 +560,15 @@ int checkFreeRAM()
 
 boolean readBattery() {
   //periodically read the battery voltage
-  int currPeriod = millis()/PRINTPERIOD;
+  int currPeriod = millis()/BATTERYREADINTERVAL;
   if (currPeriod != lastPeriod)
   {
+    DEBUG('(');
     lastPeriod=currPeriod;
     systemVoltage = BATTERY_VOLTS(analogRead(BATTERYSENSE));
     dtostrf(systemVoltage, 3,2, BATstr);
+    DEBUG(')');
     batteryLow = systemVoltage < LOWBATTERYTHRESHOLD;
-    //DEBUG("VBAT: ");DEBUG(systemVoltage);
     return true; //signal that batt has been read
   }
   return false;
@@ -600,7 +601,7 @@ void setup() {
   drawLogo();
   delay(2000);
   readBattery();
-  Serial.print(F("Free RAM bytes: "));Serial.println(checkFreeRAM());
+  DEBUG(F("Free RAM bytes: "));DEBUG(checkFreeRAM());
   refreshLCD();
   delay(1500);
 }
@@ -612,7 +613,6 @@ void loop() {
   handleSerialInput();  //checks for any serial input from the Pi computer
 
   //process any received radio packets
-  newPacketReceived = false;
   if (radio.receiveDone())
   {
     rssi = radio.RSSI;
@@ -637,10 +637,22 @@ void loop() {
       radio.sendACK();
       DEBUG(F("[ACK-sent]"));
     }
+    
+    //DEBUG(F("Free RAM bytes: "));DEBUG(checkFreeRAM());
+    
     Serial.println();
     Blink(LED,2);
     newPacketReceived = true;
   }
-  if (readBattery() || newPacketReceived) refreshLCD();
-  //LCD_BACKLIGHT(batteryLow ? 0 : 1);
+
+  boolean newBatteryReading=false;
+  if (readBattery()) newBatteryReading = true;
+  
+  if (newPacketReceived || newBatteryReading)
+  {
+    newPacketReceived = false;
+    refreshLCD();
+    if (newBatteryReading) { newBatteryReading = false; delay(10); }
+  }
+  LCD_BACKLIGHT(batteryLow);
 }

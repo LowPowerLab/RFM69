@@ -47,6 +47,7 @@
 #define ENCRYPTKEY    "sampleEncryptKey" //has to be same 16 characters/bytes on all nodes, not more not less!
 #define IS_RFM69HW    //uncomment only for RFM69HW! Leave out if you have RFM69W!
 //#define ENABLE_ATC    //comment out this line to disable AUTO TRANSMISSION CONTROL
+//#define ENABLE_WIRELESS_PROGRAMMING    //comment out this line to disable Wireless Programming of this gateway
 //*****************************************************************************************************************************
 #define ACK_TIME       30  // # of ms to wait for an ack
 #define SERIAL_BAUD 115200
@@ -79,7 +80,7 @@
                                   // trigger a shutdown to the target device once voltage is around 3.4v to allow 30sec safe shutdown
 
 #define BATTERY_VOLTS(analog_reading) analog_reading * 0.00322 * 1.51 // 100/66 is the inverse ratio of the voltage divider ( Batt > 1MEG > A7 > 2MEG > GND )
-#define LOWBATTERYTHRESHOLD  3.65  // a shutdown will be triggered to the target device when battery voltage drops below this (Volts)
+#define LOWBATTERYTHRESHOLD   3.5  // a shutdown will be triggered to the target device when battery voltage drops below this (Volts)
 #define CHARGINGTHRESHOLD     4.3
 #define RESETHOLDTIME         500 // Button must be hold this many mseconds before a reset is issued (should be much less than SHUTDOWNHOLDTIME)
 #define SHUTDOWNHOLDTIME     2000 // Button must be hold this many mseconds before a shutdown sequence is started (should be much less than ForcedShutoffDelay)
@@ -473,6 +474,12 @@ void handlePowerControl() {
           POWER(PowerState);
         }
         
+        if (PowerState == OFF)
+        {
+          sprintf(lcdbuff, "Pi is now OFF");
+          refreshLCD();
+        }
+        
         digitalWrite(SIG_SHUTOFF, LOW);
         //DEBUGln("SIG_SHUTOFF - LOW");
       }
@@ -496,6 +503,8 @@ void handlePowerControl() {
             //TODO: add blinking here to signal final shutdown delay
             PowerState = OFF;
             POWER(PowerState);
+            sprintf(lcdbuff, "Pi is now OFF");
+            refreshLCD();
             break;
           }
         }
@@ -612,7 +621,10 @@ void loop() {
     }
 
     //check if the packet is a wireless programming request
+    //removing this line will save 3kb+ of flash space
+#ifdef ENABLE_WIRELESS_PROGRAMMING
     CheckForWirelessHEX(radio, flash, false); //non verbose DEBUG
+#endif
 
     //respond to any ACK if requested
     if (radio.ACKRequested())

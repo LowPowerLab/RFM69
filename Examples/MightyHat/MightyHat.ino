@@ -563,11 +563,9 @@ boolean readBattery() {
   int currPeriod = millis()/BATTERYREADINTERVAL;
   if (currPeriod != lastPeriod)
   {
-    DEBUG('(');
     lastPeriod=currPeriod;
     systemVoltage = BATTERY_VOLTS(analogRead(BATTERYSENSE));
     dtostrf(systemVoltage, 3,2, BATstr);
-    DEBUG(')');
     batteryLow = systemVoltage < LOWBATTERYTHRESHOLD;
     return true; //signal that batt has been read
   }
@@ -645,14 +643,14 @@ void loop() {
     newPacketReceived = true;
   }
 
-  boolean newBatteryReading=false;
-  if (readBattery()) newBatteryReading = true;
-  
-  if (newPacketReceived || newBatteryReading)
+  //boolean newBatteryReading=false;
+  //if (readBattery()) newBatteryReading = true;
+  readBattery();
+
+  if (newPacketReceived /*|| newBatteryReading*/)
   {
     newPacketReceived = false;
     refreshLCD();
-    if (newBatteryReading) { newBatteryReading = false; delay(10); }
   }
   LCD_BACKLIGHT(batteryLow);
 }

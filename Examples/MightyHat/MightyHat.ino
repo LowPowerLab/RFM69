@@ -207,7 +207,7 @@ void clearDisplay() {
 }
 
 void refreshLCD() {
-
+  SPI.setClockDivider(SPI_CLOCK_DIV16);
   byte lcdwidth = lcd.getWidth();
   byte lcdheight = lcd.getHeight();
   char c;
@@ -280,6 +280,7 @@ void refreshLCD() {
     lcd.drawXBMP(0, lcdheight-xbmp_rssi_height, xbmp_rssi_width, xbmp_rssi_height, bmpPtr);
     lcd.drawStr(xbmp_rssi_width+1, 48, RSSIstr);
   } while(lcd.nextPage());
+  SPI.setClockDivider(SPI_CLOCK_DIV4);
 }
 //******************************************** END LCD FUNCTIONS ********************************************************************************
 
@@ -643,14 +644,12 @@ void loop() {
     newPacketReceived = true;
   }
 
-  //boolean newBatteryReading=false;
-  //if (readBattery()) newBatteryReading = true;
   readBattery();
-
-  if (newPacketReceived /*|| newBatteryReading*/)
+  if (newPacketReceived)
   {
     newPacketReceived = false;
     refreshLCD();
   }
+  
   LCD_BACKLIGHT(batteryLow);
 }

@@ -39,15 +39,16 @@
                            //u8g compared to adafruit lib: https://www.youtube.com/watch?v=lkWZuAnHa2Y
                            //draing bitmaps: https://www.coconauts.net/blog/2015/01/19/easy-draw-bitmaps-arduino/
 //*****************************************************************************************************************************
-// ADJUST THE SETTINGS BELOW DEPENDING ON YOUR HARDWARE/SITUATION!
+// ADJUST THE SETTINGS BELOW DEPENDING ON YOUR HARDWARE/SCENARIO !
 //*****************************************************************************************************************************
 #define NODEID          1  //the gateway has ID=1
 #define NETWORKID     100  //all nodes on the same network can talk to each other
 #define FREQUENCY     RF69_915MHZ //Match this with the version of your Moteino! (others: RF69_433MHZ, RF69_868MHZ)
 #define ENCRYPTKEY    "sampleEncryptKey" //has to be same 16 characters/bytes on all nodes, not more not less!
 #define IS_RFM69HW    //uncomment only for RFM69HW! Leave out if you have RFM69W!
-//#define ENABLE_ATC    //comment out this line to disable AUTO TRANSMISSION CONTROL
-//#define ENABLE_WIRELESS_PROGRAMMING    //comment out this line to disable Wireless Programming of this gateway
+#define ENABLE_ATC    //comment out this line to disable AUTO TRANSMISSION CONTROL //more here: http://lowpowerlab.com/blog/2015/11/11/rfm69_atc-automatic-transmission-control/
+#define ENABLE_WIRELESS_PROGRAMMING    //comment out this line to disable Wireless Programming of this gateway node
+#define ENABLE_LCD    //comment this out if you don't have or don't want to use the LCD
 //*****************************************************************************************************************************
 #define ACK_TIME       30  // # of ms to wait for an ack
 #define SERIAL_BAUD 115200
@@ -104,43 +105,54 @@
   #define DEBUGln(input)
 #endif
 
-//******************************************** BEGIN LCD PRIMITIVES ********************************************************************************
+//general variables
+byte ackCount=0;
+String inputstr;
+byte inputLen=0;
+char BATstr[5];
+char BATvstr[6];
+char RSSIstr[] = "-100dBm";
+char input[64];
+byte temp[61]; //used for serial input
+
+int lastValidReading = 1;
+unsigned long lastValidReadingTime = 0;
+unsigned long NOW=0;
+byte PowerState = OFF;
+long lastPeriod = -1;
+int rssi=0;
+float systemVoltage = 5;
+boolean batteryLow=false;
+boolean batteryLowShutdown=false;
+
+SPIFlash flash(FLASH_CS, 0xEF30); //EF30 for 4mbit Windbond FLASH MEM 
+#ifdef ENABLE_ATC
+  RFM69_ATC radio;
+#else
+  RFM69 radio;
+#endif
+
+//******************************************** BEGIN LCD STUFF ********************************************************************************
+char lcdbuff[80];
+#ifdef ENABLE_LCD
 #define PIN_LCD_CS    LATCH_VAL //Pin 2 on LCD, lcd CS is shared with Latch value pin since they are both outputs and never HIGH at the same time
 #define PIN_LCD_RST   A1 //Pin 1 on LCD
 #define PIN_LCD_DC    A0 //Pin 3 on LCD
 #define PIN_LCD_LIGHT 3 //Backlight pin
-#define xbmp_logo_width 67
-#define xbmp_logo_height 36
+#define xbmp_logo_width 30
+#define xbmp_logo_height 27
 #define LCD_BACKLIGHT(x) { if (x) analogWrite(PIN_LCD_LIGHT, 100); else analogWrite(PIN_LCD_LIGHT, 0); }
 
 const uint8_t xbmp_logo[] PROGMEM = {
-   0x00, 0x00, 0x00, 0xfe, 0xff, 0x1f, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-   0xff, 0xff, 0x3f, 0x00, 0x00, 0x00, 0x00, 0x00, 0x80, 0x00, 0x00, 0x40,
-   0x00, 0x00, 0x00, 0x00, 0x00, 0x60, 0x00, 0x00, 0x80, 0x01, 0x00, 0x00,
-   0x00, 0x00, 0x30, 0x3c, 0x00, 0x0f, 0x03, 0x00, 0x00, 0x00, 0x00, 0x30,
-   0x42, 0x80, 0x10, 0x03, 0x00, 0x00, 0x00, 0x00, 0x30, 0x42, 0x80, 0x10,
-   0x03, 0x00, 0x00, 0x00, 0x00, 0x30, 0xc2, 0xc0, 0x10, 0x03, 0x00, 0x00,
-   0x00, 0x00, 0x30, 0x3c, 0x21, 0x0f, 0x03, 0x00, 0x00, 0x00, 0x00, 0x30,
-   0x00, 0x1e, 0x00, 0x03, 0x00, 0x00, 0x00, 0x00, 0x30, 0x00, 0x1e, 0x00,
-   0x03, 0x00, 0x00, 0x00, 0x00, 0x30, 0x3c, 0x1e, 0x0f, 0x03, 0x00, 0x00,
-   0x00, 0x00, 0x30, 0x42, 0x9e, 0x10, 0x03, 0x00, 0x00, 0x00, 0x00, 0x30,
-   0xc2, 0xff, 0x10, 0x03, 0x00, 0x00, 0x00, 0x00, 0x30, 0x42, 0x9e, 0x10,
-   0x03, 0x00, 0x00, 0x00, 0x00, 0x30, 0x3c, 0x1e, 0x0f, 0x03, 0x00, 0x00,
-   0x00, 0x00, 0x30, 0x00, 0x1e, 0x00, 0x03, 0x00, 0x00, 0x00, 0x00, 0x30,
-   0x00, 0x1e, 0x00, 0x03, 0x00, 0x00, 0x00, 0x00, 0x30, 0x3c, 0x21, 0x0f,
-   0x03, 0x00, 0x00, 0x00, 0x00, 0x30, 0xc2, 0xc0, 0x10, 0x03, 0x00, 0x00,
-   0x00, 0x00, 0x30, 0x42, 0x80, 0x10, 0x03, 0x00, 0x00, 0x00, 0x00, 0x30,
-   0x42, 0x80, 0x10, 0x03, 0x00, 0x00, 0x00, 0x00, 0x30, 0x3c, 0x00, 0x0f,
-   0x03, 0x00, 0x00, 0x00, 0x00, 0x60, 0x00, 0x00, 0x80, 0x01, 0x00, 0x00,
-   0x00, 0x00, 0x80, 0x00, 0x00, 0x40, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-   0xff, 0xff, 0x3f, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xfe, 0xff, 0x1f,
-   0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-   0x03, 0x00, 0xf0, 0x00, 0x00, 0x00, 0x18, 0xc0, 0x00, 0x03, 0x00, 0xb0,
-   0x01, 0x00, 0x00, 0x18, 0xc0, 0x00, 0xc3, 0xd9, 0xb6, 0x39, 0xdb, 0x9c,
-   0x1b, 0xcf, 0x03, 0x63, 0xdb, 0xb6, 0x6d, 0xdb, 0xb6, 0x19, 0xd8, 0x06,
-   0x63, 0xdb, 0xf6, 0x6c, 0xdb, 0xbe, 0x19, 0xde, 0x06, 0x63, 0x33, 0x33,
-   0x6c, 0x66, 0x86, 0x19, 0xdb, 0x06, 0x63, 0x33, 0x33, 0x6c, 0x66, 0x86,
-   0x19, 0xdb, 0x06, 0xcf, 0x31, 0x33, 0x38, 0x66, 0xbc, 0x79, 0xde, 0x03 };
+   0xe0, 0xff, 0xff, 0x01, 0xf0, 0xff, 0xff, 0x03, 0x08, 0x00, 0x00, 0x04,
+   0x06, 0x00, 0x00, 0x18, 0xc3, 0x03, 0xf0, 0x30, 0x23, 0x04, 0x08, 0x31,
+   0x23, 0x04, 0x08, 0x31, 0x23, 0x0c, 0x0c, 0x31, 0xc3, 0x13, 0xf2, 0x30,
+   0x03, 0xe0, 0x01, 0x30, 0x03, 0xe0, 0x01, 0x30, 0xc3, 0xe3, 0xf1, 0x30,
+   0x23, 0xe4, 0x09, 0x31, 0x23, 0xfc, 0x0f, 0x31, 0x23, 0xe4, 0x09, 0x31,
+   0xc3, 0xe3, 0xf1, 0x30, 0x03, 0xe0, 0x01, 0x30, 0x03, 0xe0, 0x01, 0x30,
+   0xc3, 0x13, 0xf2, 0x30, 0x23, 0x0c, 0x0c, 0x31, 0x23, 0x04, 0x08, 0x31,
+   0x23, 0x04, 0x08, 0x31, 0xc3, 0x03, 0xf0, 0x30, 0x06, 0x00, 0x00, 0x18,
+   0x08, 0x00, 0x00, 0x04, 0xf0, 0xff, 0xff, 0x03, 0xe0, 0xff, 0xff, 0x01 };
    
 #define xbmp_batt_width 9
 #define xbmp_batt_height 6
@@ -155,45 +167,17 @@ const uint8_t xbmp_batt_4[] PROGMEM = { 0xff, 0x00, 0x9f, 0x00, 0x9f, 0x01, 0x9f
 const uint8_t xbmp_batt_5[] PROGMEM = { 0xff, 0x00, 0xbf, 0x00, 0xbf, 0x01, 0xbf, 0x01, 0xbf, 0x00, 0xff, 0x00 };
 const uint8_t xbmp_batt_6[] PROGMEM = { 0xff, 0x00, 0xff, 0x00, 0xff, 0x01, 0xff, 0x01, 0xff, 0x00, 0xff, 0x00 };
 
-
 #define xbmp_rssi_width 7
 #define xbmp_rssi_height 6
 const uint8_t xbmp_rssi_1[] PROGMEM = { 0x40, 0x10, 0x00, 0x04, 0x04, 0x05 };
 const uint8_t xbmp_rssi_2[] PROGMEM = { 0x40, 0x10, 0x10, 0x14, 0x14, 0x15 };
 const uint8_t xbmp_rssi_3[] PROGMEM = { 0x40, 0x50, 0x50, 0x54, 0x54, 0x55 };
 const uint8_t xbmp_rssi_0[] PROGMEM = { 0x40, 0x10, 0x00, 0x04, 0x00, 0x01 };
-//******************************************** END LCD PRIMITIVES ********************************************************************************
 
-//general variables
-byte ackCount=0;
-String inputstr;
-byte inputLen=0;
-char BATstr[5];
-char BATvstr[6];
-char RSSIstr[] = "-100dBm";
-char input[64];
-byte temp[61];
-char lcdbuff[80];
-int lastValidReading = 1;
-unsigned long lastValidReadingTime = 0;
-unsigned long NOW=0;
-byte PowerState = OFF;
-long lastPeriod = -1;
-int rssi=0;
-float systemVoltage = 5;
-boolean batteryLow=false;
-boolean batteryLowShutdown=false;
+U8GLIB_PCD8544 lcd(PIN_LCD_CS, PIN_LCD_DC, PIN_LCD_RST); //hardware SPI
+//U8GLIB_PCD8544 lcd(SCK, MOSI, PIN_LCD_CS, PIN_LCD_DC , PIN_LCD_RST); //software SPI
 
-//SPI devices (RFM69, FLASH MEM, LCD)
-U8GLIB_PCD8544 lcd(PIN_LCD_CS, PIN_LCD_DC, PIN_LCD_RST);
-SPIFlash flash(FLASH_CS, 0xEF30); //EF30 for 4mbit Windbond FLASH MEM 
-#ifdef ENABLE_ATC
-  RFM69_ATC radio;
-#else
-  RFM69 radio;
-#endif
-
-//******************************************** BEGIN LCD FUNCTIONS ********************************************************************************
+//******************************************** LCD FUNCTIONS ********************************************************************************
 void drawLogo() {
   lcd.firstPage();
   do {
@@ -207,7 +191,8 @@ void clearDisplay() {
 }
 
 void refreshLCD() {
-  SPI.setClockDivider(SPI_CLOCK_DIV16);
+  noInterrupts();
+  //SPI.setClockDivider(SPI_CLOCK_DIV16);
   byte lcdwidth = lcd.getWidth();
   byte lcdheight = lcd.getHeight();
   char c;
@@ -264,13 +249,17 @@ void refreshLCD() {
     else if (systemVoltage >= 3.5) bmpPtr = (byte*)xbmp_batt_1;
     else bmpPtr = (byte*)xbmp_batt_x;
     lcd.drawXBMP(lcdwidth-xbmp_batt_width, lcdheight-xbmp_batt_height, xbmp_batt_width, xbmp_batt_height, bmpPtr);
-    
+
     if (systemVoltage >= CHARGINGTHRESHOLD)
-      sprintf(BATvstr, "CHRG"); //sprintf(BATvstr, "%sv", BATstr);
-    else {
-      sprintf(BATvstr, "%sv", BATstr);
+    {
+      sprintf(BATvstr, "CHRG");
+      lcd.drawStr(54, 48, BATvstr); 
     }
-    lcd.drawStr(50, 48, BATvstr);
+    else {
+      lcd.setPrintPos(54, 48) ;
+      lcd.print(systemVoltage);  //sprintf(BATvstr, "%sv", BATstr);
+    }
+    //lcd.drawStr(50, 48, BATvstr);
 
     //print rssi and icon
     if (rssi > -70) bmpPtr = (byte*)xbmp_rssi_3;
@@ -280,19 +269,21 @@ void refreshLCD() {
     lcd.drawXBMP(0, lcdheight-xbmp_rssi_height, xbmp_rssi_width, xbmp_rssi_height, bmpPtr);
     lcd.drawStr(xbmp_rssi_width+1, 48, RSSIstr);
   } while(lcd.nextPage());
-  SPI.setClockDivider(SPI_CLOCK_DIV4);
+  //SPI.setClockDivider(SPI_CLOCK_DIV4);
+  interrupts();
 }
-//******************************************** END LCD FUNCTIONS ********************************************************************************
+#endif
+//******************************************** END LCD STUFF ********************************************************************************
 
 
 //parse through any serial commands from the host (Pi)
 void handleSerialInput() {
   inputLen = readSerialLine(input, 10, 64, 10); //readSerialLine(char* input, char endOfLineChar=10, byte maxLength=64, uint16_t timeout=10);
-  inputstr = String(input);
-  inputstr.toUpperCase();
   
   if (inputLen > 0)
   {
+    inputstr = String(input);
+    inputstr.toUpperCase();
     if (inputstr.equals("BEEP")) Beep(10, false);
     if (inputstr.equals("BEEP2")) Beep(10, true);
     if (inputstr.equals("RAM")) { DEBUG(F("Free RAM bytes: "));DEBUGln(checkFreeRAM()); }
@@ -367,9 +358,10 @@ void handlePowerControl() {
         {
           if (BOOTOK())       //SIG_BOOTOK is HIGH so Pi is running the shutdowncheck.sh script, ready to intercept the RESET PULSE
           {
+#ifdef ENABLE_LCD
             sprintf(lcdbuff, "Rebooting Pi..");
             refreshLCD();
-        
+#endif        
             digitalWrite(SIG_SHUTOFF, HIGH);
             delay(RESETPULSETIME);
             digitalWrite(SIG_SHUTOFF, LOW);
@@ -396,8 +388,10 @@ void handlePowerControl() {
               if (!BOOTOK()) recycleDetected = true;
               else if (BOOTOK() && recycleDetected)
               {
+#ifdef ENABLE_LCD
                 sprintf(lcdbuff, "Reboot OK!");
                 refreshLCD();
+#endif
                 return;
               }
             }
@@ -412,13 +406,17 @@ void handlePowerControl() {
       if ((batteryLow || PowerState == ON) && BOOTOK())
       {
         if (batteryLow) {
+#ifdef ENABLE_LCD
           sprintf(lcdbuff, "Battery low! Shutting down Pi..");
+#endif
           batteryLowShutdown = true;
         }
-        else {
+#ifdef ENABLE_LCD
+        else
           sprintf(lcdbuff, "Shutting down Pi..");
-        }
         refreshLCD();
+#endif
+
         // signal Pi to shutdown
         digitalWrite(SIG_SHUTOFF, HIGH);
         //DEBUGln("SIG_SHUTOFF - HIGH - if(batteryLow || (PowerState == 1 && BOOTOK())");
@@ -478,20 +476,24 @@ void handlePowerControl() {
           PowerState = OFF;
           POWER(PowerState);
         }
-        
+
+#ifdef ENABLE_LCD
         if (PowerState == OFF)
         {
           sprintf(lcdbuff, "Pi is now OFF");
           refreshLCD();
         }
-        
+#endif
+
         digitalWrite(SIG_SHUTOFF, LOW);
         //DEBUGln("SIG_SHUTOFF - LOW");
       }
       else if (PowerState == ON && !BOOTOK())
       {
+#ifdef ENABLE_LCD
         sprintf(lcdbuff, "Forced shutdown..");
         refreshLCD();
+#endif
         
         NOW = millis();
         unsigned long NOW2 = millis();
@@ -508,8 +510,10 @@ void handlePowerControl() {
             //TODO: add blinking here to signal final shutdown delay
             PowerState = OFF;
             POWER(PowerState);
+#ifdef ENABLE_LCD
             sprintf(lcdbuff, "Pi is now OFF");
             refreshLCD();
+#endif
             break;
           }
         }
@@ -566,7 +570,7 @@ boolean readBattery() {
   {
     lastPeriod=currPeriod;
     systemVoltage = BATTERY_VOLTS(analogRead(BATTERYSENSE));
-    dtostrf(systemVoltage, 3,2, BATstr);
+    //dtostrf(systemVoltage, 3,2, BATstr);
     batteryLow = systemVoltage < LOWBATTERYTHRESHOLD;
     return true; //signal that batt has been read
   }
@@ -593,19 +597,21 @@ void setup() {
   DEBUGln(F("RFM69_ATC Enabled (Auto Transmission Control)"));
 #endif
 
+  readBattery();
+  DEBUG(F("Free RAM bytes: "));DEBUG(checkFreeRAM());
+
+#ifdef ENABLE_LCD
   //LCD backlight
   pinMode(PIN_LCD_LIGHT, OUTPUT);
   LCD_BACKLIGHT(1);
-  lcd.setRot180();
+  lcd.setRot180(); //rotate screen 180 degrees
   drawLogo();
   delay(2000);
-  readBattery();
-  DEBUG(F("Free RAM bytes: "));DEBUG(checkFreeRAM());
   refreshLCD();
   delay(1500);
+#endif
 }
 
-float tempf;
 boolean newPacketReceived;
 void loop() {
   handlePowerControl(); //checks any button presses and takes action
@@ -645,11 +651,13 @@ void loop() {
   }
 
   readBattery();
+
+#ifdef ENABLE_LCD
   if (newPacketReceived)
   {
     newPacketReceived = false;
     refreshLCD();
   }
-  
   LCD_BACKLIGHT(batteryLow);
+#endif
 }

@@ -44,6 +44,7 @@
 #define NODEID          1  //the gateway has ID=1
 #define NETWORKID     100  //all nodes on the same network can talk to each other
 #define FREQUENCY     RF69_915MHZ //Match this with the version of your Moteino! (others: RF69_433MHZ, RF69_868MHZ)
+#define FREQUENCY_EXACT 917000000 //uncomment and set to a specific frequency in Hz, if commented the center frequency is used
 #define ENCRYPTKEY    "sampleEncryptKey" //has to be same 16 characters/bytes on all nodes, not more not less!
 #define IS_RFM69HW    //uncomment only for RFM69HW! Leave out if you have RFM69W!
 #define ENABLE_ATC    //comment out this line to disable AUTO TRANSMISSION CONTROL //more here: http://lowpowerlab.com/blog/2015/11/11/rfm69_atc-automatic-transmission-control/
@@ -122,6 +123,7 @@ byte PowerState = OFF;
 long lastPeriod = -1;
 int rssi=0;
 float systemVoltage = 5;
+float systemVoltagePrevious = 5;
 boolean batteryLow=false;
 boolean batteryLowShutdown=false;
 
@@ -250,16 +252,11 @@ void refreshLCD() {
     else bmpPtr = (byte*)xbmp_batt_x;
     lcd.drawXBMP(lcdwidth-xbmp_batt_width, lcdheight-xbmp_batt_height, xbmp_batt_width, xbmp_batt_height, bmpPtr);
 
+    lcd.setPrintPos(54, 48);
     if (systemVoltage >= CHARGINGTHRESHOLD)
-    {
-      sprintf(BATvstr, "CHRG");
-      lcd.drawStr(54, 48, BATvstr); 
-    }
-    else {
-      lcd.setPrintPos(54, 48) ;
+      lcd.print("CHRG"); 
+    else
       lcd.print(systemVoltage);  //sprintf(BATvstr, "%sv", BATstr);
-    }
-    //lcd.drawStr(50, 48, BATvstr);
 
     //print rssi and icon
     if (rssi > -70) bmpPtr = (byte*)xbmp_rssi_3;
@@ -323,7 +320,7 @@ void setupPowerControl(){
   pinMode(BTN_LED_RED, OUTPUT);
   pinMode(BTN_LED_GRN, OUTPUT);
   pinMode(LATCH_EN, OUTPUT);
-  //digitalWrite(LATCH_EN, LOW);
+  digitalWrite(LATCH_EN, LOW);
   pinMode(LATCH_VAL, OUTPUT);
   pinMode(BATTERYSENSE, INPUT);
   digitalWrite(SIG_SHUTOFF, LOW);//added after sudden shutdown quirks, DO NOT REMOVE!
@@ -535,9 +532,9 @@ boolean BOOTOK() {
 }
 
 void POWER(uint8_t ON_OFF) {
+  digitalWrite(LATCH_VAL, ON_OFF);
   digitalWrite(LATCH_EN, HIGH);
   delay(5);
-  digitalWrite(LATCH_VAL, ON_OFF);
   digitalWrite(LATCH_EN, LOW);
 }
 
@@ -578,6 +575,7 @@ boolean readBattery() {
 }
 
 void setup() {
+  Beep(20, false);delay(50);Beep(20, false);delay(50);Beep(20, false);
   setupPowerControl();
   Serial.begin(SERIAL_BAUD);
 
@@ -591,7 +589,11 @@ void setup() {
   sprintf(lcdbuff, "Listening @ %dmhz...", FREQUENCY==RF69_433MHZ ? 433 : FREQUENCY==RF69_868MHZ ? 868 : 915);
   DEBUGln(lcdbuff);
   if (flash.initialize()) DEBUGln("SPI Flash Init OK!");
-  else DEBUGln(F("SPI Flash MEM not found, skipping..."));
+  else DEBUGln(F("SPI Flash MEM FAIL!"));
+
+#ifdef FREQUENCY_EXACT
+  radio.setFrequency(FREQUENCY_EXACT); //set frequency to some custom frequency
+#endif
 
 #ifdef ENABLE_ATC
   DEBUGln(F("RFM69_ATC Enabled (Auto Transmission Control)"));
@@ -638,7 +640,6 @@ void loop() {
     //respond to any ACK if requested
     if (radio.ACKRequested())
     {
-      byte theNodeID = radio.SENDERID;
       radio.sendACK();
       DEBUG(F("[ACK-sent]"));
     }
@@ -653,8 +654,9 @@ void loop() {
   readBattery();
 
 #ifdef ENABLE_LCD
-  if (newPacketReceived)
+  if (newPacketReceived || systemVoltagePrevious-systemVoltage > 0.01 || systemVoltagePrevious-systemVoltage < -0.1)
   {
+    systemVoltagePrevious = systemVoltage;
     newPacketReceived = false;
     refreshLCD();
   }

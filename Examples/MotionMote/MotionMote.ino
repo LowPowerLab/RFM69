@@ -80,7 +80,7 @@
 #endif
 volatile boolean motionDetected=false;
 float batteryVolts = 5;
-char BATstr[20]; //longest battery voltage reading message = 9chars
+char BATstr[10]; //longest battery voltage reading message = 9chars
 char sendBuf[32];
 byte sendLen;
 
@@ -159,7 +159,7 @@ void loop() {
   batteryReportCycles++;
 }
 
-byte cycleCount=BATT_CYCLES;
+uint16_t cycleCount=BATT_CYCLES;
 void checkBattery()
 {
   if (cycleCount++ == BATT_CYCLES) //only read battery every BATT_CYCLES sleep cycles

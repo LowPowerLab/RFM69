@@ -267,6 +267,7 @@ void refreshLCD() {
     lcd.drawStr(xbmp_rssi_width+1, 48, RSSIstr);
   } while(lcd.nextPage());
   //SPI.setClockDivider(SPI_CLOCK_DIV4);
+  digitalWrite(PIN_LCD_CS, HIGH);
   interrupts();
 }
 #endif
@@ -321,6 +322,8 @@ void setupPowerControl(){
   pinMode(BTN_LED_GRN, OUTPUT);
   pinMode(LATCH_EN, OUTPUT);
   digitalWrite(LATCH_EN, LOW);
+  pinMode(PIN_LCD_CS, OUTPUT);
+  digitalWrite(PIN_LCD_CS, HIGH);
   pinMode(LATCH_VAL, OUTPUT);
   pinMode(BATTERYSENSE, INPUT);
   digitalWrite(SIG_SHUTOFF, LOW);//added after sudden shutdown quirks, DO NOT REMOVE!
@@ -536,6 +539,7 @@ void POWER(uint8_t ON_OFF) {
   digitalWrite(LATCH_EN, HIGH);
   delay(5);
   digitalWrite(LATCH_EN, LOW);
+  digitalWrite(PIN_LCD_CS, HIGH); //if shared with LATCH_VAL, should be HIGH when not used by latch
 }
 
 void Beep(byte theDelay, boolean twoSounds)

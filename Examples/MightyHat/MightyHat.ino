@@ -303,7 +303,7 @@ void saveToHistory(char * msg, int rssi)
   if (lastMessageIndex >= HISTORY_LEN-1) lastMessageIndex = 0;
   else lastMessageIndex++;
   if (historyLength < HISTORY_LEN) historyLength++;
-  currMessageIndex = historyLength; //currMessageIndex = lastMessageIndex;
+  currMessageIndex = historyLength-1; //reset history pointer back to latest message
 
   for (; i<(MSG_MAX_LEN-1) && (i < length); i++)
     messageHistory[lastMessageIndex].data[i] = msg[i];
@@ -596,11 +596,11 @@ void handle2Buttons()
     
     if (historyLength > 0) //if at least 1 data packet was received and saved to history...
     {
-      if (currMessageIndex==0) currMessageIndex=historyLength-1; else currMessageIndex--; //this makes it cycle from the latest message towards oldest as you press BTN2
       sprintf(RSSIstr, "%ddBm", messageHistory[currMessageIndex].rssi); //paint the history rssi string for the LCDRefresh
       rssi = messageHistory[currMessageIndex].rssi;                     //save the history rssi for the LCDRefresh signal icon
       sprintf(lcdbuff, "<HISTORY[%d/%d]>\n%s", currMessageIndex+1, historyLength, messageHistory[currMessageIndex].data); //fill the LCD string buffer with the history data string
       refreshLCD(); //paint the screen
+      if (currMessageIndex==0) currMessageIndex=historyLength-1; else currMessageIndex--; //this makes it cycle from the latest message towards oldest as you press BTN2
     }
   }
 }

@@ -317,18 +317,14 @@ void handleSerialInput() {
   
   if (inputLen > 0)
   {
+    DEBUG("GTWCMD:");DEBUGln(temp);
     inputstr = String(temp);
     inputstr.toUpperCase();
 
     if (inputstr.equals("BEEP")) Beep(5, false);
     if (inputstr.equals("BEEP2")) Beep(10, true);
     if (inputstr.equals("RAM")) { DEBUG(F("Free RAM bytes: "));DEBUGln(checkFreeRAM()); }
-    
-    if (inputstr.equals("KEY?"))
-    {
-      Serial.print(F("ENCRYPTKEY:"));
-      Serial.print(ENCRYPTKEY);
-    }
+    if (inputstr.equals("KEY?")) { Serial.print(F("ENCRYPTKEY:"));Serial.println(ENCRYPTKEY); }
 
     byte targetId = inputstr.toInt(); //extract ID if any
     byte colonIndex = inputstr.indexOf(":"); //find position of first colon
@@ -337,9 +333,9 @@ void handleSerialInput() {
     {
       inputstr.getBytes((byte*)temp, 61);
       if (radio.sendWithRetry(targetId, (byte*)temp, inputstr.length()))
-        Serial.println(F("ACK:OK"));
+        DEBUGln(F("ACK:OK"));
       else
-        Serial.println(F("ACK:NOK"));
+        DEBUGln(F("ACK:NOK"));
     }
   }
 }
@@ -405,7 +401,6 @@ void handlePowerControl() {
             digitalWrite(SIG_SHUTOFF, HIGH);
             delay(RESETPULSETIME);
             digitalWrite(SIG_SHUTOFF, LOW);
-            //DEBUGln("SIG_SHUTOFF - HIGH>delay>LOW");
 
             NOW = millis();
             boolean recycleDetected=false;
@@ -563,6 +558,10 @@ void handlePowerControl() {
         PowerState = ON;
         batteryLowShutdown=false;
         POWER(PowerState);
+#ifdef ENABLE_LCD
+        sprintf(lcdbuff, "Pi is now ON");
+        refreshLCD();
+#endif
       }
     }
 

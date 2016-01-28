@@ -43,6 +43,7 @@
 //*****************************************************************************************************************************
 #define NODEID          1  //the gateway has ID=1
 #define NETWORKID     100  //all nodes on the same network can talk to each other
+//#define FREQUENCY     RF69_433MHZ //Match this with the version of your Moteino! (others: RF69_433MHZ, RF69_868MHZ)
 #define FREQUENCY     RF69_915MHZ //Match this with the version of your Moteino! (others: RF69_433MHZ, RF69_868MHZ)
 //#define FREQUENCY_EXACT 917000000 //uncomment and set to a specific frequency in Hz, if commented the center frequency is used
 #define ENCRYPTKEY    "sampleEncryptKey" //has to be same 16 characters/bytes on all nodes, not more not less!
@@ -188,10 +189,7 @@ void drawLogo() {
   } while(lcd.nextPage());
 }
 
-void clearDisplay() {
-  lcd.firstPage();
-  do{}while(lcd.nextPage());
-}
+void clearDisplay() { lcd.firstPage(); do{}while(lcd.nextPage()); }
 
 void refreshLCD() {
   noInterrupts(); //while messing with LCD need to pause interrups from radio to avoid SPI conflicts!
@@ -321,6 +319,7 @@ void handleSerialInput() {
   {
     inputstr = String(temp);
     inputstr.toUpperCase();
+
     if (inputstr.equals("BEEP")) Beep(5, false);
     if (inputstr.equals("BEEP2")) Beep(10, true);
     if (inputstr.equals("RAM")) { DEBUG(F("Free RAM bytes: "));DEBUGln(checkFreeRAM()); }
@@ -581,11 +580,13 @@ void handle2Buttons()
   {
     buttonsLastChanged=millis();
     Beep(3, false);
+#ifdef ENABLE_LCD
     if (backlightLevel==BACKLIGHTLEVELS) backlightLevel=0;
     else backlightLevel++;
     LCD_BACKLIGHT(backlightLevel);
     sprintf(lcdbuff, "LCDlight:%d/100", 100*backlightLevel/BACKLIGHTLEVELS);
     refreshLCD();
+#endif
   }
   
   //button 2 - message history
@@ -598,8 +599,10 @@ void handle2Buttons()
     {
       sprintf(RSSIstr, "%ddBm", messageHistory[currMessageIndex].rssi); //paint the history rssi string for the LCDRefresh
       rssi = messageHistory[currMessageIndex].rssi;                     //save the history rssi for the LCDRefresh signal icon
+#ifdef ENABLE_LCD
       sprintf(lcdbuff, "<HISTORY[%d/%d]>\n%s", currMessageIndex+1, historyLength, messageHistory[currMessageIndex].data); //fill the LCD string buffer with the history data string
       refreshLCD(); //paint the screen
+#endif
       if (currMessageIndex==0) currMessageIndex=historyLength-1; else currMessageIndex--; //this makes it cycle from the latest message towards oldest as you press BTN2
     }
   }
@@ -610,11 +613,14 @@ boolean BOOTOK() {
 }
 
 void POWER(uint8_t ON_OFF) {
-  digitalWrite(LATCH_VAL, ON_OFF);
   digitalWrite(LATCH_EN, HIGH);
+  digitalWrite(LATCH_VAL, ON_OFF);
   delay(5);
   digitalWrite(LATCH_EN, LOW);
+  delay(5);
+#ifdef ENABLE_LCD
   digitalWrite(PIN_LCD_CS, HIGH); //if shared with LATCH_VAL, should be HIGH when not used by latch
+#endif
 }
 
 void Beep(byte theDelay, boolean twoSounds)

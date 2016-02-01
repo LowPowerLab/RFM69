@@ -58,7 +58,7 @@ class RFM69_ATC: public RFM69 {
   protected:
     void interruptHook(uint8_t CTLbyte);
     void sendFrame(uint8_t toAddress, const void* buffer, uint8_t size, bool requestACK=false, bool sendACK=false);  // Need this one to match the RFM69 prototype.
-    void sendFrame(uint8_t toAddress, const void* buffer, uint8_t size, bool requestACK, bool sendACK, bool sendRSSI, int lastRSSI);
+    void sendFrame(uint8_t toAddress, const void* buffer, uint8_t size, bool requestACK, bool sendACK, bool sendRSSI, int16_t lastRSSI);
     void receiveBegin();
     //void setHighPowerRegs(bool onOff);
 

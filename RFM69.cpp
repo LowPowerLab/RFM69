@@ -439,9 +439,11 @@ void RFM69::writeReg(uint8_t addr, uint8_t value)
 // select the RFM69 transceiver (save SPI settings, set CS low)
 void RFM69::select() {
   noInterrupts();
+#if defined (__arm__)
   // save current SPI settings
   _SPCR = SPCR;
   _SPSR = SPSR;
+#endif
   // set RFM69 SPI settings
   SPI.setDataMode(SPI_MODE0);
   SPI.setBitOrder(MSBFIRST);
@@ -453,8 +455,10 @@ void RFM69::select() {
 void RFM69::unselect() {
   digitalWrite(_slaveSelectPin, HIGH);
   // restore SPI settings to what they were before talking to RFM69
+#if defined (__arm__)
   SPCR = _SPCR;
   SPSR = _SPSR;
+#endif
   interrupts();
 }
 

@@ -239,7 +239,7 @@ void  RFM69_ATC::enableAutoPower(int targetRSSI){    // TomWS1: New method to en
 //=============================================================================
 // getAckRSSI() - returns the RSSI value ack'd by the far end.
 //=============================================================================
-int  RFM69_ATC::getAckRSSI(void){                     // TomWS1: New method to retrieve the ack'd RSSI (if any)
+int16_t  RFM69_ATC::getAckRSSI(void){                     // TomWS1: New method to retrieve the ack'd RSSI (if any)
   return (_targetRSSI==0?0:_ackRSSI);
 }
 

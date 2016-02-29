@@ -232,14 +232,14 @@ void RFM69_ATC::receiveBegin() {
 // enableAutoPower() - call with target RSSI, use 0 to disable (default), any other value with turn on autotransmit control.
 //=============================================================================
 // TomWS1: New methods to address autoPower control
-void  RFM69_ATC::enableAutoPower(int targetRSSI){    // TomWS1: New method to enable/disable auto Power control
+void  RFM69_ATC::enableAutoPower(int16_t targetRSSI){    // TomWS1: New method to enable/disable auto Power control
   _targetRSSI = targetRSSI;         // no logic here, just set the value (if non-zero, then enabled), caller's responsibility to use a reasonable value
 }
 
 //=============================================================================
 // getAckRSSI() - returns the RSSI value ack'd by the far end.
 //=============================================================================
-int  RFM69_ATC::getAckRSSI(void){                     // TomWS1: New method to retrieve the ack'd RSSI (if any)
+int16_t  RFM69_ATC::getAckRSSI(void){                     // TomWS1: New method to retrieve the ack'd RSSI (if any)
   return (_targetRSSI==0?0:_ackRSSI);
 }
 

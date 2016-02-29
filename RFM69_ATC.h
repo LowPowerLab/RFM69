@@ -47,7 +47,7 @@ class RFM69_ATC: public RFM69 {
     void sendACK(const void* buffer = "", uint8_t bufferSize=0);
     //void setHighPower(bool onOFF=true, uint8_t PA_ctl=0x60); //have to call it after initialize for RFM69HW
     //void setPowerLevel(uint8_t level); // reduce/increase transmit power level
-    void  enableAutoPower(int targetRSSI=-90);  // TWS: New method to enable/disable auto Power control
+    void  enableAutoPower(int16_t targetRSSI=-90);  // TWS: New method to enable/disable auto Power control
     void setMode(uint8_t mode);  // TWS: moved from protected to try to build block()/unblock() wrapper
     
     int16_t getAckRSSI(void);       // TWS: New method to retrieve the ack'd RSSI (if any)
@@ -58,7 +58,7 @@ class RFM69_ATC: public RFM69 {
   protected:
     void interruptHook(uint8_t CTLbyte);
     void sendFrame(uint8_t toAddress, const void* buffer, uint8_t size, bool requestACK=false, bool sendACK=false);  // Need this one to match the RFM69 prototype.
-    void sendFrame(uint8_t toAddress, const void* buffer, uint8_t size, bool requestACK, bool sendACK, bool sendRSSI, int lastRSSI);
+    void sendFrame(uint8_t toAddress, const void* buffer, uint8_t size, bool requestACK, bool sendACK, bool sendRSSI, int16_t lastRSSI);
     void receiveBegin();
     //void setHighPowerRegs(bool onOff);
 

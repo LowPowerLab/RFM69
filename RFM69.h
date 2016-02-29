@@ -138,8 +138,10 @@ class RFM69 {
     bool _promiscuousMode;
     uint8_t _powerLevel;
     bool _isRFM69HW;
+#if defined (SPCR) && defined (SPSR)
     uint8_t _SPCR;
     uint8_t _SPSR;
+#endif
 
     virtual void receiveBegin();
     virtual void setMode(uint8_t mode);

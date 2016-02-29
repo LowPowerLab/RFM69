@@ -268,6 +268,7 @@ void RFM69::sendACK(const void* buffer, uint8_t bufferSize) {
   writeReg(REG_PACKETCONFIG2, (readReg(REG_PACKETCONFIG2) & 0xFB) | RF_PACKET2_RXRESTART); // avoid RX deadlocks
   uint32_t now = millis();
   while (!canSend() && millis() - now < RF69_CSMA_LIMIT_MS) receiveDone();
+  SENDERID = sender;    // TWS: Restore SenderID after it gets wiped out by receiveDone()
   sendFrame(sender, buffer, bufferSize, false, true);
   RSSI = _RSSI; // restore payload RSSI
 }
@@ -439,9 +440,11 @@ void RFM69::writeReg(uint8_t addr, uint8_t value)
 // select the RFM69 transceiver (save SPI settings, set CS low)
 void RFM69::select() {
   noInterrupts();
+#if defined (SPCR) && defined (SPSR)
   // save current SPI settings
   _SPCR = SPCR;
   _SPSR = SPSR;
+#endif
   // set RFM69 SPI settings
   SPI.setDataMode(SPI_MODE0);
   SPI.setBitOrder(MSBFIRST);
@@ -453,8 +456,10 @@ void RFM69::select() {
 void RFM69::unselect() {
   digitalWrite(_slaveSelectPin, HIGH);
   // restore SPI settings to what they were before talking to RFM69
+#if defined (SPCR) && defined (SPSR)
   SPCR = _SPCR;
   SPSR = _SPSR;
+#endif
   interrupts();
 }
 

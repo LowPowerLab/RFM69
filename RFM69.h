@@ -142,6 +142,10 @@ class RFM69 {
     uint8_t _SPCR;
     uint8_t _SPSR;
 #endif
+#ifndef SPI_HAS_TRANSACTION
+    uint8_t _SREG; // Saves the Interrupt state before disabling
+    SPISettings _settings;
+#endif
 
     virtual void receiveBegin();
     virtual void setMode(uint8_t mode);

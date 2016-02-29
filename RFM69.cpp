@@ -90,6 +90,9 @@ bool RFM69::initialize(uint8_t freqBand, uint8_t nodeID, uint8_t networkID)
   digitalWrite(_slaveSelectPin, HIGH);
   pinMode(_slaveSelectPin, OUTPUT);
   SPI.begin();
+#ifdef SPI_HAS_TRANSACTION
+  _settings = SPISettings(4000000, MSBFIRST, SPI_MODE0);
+#endif
   unsigned long start = millis();
   uint8_t timeout = 50;
   do writeReg(REG_SYNCVALUE1, 0xAA); while (readReg(REG_SYNCVALUE1) != 0xaa && millis()-start < timeout);
@@ -374,18 +377,27 @@ void RFM69::receiveBegin() {
 bool RFM69::receiveDone() {
 //ATOMIC_BLOCK(ATOMIC_FORCEON)
 //{
-  noInterrupts(); // re-enabled in unselect() via setMode() or via receiveBegin()
+  uint8_t rd_SREG = SREG;
+  noInterrupts(); 
+  // Note: New SPI library prefers to use EIMSK (external interrupt mask) if available 
+  // to mask (only) interrupts registered via SPI::usingInterrupt(). It only 
+  // falls back to disabling ALL interrupts SREG if EIMSK cannot be used.
+  // Hence We cannot assume that methods calls below that call select() unselect() 
+  // will result in a call to reenable interrupts(). 
+  // Thus the code below needs to explicitly do this to be safe.
   if (_mode == RF69_MODE_RX && PAYLOADLEN > 0)
   {
-    setMode(RF69_MODE_STANDBY); // enables interrupts
+    setMode(RF69_MODE_STANDBY); 
+    SREG = rd_SREG; // restore interrupts
     return true;
   }
   else if (_mode == RF69_MODE_RX) // already in RX no payload yet
   {
-    interrupts(); // explicitly re-enable interrupts
+    SREG = rd_SREG; // restore interrupts
     return false;
   }
   receiveBegin();
+  SREG = rd_SREG; // restore interrupts
   return false;
 //}
 }
@@ -439,28 +451,48 @@ void RFM69::writeReg(uint8_t addr, uint8_t value)
 
 // select the RFM69 transceiver (save SPI settings, set CS low)
 void RFM69::select() {
+#ifdef SPI_HAS_TRANSACTION
+  #if defined (SPCR) && defined (SPSR)
+    _SPCR = SPCR;
+    _SPSR = SPSR;
+  #endif
+  SPI.beginTransaction(_settings);
+#else
+  _SREG = SREG;
   noInterrupts();
-#if defined (SPCR) && defined (SPSR)
-  // save current SPI settings
-  _SPCR = SPCR;
-  _SPSR = SPSR;
-#endif
+  #if defined (SPCR) && defined (SPSR)
+    // save current SPI settings
+    _SPCR = SPCR;
+    _SPSR = SPSR;
+  #endif
   // set RFM69 SPI settings
   SPI.setDataMode(SPI_MODE0);
   SPI.setBitOrder(MSBFIRST);
   SPI.setClockDivider(SPI_CLOCK_DIV4); // decided to slow down from DIV2 after SPI stalling in some instances, especially visible on mega1284p when RFM69 and FLASH chip both present
+#endif
   digitalWrite(_slaveSelectPin, LOW);
 }
 
 // unselect the RFM69 transceiver (set CS high, restore SPI settings)
 void RFM69::unselect() {
   digitalWrite(_slaveSelectPin, HIGH);
+#ifdef SPI_HAS_TRANSACTION
+  SPI.endTransaction();
   // restore SPI settings to what they were before talking to RFM69
-#if defined (SPCR) && defined (SPSR)
-  SPCR = _SPCR;
-  SPSR = _SPSR;
+  #if defined (SPCR) && defined (SPSR)
+    SPCR = _SPCR;
+    SPSR = _SPSR;
+  #endif
+#else
+  // restore SPI settings to what they were before talking to RFM69
+  #if defined (SPCR) && defined (SPSR)
+    SPCR = _SPCR;
+    SPSR = _SPSR;
+  #endif
+  // restore the prior interrupt state
+  SREG = _SREG;
 #endif
-  interrupts();
+
 }
 
 // true  = disable filtering to capture all frames on network

@@ -55,7 +55,7 @@ void setup() {
 #endif
   radio.encrypt(ENCRYPTKEY);
   //radio.setFrequency(919000000); //set frequency to some custom frequency
-  
+
 //Auto Transmission Control - dials down transmit power to save battery (-100 is the noise floor, -90 is still pretty good)
 //For indoor nodes that are pretty static and at pretty stable temperatures (like a MotionMote) -90dBm is quite safe
 //For more variable nodes that can expect to move or experience larger temp drifts a lower margin like -70 to -80 would probably be better
@@ -63,11 +63,11 @@ void setup() {
 #ifdef ENABLE_ATC
   radio.enableAutoPower(-70);
 #endif
-  
+
   char buff[50];
   sprintf(buff, "\nTransmitting at %d Mhz...", FREQUENCY==RF69_433MHZ ? 433 : FREQUENCY==RF69_868MHZ ? 868 : 915);
   Serial.println(buff);
-  
+
   if (flash.initialize())
   {
     Serial.print("SPI Flash Init OK ... UniqueID (MAC): ");
@@ -81,10 +81,18 @@ void setup() {
   }
   else
     Serial.println("SPI Flash MEM not found (is chip soldered?)...");
-    
+
 #ifdef ENABLE_ATC
   Serial.println("RFM69_ATC Enabled (Auto Transmission Control)\n");
 #endif
+}
+
+void Blink(byte PIN, int DELAY_MS)
+{
+  pinMode(PIN, OUTPUT);
+  digitalWrite(PIN,HIGH);
+  delay(DELAY_MS);
+  digitalWrite(PIN,LOW);
 }
 
 long lastPeriod = 0;
@@ -158,7 +166,7 @@ void loop() {
   if (currPeriod != lastPeriod)
   {
     lastPeriod=currPeriod;
-    
+
     //send FLASH id
     if(sendSize==0)
     {
@@ -176,7 +184,7 @@ void loop() {
       Serial.print("]: ");
       for(byte i = 0; i < sendSize; i++)
         Serial.print((char)payload[i]);
-  
+
       if (radio.sendWithRetry(GATEWAYID, payload, sendSize))
        Serial.print(" ok!");
       else Serial.print(" nothing...");
@@ -185,12 +193,4 @@ void loop() {
     Serial.println();
     Blink(LED,3);
   }
-}
-
-void Blink(byte PIN, int DELAY_MS)
-{
-  pinMode(PIN, OUTPUT);
-  digitalWrite(PIN,HIGH);
-  delay(DELAY_MS);
-  digitalWrite(PIN,LOW);
 }

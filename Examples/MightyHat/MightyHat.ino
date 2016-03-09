@@ -29,6 +29,8 @@
 // Please maintain this license information along with authorship
 // and copyright notices in any redistribution of this code
 // **********************************************************************************
+#define MHAT_VERSION    3  //latest version is R3, change to "2" if you have a MightyHat R2
+// ****************************************************************************************
 
 #include <RFM69.h>         //get it here: http://github.com/lowpowerlab/rfm69
 #include <RFM69_ATC.h>     //get it here: https://www.github.com/lowpowerlab/rfm69
@@ -137,8 +139,15 @@ SPIFlash flash(FLASH_CS, 0xEF30); //EF30 for 4mbit Windbond FLASH MEM
 //******************************************** BEGIN LCD STUFF ********************************************************************************
 char lcdbuff[80];
 #ifdef ENABLE_LCD
-#define PIN_LCD_CS    LATCH_VAL //Pin 2 on LCD, lcd CS is shared with Latch value pin since they are both outputs and never HIGH at the same time
-#define PIN_LCD_RST   A1 //Pin 1 on LCD
+
+#if defined(MHAT_VERSION) && (MHAT_VERSION == 3)
+  #define PIN_LCD_CS    A1 //Pin 2 on LCD, lcd CS is shared with Latch value pin since they are both outputs and never HIGH at the same time
+  #define PIN_LCD_RST   U8G_PIN_NONE //this is tied directly to the atmega RST
+#else
+  #define PIN_LCD_CS    LATCH_VAL //Pin 2 on LCD, lcd CS is shared with Latch value pin since they are both outputs and never HIGH at the same time
+  #define PIN_LCD_RST   A1 //Pin 1 on LCD
+#endif
+
 #define PIN_LCD_DC    A0 //Pin 3 on LCD
 #define PIN_LCD_LIGHT 3 //Backlight pin
 #define xbmp_logo_width 30

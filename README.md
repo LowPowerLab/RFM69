@@ -1,5 +1,5 @@
-RFM69 Library
-----------------
+# RFM69 Library  [![Build Status](https://travis-ci.org/LowPowerLab/RFM69.svg)](https://travis-ci.org/LowPowerLab/RFM69)
+
 By Felix Rusu, [LowPowerLab.com](http://LowPowerLab.com)
 <br/>
 RFM69 library for RFM69W, RFM69HW, RFM69CW, RFM69HCW (semtech SX1231, SX1231H)

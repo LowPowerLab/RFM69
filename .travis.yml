@@ -57,4 +57,4 @@ install:
     - unzip /tmp/st7036_source.zip -d /tmp/
 
 script:
-    - platformio ci --board=moteino --board=moteinomega --board=megaatmega2560 --lib=. --lib="/tmp/LCD_C0220BIZ"
+    - platformio ci --board=moteino --lib=. --lib="/tmp/LCD_C0220BIZ"

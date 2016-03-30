@@ -53,8 +53,9 @@ install:
 
     - platformio lib install 7 38 125 131 136 176 531 532 536
 
-    - wget https://bitbucket.org/fmalpartida/st7036-display-driver/downloads/LCD_%20ST7036_v1.2.0.zip -O /tmp/st7036_source.zip
-    - unzip /tmp/st7036_source.zip -d /tmp/
+    #- wget https://bitbucket.org/fmalpartida/st7036-display-driver/downloads/LCD_%20ST7036_v1.2.0.zip -O /tmp/st7036_source.zip
+    #- unzip /tmp/st7036_source.zip -d /tmp/
 
 script:
-    - platformio ci --board=moteino --lib=. --lib="/tmp/LCD_C0220BIZ"
+    #- platformio ci --board=moteino --lib=. --lib="/tmp/LCD_C0220BIZ"
+    - platformio ci --board=moteino --lib=.

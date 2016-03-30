@@ -9,6 +9,7 @@ cache:
         - "~/.platformio"
 
 env:
+    - PLATFORMIO_CI_SRC=Examples/DeepSleep
     - PLATFORMIO_CI_SRC=Examples/DoorBellMote
     - PLATFORMIO_CI_SRC=Examples/GarageMote
     - PLATFORMIO_CI_SRC=Examples/GarageMote_base

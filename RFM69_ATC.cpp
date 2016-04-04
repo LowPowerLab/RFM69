@@ -157,6 +157,27 @@ void RFM69_ATC::interruptHook(uint8_t CTLbyte) {
 }
 
 //=============================================================================
+//  sendWithRetry() - overrides the base to allow increasing power when repeated ACK requests fail
+//=============================================================================
+bool RFM69_ATC::sendWithRetry(uint8_t toAddress, const void* buffer, uint8_t bufferSize, uint8_t retries, uint8_t retryWaitTime) {
+  uint32_t sentTime;
+  for (uint8_t i = 0; i <= retries; i++)
+  {
+    send(toAddress, buffer, bufferSize, true);
+    sentTime = millis();
+    while (millis() - sentTime < retryWaitTime)
+    {
+      if (ACKReceived(toAddress))
+      {
+        return true;
+      }
+    }
+  }
+  if (_transmitLevel < 31) _transmitLevel++;
+  return false;
+}
+
+//=============================================================================
 //  receiveBegin() - need to clear out our flag before calling base class.
 //=============================================================================
 void RFM69_ATC::receiveBegin() {

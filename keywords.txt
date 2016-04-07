@@ -41,13 +41,12 @@ rcCalibration	KEYWORD2
 readAllRegs	KEYWORD2
 enableAutoPower	KEYWORD2
 
-startListening		KEYWORD2
-endListening		KEYWORD2
-setHighSpeedListen	KEYWORD2
-highSpeedListen		KEYWORD2
-sendBurst		KEYWORD2
-setListenDurations	KEYWORD2
-
+listenModeStart	KEYWORD2
+listenModeEnd	KEYWORD2
+listenModeHighSpeed	KEYWORD2
+listenModeSetDurations	KEYWORD2
+listenModeGetDurations	KEYWORD2
+listenModeSendBurst	KEYWORD2
 #######################################
 # Constants (LITERAL1)
 #######################################

@@ -41,6 +41,13 @@ rcCalibration	KEYWORD2
 readAllRegs	KEYWORD2
 enableAutoPower	KEYWORD2
 
+startListening		KEYWORD2
+endListening		KEYWORD2
+setHighSpeedListen	KEYWORD2
+highSpeedListen		KEYWORD2
+sendBurst		KEYWORD2
+setListenDurations	KEYWORD2
+
 #######################################
 # Constants (LITERAL1)
 #######################################
@@ -59,3 +66,4 @@ PAYLOADLEN	LITERAL2
 ACK_REQUESTED	LITERAL2
 ACK_RECEIVED	LITERAL2
 RSSI	LITERAL2
+LISTEN_BURST_REMAINING_MS LITERAL2

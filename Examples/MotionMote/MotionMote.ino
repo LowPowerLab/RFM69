@@ -50,9 +50,10 @@
 //#define FREQUENCY     RF69_433MHZ
 //#define FREQUENCY     RF69_868MHZ
 #define FREQUENCY     RF69_915MHZ
-//#define IS_RFM69HW    //uncomment only for RFM69HW! Remove/comment if you have RFM69W!
+#define IS_RFM69HW    //uncomment only for RFM69HW! Remove/comment if you have RFM69W!
 #define ENCRYPTKEY    "sampleEncryptKey" //exactly the same 16 characters/bytes on all nodes!
 #define ENABLE_ATC    //comment out this line to disable AUTO TRANSMISSION CONTROL
+#define ATC_RSSI      -75
 //*********************************************************************************************
 #define ACK_TIME      30  // max # of ms to wait for an ack
 #define ONBOARDLED     9  // Moteinos have LEDs on D9
@@ -61,7 +62,7 @@
 #define MOTION_IRQ     1  // hardware interrupt 1 (D3) - where motion sensors OUTput is connected, this will generate an interrupt every time there is MOTION
 #define BATT_MONITOR  A7  // Sense VBAT_COND signal (when powered externally should read ~3.25v/3.3v (1000-1023), when external power is cutoff it should start reading around 2.85v/3.3v * 1023 ~= 883 (ratio given by 10k+4.7K divider from VBAT_COND = 1.47 multiplier)
 #define BATT_CYCLES  450 // read and report battery voltage every this many sleep cycles (ex 30cycles * 8sec sleep = 240sec/4min). For 450 cyclesyou would get ~1 hour intervals
-#define BATT_FORMULA(reading) reading * 0.00322 * 1.51 // >>> fine tune this parameter to match your voltage when fully charged
+#define BATT_FORMULA(reading) reading * 0.00322 * 1.49 // >>> fine tune this parameter to match your voltage when fully charged
                                                        // details on how this works: https://lowpowerlab.com/forum/index.php/topic,1206.0.html
 //#define SERIAL_EN             //comment this out when deploying to an installed SM to save a few KB of sketch size
 #define SERIAL_BAUD    115200
@@ -100,7 +101,7 @@ void setup() {
 //For more variable nodes that can expect to move or experience larger temp drifts a lower margin like -70 to -80 would probably be better
 //Always test your ATC mote in the edge cases in your own environment to ensure ATC will perform as you expect
 #ifdef ENABLE_ATC
-  radio.enableAutoPower(-90);
+  radio.enableAutoPower(ATC_RSSI);
 #endif
   
   pinMode(MOTION_PIN, INPUT);

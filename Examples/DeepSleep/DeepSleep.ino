@@ -64,7 +64,7 @@ void setup () {
   {
 #if defined(WITH_RFM69)
     if (i == RF69_SPI_CS) continue;
-#elsif defined(WITH_SPIFLASH)
+#else if defined(WITH_SPIFLASH)
     if (i == FLASH_SS) continue;
 #endif
     pinMode(i, OUTPUT);

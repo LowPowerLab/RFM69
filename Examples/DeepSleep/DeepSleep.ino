@@ -40,12 +40,6 @@ ISR (WDT_vect) {
 }
 
 void setup () {
-  for (uint8_t i=0; i<=A5; i++)
-  {
-    pinMode(i, OUTPUT);
-    digitalWrite(i, LOW);
-  }
-
 #if defined(WITH_RFM69)
   radio.initialize(FREQUENCY,NODEID,NETWORKID);
   radio.sleep();
@@ -55,6 +49,27 @@ void setup () {
   if (flash.initialize())
     flash.sleep();
 #endif
+
+//  //optional blink to know radio/flash sleeping went OK
+//  pinMode(9, OUTPUT);
+//  digitalWrite(9, HIGH);
+//  delay(30);
+//  digitalWrite(9, LOW);
+//  delay(50);
+//  digitalWrite(9, HIGH);
+//  delay(50);
+//  digitalWrite(9, LOW);
+
+  for (uint8_t i=0; i<=A5; i++)
+  {
+#if defined(WITH_RFM69)
+    if (i == RF69_SPI_CS) continue;
+#else if defined(WITH_SPIFLASH)
+    if (i == FLASH_SS) continue;
+#endif
+    pinMode(i, OUTPUT);
+    digitalWrite(i, LOW);
+  }
 
   power_timer1_disable();
   power_timer2_disable();

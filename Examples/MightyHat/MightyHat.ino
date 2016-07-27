@@ -55,7 +55,7 @@
 #define ENABLE_LCD    //comment this out if you don't have or don't want to use the LCD
 //*****************************************************************************************************************************
 #define ACK_TIME       30  // # of ms to wait for an ack
-#define SERIAL_BAUD 115200
+#define SERIAL_BAUD 19200
 #define DEBUG_EN     //comment out if you don't want any serial verbose output (keep out in real use)
 
 #define BTN_LED_RED     9

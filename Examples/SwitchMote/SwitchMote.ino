@@ -1,5 +1,5 @@
 // *************************************************************************************************************
-//                                          SwitchMote sample sketch
+// SwitchMote sample sketch
 // *************************************************************************************************************
 // Handles the single 5A relay SwitchMote, as well as the dual 10A relay SwitchMote2x10A
 // https://lowpowerlab.com/switchmote
@@ -45,14 +45,14 @@
 #include <RFM69_OTA.h>     //get it here: https://github.com/LowPowerLab/rfm69
 #include <SPIFlash.h>      //get it here: http://github.com/lowpowerlab/spiflash
 #include <SPI.h>           //comes with Arduino
-
+// **********************************************************************************
 //Auto Transmission Control - dials down transmit power to save battery (-100 is the noise floor, -90 is still pretty good)
 //For indoor nodes that are pretty static and at pretty stable temperatures (like a MotionMote) -90dBm is quite safe
 //For more variable nodes that can expect to move or experience larger temp drifts a lower margin like -70 to -80 would probably be better
 //Always test your ATC mote in the edge cases in your own environment to ensure ATC will perform as you expect
 #define ENABLE_ATC         //comment out this line to disable AUTO TRANSMISSION CONTROL
 #define ATC_RSSI          -75
-
+// **********************************************************************************
 #define GATEWAYID           1  //assumed 1 in general
 #define LED_RM             15  //digital pin for MIDDLE RED LED
 #define LED_GM             18  //digital pin for MIDDLE GREEN LED

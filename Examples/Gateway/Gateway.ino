@@ -1,13 +1,33 @@
 // Sample RFM69 receiver/gateway sketch, with ACK and optional encryption, and Automatic Transmission Control
 // Passes through any wireless received messages to the serial port & responds to ACKs
 // It also looks for an onboard FLASH chip, if present
-// RFM69 library and sample code by Felix Rusu - http://LowPowerLab.com/contact
-// Copyright Felix Rusu (2015)
-
-#include <RFM69.h>    //get it here: https://www.github.com/lowpowerlab/rfm69
-#include <RFM69_ATC.h>//get it here: https://www.github.com/lowpowerlab/rfm69
-#include <SPI.h>      //comes with Arduino IDE (www.arduino.cc)
-#include <SPIFlash.h> //get it here: https://www.github.com/lowpowerlab/spiflash
+// **********************************************************************************
+// Copyright Felix Rusu 2016, http://www.LowPowerLab.com/contact
+// **********************************************************************************
+// License
+// **********************************************************************************
+// This program is free software; you can redistribute it 
+// and/or modify it under the terms of the GNU General    
+// Public License as published by the Free Software       
+// Foundation; either version 3 of the License, or        
+// (at your option) any later version.                    
+//                                                        
+// This program is distributed in the hope that it will   
+// be useful, but WITHOUT ANY WARRANTY; without even the  
+// implied warranty of MERCHANTABILITY or FITNESS FOR A   
+// PARTICULAR PURPOSE. See the GNU General Public        
+// License for more details.                              
+//                                                        
+// Licence can be viewed at                               
+// http://www.gnu.org/licenses/gpl-3.0.txt
+//
+// Please maintain this license information along with authorship
+// and copyright notices in any redistribution of this code
+// **********************************************************************************
+#include <RFM69.h>         //get it here: https://www.github.com/lowpowerlab/rfm69
+#include <RFM69_ATC.h>     //get it here: https://www.github.com/lowpowerlab/rfm69
+#include <SPIFlash.h>      //get it here: https://www.github.com/lowpowerlab/spiflash
+#include <SPI.h>           //included with Arduino IDE install (www.arduino.cc)
 
 //*********************************************************************************************
 //************ IMPORTANT SETTINGS - YOU MUST CHANGE/CONFIGURE TO FIT YOUR HARDWARE *************
@@ -20,9 +40,14 @@
 //#define FREQUENCY     RF69_915MHZ
 #define ENCRYPTKEY    "sampleEncryptKey" //exactly the same 16 characters/bytes on all nodes!
 //#define IS_RFM69HW    //uncomment only for RFM69HW! Leave out if you have RFM69W!
+//*********************************************************************************************
+//Auto Transmission Control - dials down transmit power to save battery
+//Usually you do not need to always transmit at max output power
+//By reducing TX power even a little you save a significant amount of battery power
+//This setting enables this gateway to work with remote nodes that have ATC enabled to
+//dial their power down to only the required level
 #define ENABLE_ATC    //comment out this line to disable AUTO TRANSMISSION CONTROL
 //*********************************************************************************************
-
 #define SERIAL_BAUD   115200
 
 #ifdef __AVR_ATmega1284P__

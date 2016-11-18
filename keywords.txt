@@ -11,6 +11,7 @@
 #######################################
 RFM69	KEYWORD2
 RFM69_ATC	KEYWORD2
+RFM69_OTA	KEYWORD2
 
 #######################################
 # Methods and Functions (KEYWORD2)
@@ -40,6 +41,16 @@ readTemperature	KEYWORD2
 rcCalibration	KEYWORD2
 readAllRegs	KEYWORD2
 enableAutoPower	KEYWORD2
+
+CheckForSerialHEX	KEYWORD2
+CheckForWirelessHEX	KEYWORD2
+HandleHandshakeACK	KEYWORD2
+HandleWirelessHEXData	KEYWORD2
+readSerialLine	KEYWORD2
+BYTEfromHEX	KEYWORD2
+waitForAck	KEYWORD2
+PrintHex83	KEYWORD2
+resetUsingWatchdog	KEYWORD2
 
 #######################################
 # Constants (LITERAL1)

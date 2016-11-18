@@ -55,5 +55,5 @@ See the [library release blog post](http://lowpowerlab.com/blog/2013/06/20/rfm69
 
 ##RFM69W range and antennas
 - I have tested open-air range on these transceivers in various combinations.
-- I am happy to say that a range of upwards of 350m can be achieved with the default settings provided in the library.Some users reported upwards of 500m by lowering the bitrate, and a forum user reported 1.5miles at 1.2Kbps: see [this forum post](http://lowpowerlab.com/forum/index.php/topic,112.msg288.html) and [this blog page](http://lowpowerlab.com/moteino/#antennas)
+- I am happy to say that a range of upwards of 350m can be achieved with the default settings provided in the library. Some users reported upwards of 500m by lowering the bitrate, and a forum user reported 1.5miles at 1.2Kbps: see [this forum post](http://lowpowerlab.com/forum/index.php/topic,112.msg288.html) and [this blog page](http://lowpowerlab.com/moteino/#antennas)
 - The caveat with these higher RF power units is that they need more DC power when they transmit. For battery powered motes, you will need to keep them powered down and only transmit periodically. Use the sleep() function to put the radios in low power mode and use the [LowPower](https://github.com/lowpowerlab/lowpower) or [Narcoleptic](https://code.google.com/p/narcoleptic/) libraries to power down your Moteino/Arduino

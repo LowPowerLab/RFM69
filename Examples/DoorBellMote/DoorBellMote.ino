@@ -1,12 +1,10 @@
 // **********************************************************************************
-// DoorBellMote sketch works with Moteinos equipped with RFM69W/RFM69HW
-// Can be adapted to use Moteinos/Arduinos using RFM12B or other RFM69 variants (RFM69CW, RFM69HCW)
-// http://www.LowPowerLab.com/
-// 2015-07-22 (C) Felix Rusu of http://www.LowPowerLab.com/
-// **********************************************************************************
+// DoorBellMote sketch works with Moteinos equipped with RFM69W/RFM69HW/RFM69CW/RFM69HCW
 // It detects current flow at the doorbell transformer and send a message each time to the gateway
 // It can trigger doorbell through a relay powered from pins D6+D7
-// Deploy and forget: wirelessly programmable via Moteino + WirelessHEX69 library
+// Deploy and forget: wirelessly programmable via Moteino + RFM69_OTA library
+// **********************************************************************************
+// Copyright Felix Rusu 2016, http://www.LowPowerLab.com/contact
 // **********************************************************************************
 // License
 // **********************************************************************************
@@ -22,33 +20,33 @@
 // PARTICULAR PURPOSE. See the GNU General Public        
 // License for more details.                              
 //                                                        
-// You should have received a copy of the GNU General    
-// Public License along with this program.
-// If not, see <http://www.gnu.org/licenses/>.
-//                                                        
 // Licence can be viewed at                               
 // http://www.gnu.org/licenses/gpl-3.0.txt
 //
 // Please maintain this license information along with authorship
 // and copyright notices in any redistribution of this code
 // **********************************************************************************
-#include <RFM69.h>         //get it here: http://github.com/lowpowerlab/rfm69
-#include <SPIFlash.h>      //get it here: http://github.com/lowpowerlab/spiflash
-#include <WirelessHEX69.h> //get it here: https://github.com/LowPowerLab/WirelessProgramming
-#include <SPI.h>           //comes with Arduino IDE (www.arduino.cc)
+#include <RFM69.h>         //get it here: https://github.com/lowpowerlab/rfm69
+#include <RFM69_ATC.h>     //get it here: https://github.com/lowpowerlab/RFM69
+#include <RFM69_OTA.h>     //get it here: https://github.com/lowpowerlab/RFM69
+#include <SPIFlash.h>      //get it here: https://github.com/lowpowerlab/spiflash
+#include <SPI.h>           //included with Arduino IDE (www.arduino.cc)
 
-//*****************************************************************************************************************************
-// ADJUST THE SETTINGS BELOW DEPENDING ON YOUR HARDWARE/SITUATION!
-//*****************************************************************************************************************************
-#define GATEWAYID   1
-#define NODEID      133
-#define NETWORKID   100
+//****************************************************************************************************************
+//**** IMPORTANT RADIO SETTINGS - YOU MUST CHANGE/CONFIGURE TO MATCH YOUR HARDWARE TRANSCEIVER CONFIGURATION! ****
+//****************************************************************************************************************
+#define GATEWAYID       1
+#define NODEID          133
+#define NETWORKID       100
 //#define FREQUENCY     RF69_433MHZ
 //#define FREQUENCY     RF69_868MHZ
 #define FREQUENCY       RF69_915MHZ //Match this with the version of your Moteino! (others: RF69_433MHZ, RF69_868MHZ)
 #define ENCRYPTKEY      "sampleEncryptKey" //has to be same 16 characters/bytes on all nodes, not more not less!
 //#define IS_RFM69HW    //uncomment only for RFM69HW! Leave out if you have RFM69W!
-
+//*****************************************************************************************************************************
+#define ENABLE_ATC      //comment out this line to disable AUTO TRANSMISSION CONTROL
+#define ATC_RSSI        -75
+//*****************************************************************************************************************************
 #define CHIMEPIN              4 // active HIGH chime signal from detector H11AA1 circuit
 #define RELAYPIN1             6 //for the bell ring relay we just need 2 digital pins together to activate the relay for a short pulse
 #define RELAYPIN2             7 //for the bell ring relay we just need 2 digital pins together to activate the relay for a short pulse
@@ -68,15 +66,19 @@
   #define DEBUGln(input)
 #endif
 
-RFM69 radio;
-/////////////////////////////////////////////////////////////////////////////
+#ifdef ENABLE_ATC
+  RFM69_ATC radio;
+#else
+  RFM69 radio;
+#endif
+//*****************************************************************************************************************************
 // flash(SPI_CS, MANUFACTURER_ID)
 // SPI_CS          - CS pin attached to SPI flash chip (8 in case of Moteino)
 // MANUFACTURER_ID - OPTIONAL, 0xEF30 for windbond 4mbit flash (Moteino OEM)
-/////////////////////////////////////////////////////////////////////////////
+//*****************************************************************************************************************************
 SPIFlash flash(8, 0xEF30); //regular Moteinos have FLASH MEM on D8, MEGA has it on D4
 char buff[50];
-  
+
 void setup(void)
 {
   Serial.begin(SERIAL_BAUD);
@@ -85,16 +87,20 @@ void setup(void)
   pinMode(RELAYPIN2, OUTPUT);
   pinMode(DISABLE_RELAY, OUTPUT);
   pinMode(LED, OUTPUT);
-  
+
   radio.initialize(FREQUENCY,NODEID,NETWORKID);
 #ifdef IS_RFM69HW
   radio.setHighPower(); //uncomment only for RFM69HW!
 #endif
   radio.encrypt(ENCRYPTKEY);
 
+#ifdef ENABLE_ATC
+  radio.enableAutoPower(ATC_RSSI);
+#endif
+
   sprintf(buff, "DoorBellMote : %d Mhz...", FREQUENCY==RF69_433MHZ ? 433 : FREQUENCY==RF69_868MHZ ? 868 : 915);
   DEBUGln(buff);
-  
+
   if (flash.initialize())
     DEBUGln("SPI Flash Init OK");
   else
@@ -119,14 +125,14 @@ void loop()
 {
   if (Serial.available())
     input = Serial.read();
-    
+
   if (input=='r')
   {
     DEBUGln("Relay test...");
     pulseRelay();
     input = 0;
   }
- 
+
   if (millis()-(lastStatusTimestamp)>RINGDELAY)
   {
     if (digitalRead(CHIMEPIN) == HIGH)
@@ -163,7 +169,7 @@ void loop()
         }
 
     // wireless programming token check
-    // DO NOT REMOVE, or GarageMote will not be wirelessly programmable any more!
+    // DO NOT REMOVE, or this Moteino will not be wirelessly programmable any more!
     CheckForWirelessHEX(radio, flash, true);
 
     //first send any ACK to request

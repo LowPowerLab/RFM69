@@ -1,6 +1,11 @@
-//  Sample RFM69 sketch for PulseMote - reading an EE-SY310 based water/pulse meter
-//  Example: https://lowpowerlab.com/blog/2013/02/02/meet-the-watermote-moteino-based-water-meter-reader-ee-sy310/
-//  Copyright (c) 2015 Felix Rusu (felix@lowpowerlab.com).  All rights reserved.
+// Sample RFM69 sketch for PulseMote sketch works with Moteinos equipped with RFM69W/RFM69HW/RFM69CW/RFM69HCW
+// Reads an EE-SY310 based water/pulse meter and reports readings like:
+//   - GPM - gallons per minute (when actively flowing)
+//   - GLM - gallons last minute (gallons used in the last minute)
+//   - GAL - total gallons used
+// Example: https://lowpowerlab.com/blog/2013/02/02/meet-the-watermote-moteino-based-water-meter-reader-ee-sy310/
+// **********************************************************************************
+// Copyright Felix Rusu 2016, http://www.LowPowerLab.com/contact
 // **********************************************************************************
 // License
 // **********************************************************************************
@@ -16,31 +21,33 @@
 // PARTICULAR PURPOSE. See the GNU General Public        
 // License for more details.                              
 //                                                        
-// You should have received a copy of the GNU General    
-// Public License along with this program.
-// If not, see <http://www.gnu.org/licenses/>.
-//                                                        
 // Licence can be viewed at                               
 // http://www.gnu.org/licenses/gpl-3.0.txt
 //
 // Please maintain this license information along with authorship
 // and copyright notices in any redistribution of this code
-// ***************************************************************************************************************************
-#include <RFM69.h>         //get it here: http://github.com/lowpowerlab/rfm69
-#include <SPIFlash.h>      //get it here: http://github.com/lowpowerlab/spiflash
-#include <WirelessHEX69.h> //get it here: https://github.com/LowPowerLab/WirelessProgramming
-#include <EEPROM.h>
-#include <SPI.h>
+// **********************************************************************************
+#include <RFM69.h>         //get it here: https://github.com/lowpowerlab/rfm69
+#include <RFM69_ATC.h>     //get it here: https://github.com/lowpowerlab/RFM69
+#include <RFM69_OTA.h>     //get it here: https://github.com/lowpowerlab/RFM69
+#include <SPIFlash.h>      //get it here: https://github.com/lowpowerlab/spiflash
+#include <SPI.h>           //included with Arduino IDE (www.arduino.cc)
+#include <EEPROM.h>        //included with Arduino IDE (www.arduino.cc)
 #include <TimerOne.h>
-//*********************************************************************************************
-//************ IMPORTANT SETTINGS - YOU MUST CHANGE/ONFIGURE TO FIT YOUR HARDWARE *************
-//*********************************************************************************************
+
+//****************************************************************************************************************
+//**** IMPORTANT RADIO SETTINGS - YOU MUST CHANGE/CONFIGURE TO MATCH YOUR HARDWARE TRANSCEIVER CONFIGURATION! ****
+//****************************************************************************************************************
 #define NODEID             5
 #define GATEWAYID          1
 #define NETWORKID          250
 #define FREQUENCY          RF69_915MHZ //Match this with the version of your Moteino! (others: RF69_433MHZ, RF69_868MHZ)
 #define ENCRYPTKEY         "sampleEncryptKey" //has to be same 16 characters/bytes on all nodes, not more not less!
 //#define IS_RFM69HW            //uncomment only for RFM69HW! Leave out if you have RFM69W!
+//*****************************************************************************************************************************
+#define ENABLE_ATC      //comment out this line to disable AUTO TRANSMISSION CONTROL
+#define ATC_RSSI        -75
+//*****************************************************************************************************************************
 #define PULSESPERGALLON    45 //how many pulses from sensor equal 1 gallon
 #define GPMTHRESHOLD       8000  // GPM will reset after this many MS if no pulses are registered
 #define XMITPERIOD         5000  // GPMthreshold should be less than 2*XMITPERIOD
@@ -63,7 +70,16 @@
   #define DEBUGln(input);
 #endif
 
-RFM69 radio;
+#ifdef ENABLE_ATC
+  RFM69_ATC radio;
+#else
+  RFM69 radio;
+#endif
+//*****************************************************************************************************************************
+// flash(SPI_CS, MANUFACTURER_ID)
+// SPI_CS          - CS pin attached to SPI flash chip (8 in case of Moteino)
+// MANUFACTURER_ID - OPTIONAL, 0xEF30 for windbond 4mbit flash (Moteino OEM)
+//*****************************************************************************************************************************
 SPIFlash flash(8, 0xEF30); //WINDBOND 4MBIT flash chip on CS pin D8 (default for Moteino)
 
 volatile byte ledState = LOW;
@@ -101,6 +117,10 @@ void setup() {
 #endif
   radio.encrypt(ENCRYPTKEY);
   pinMode(LED, OUTPUT);
+
+#ifdef ENABLE_ATC
+  radio.enableAutoPower(ATC_RSSI);
+#endif
 
   //initialize counter from EEPROM
   unsigned long savedCounter = EEPROM_Read_Counter();

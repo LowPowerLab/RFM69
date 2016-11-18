@@ -1,17 +1,10 @@
 // **********************************************************************************************************
-// GarageMote garage door controller sketch that works with Moteinos equipped with RFM69W/RFM69HW
-// Can be adapted to use Moteinos/Arduinos using RFM12B or other RFM69 variants (RFM69CW, RFM69HCW)
+// GarageMote garage door controller sketch that works with Moteinos equipped with RFM69W/RFM69HW/RFM69CW/RFM69HCW
+// Monitors door position (open, closed, closing, unknown)
+// Can trigger door open/close
 // http://www.LowPowerLab.com/GarageMote
-// 2015-05-05 (C) Felix Rusu of http://www.LowPowerLab.com/
-// **********************************************************************************************************
-// It uses 2 hall effect sensors (and magnets mounted on the garage belt/chain) to detect the position of the
-// door, and a small signal relay to be able to toggle the garage opener.
-// Implementation details are posted at the LowPowerLab blog
-// Door status is reported via RFM69 to a base Moteino, and visually on the onboard Moteino LED:
-//    - solid ON - door is in open position
-//    - solid OFF - door is in closed position
-//    - blinking - door is not in either open/close position
-//    - pulsing - door is in motion
+// **********************************************************************************
+// Copyright Felix Rusu 2016, http://www.LowPowerLab.com/contact
 // **********************************************************************************
 // License
 // **********************************************************************************
@@ -27,32 +20,29 @@
 // PARTICULAR PURPOSE. See the GNU General Public        
 // License for more details.                              
 //                                                        
-// You should have received a copy of the GNU General    
-// Public License along with this program.
-// If not, see <http://www.gnu.org/licenses/>.
-//                                                        
 // Licence can be viewed at                               
 // http://www.gnu.org/licenses/gpl-3.0.txt
 //
 // Please maintain this license information along with authorship
 // and copyright notices in any redistribution of this code
-// ***************************************************************************************************************************
+// **********************************************************************************
 //#define WEATHERSHIELD            //uncomment if WeatherShield is present to report temp/humidity/pressure periodically
 //#define WEATHERSENDDELAY  300000 // send WeatherShield data every so often (ms)
 // ***************************************************************************************************************************
-#include <RFM69.h>         //get it here: http://github.com/lowpowerlab/rfm69
-#include <SPIFlash.h>      //get it here: http://github.com/lowpowerlab/spiflash
-#include <WirelessHEX69.h> //get it here: https://github.com/LowPowerLab/WirelessProgramming
-#include <SPI.h>           //comes with Arduino IDE (www.arduino.cc)
+#include <RFM69.h>         //get it here: https://github.com/lowpowerlab/rfm69
+#include <RFM69_ATC.h>     //get it here: https://github.com/lowpowerlab/RFM69
+#include <RFM69_OTA.h>     //get it here: https://github.com/lowpowerlab/RFM69
+#include <SPIFlash.h>      //get it here: https://github.com/lowpowerlab/spiflash
+#include <SPI.h>           //included with Arduino IDE (www.arduino.cc)
 
 #ifdef WEATHERSHIELD
   #include <SFE_BMP180.h>    //get it here: https://github.com/LowPowerLab/SFE_BMP180
   #include <SI7021.h>        //get it here: https://github.com/LowPowerLab/SI7021
   #include <Wire.h>
 #endif
-//*****************************************************************************************************************************
-// ADJUST THE SETTINGS BELOW DEPENDING ON YOUR HARDWARE/TRANSCEIVER SETTINGS/REQUIREMENTS
-//*****************************************************************************************************************************
+//****************************************************************************************************************
+//**** IMPORTANT RADIO SETTINGS - YOU MUST CHANGE/CONFIGURE TO MATCH YOUR HARDWARE TRANSCEIVER CONFIGURATION! ****
+//****************************************************************************************************************
 #define GATEWAYID   1
 #define NODEID      11
 #define NETWORKID   250
@@ -61,7 +51,10 @@
 #define FREQUENCY       RF69_915MHZ //Match this with the version of your Moteino! (others: RF69_433MHZ, RF69_868MHZ)
 #define ENCRYPTKEY      "sampleEncryptKey" //has to be same 16 characters/bytes on all nodes, not more not less!
 #define IS_RFM69HW      //uncomment only for RFM69HW! Leave out if you have RFM69W!
-
+//*****************************************************************************************************************************
+#define ENABLE_ATC      //comment out this line to disable AUTO TRANSMISSION CONTROL
+#define ATC_RSSI        -75
+//*****************************************************************************************************************************
 #define HALLSENSOR1          A0
 #define HALLSENSOR1_EN        4
 #define HALLSENSOR2          A1
@@ -117,10 +110,15 @@ unsigned long ledPulseTimestamp=0;
 unsigned long lastWeatherSent=0;
 int ledPulseValue=0;
 boolean ledPulseDirection=false; //false=down, true=up
-RFM69 radio;
 char Pstr[10];
 char sendBuf[30];
 SPIFlash flash(8, 0xEF30); //WINDBOND 4MBIT flash chip on CS pin D8 (default for Moteino)
+
+#ifdef ENABLE_ATC
+  RFM69_ATC radio;
+#else
+  RFM69 radio;
+#endif
 
 void setup(void)
 {
@@ -140,6 +138,10 @@ void setup(void)
   radio.setHighPower(); //uncomment only for RFM69HW!
 #endif
   radio.encrypt(ENCRYPTKEY);
+
+#ifdef ENABLE_ATC
+  radio.enableAutoPower(ATC_RSSI);
+#endif
 
   char buff[50];
   sprintf(buff, "GarageMote : %d Mhz...", FREQUENCY==RF69_433MHZ ? 433 : FREQUENCY==RF69_868MHZ ? 868 : 915);

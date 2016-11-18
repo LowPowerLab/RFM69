@@ -1,16 +1,36 @@
 // Sample RFM69 sender/node sketch, with ACK and optional encryption, and Automatic Transmission Control
 // Sends periodic messages of increasing length to gateway (id=1)
 // It also looks for an onboard FLASH chip, if present
-// RFM69 library and sample code by Felix Rusu - http://LowPowerLab.com/contact
-// Copyright Felix Rusu (2015)
-
-#include <RFM69.h>    //get it here: https://www.github.com/lowpowerlab/rfm69
-#include <RFM69_ATC.h>//get it here: https://www.github.com/lowpowerlab/rfm69
-#include <SPI.h>
-#include <SPIFlash.h> //get it here: https://www.github.com/lowpowerlab/spiflash
+// **********************************************************************************
+// Copyright Felix Rusu 2016, http://www.LowPowerLab.com/contact
+// **********************************************************************************
+// License
+// **********************************************************************************
+// This program is free software; you can redistribute it 
+// and/or modify it under the terms of the GNU General    
+// Public License as published by the Free Software       
+// Foundation; either version 3 of the License, or        
+// (at your option) any later version.                    
+//                                                        
+// This program is distributed in the hope that it will   
+// be useful, but WITHOUT ANY WARRANTY; without even the  
+// implied warranty of MERCHANTABILITY or FITNESS FOR A   
+// PARTICULAR PURPOSE. See the GNU General Public        
+// License for more details.                              
+//                                                        
+// Licence can be viewed at                               
+// http://www.gnu.org/licenses/gpl-3.0.txt
+//
+// Please maintain this license information along with authorship
+// and copyright notices in any redistribution of this code
+// **********************************************************************************
+#include <RFM69.h>         //get it here: https://www.github.com/lowpowerlab/rfm69
+#include <RFM69_ATC.h>     //get it here: https://www.github.com/lowpowerlab/rfm69
+#include <SPIFlash.h>      //get it here: https://www.github.com/lowpowerlab/spiflash
+#include <SPI.h>           //included with Arduino IDE install (www.arduino.cc)
 
 //*********************************************************************************************
-//************ IMPORTANT SETTINGS - YOU MUST CHANGE/CONFIGURE TO FIT YOUR HARDWARE *************
+//************ IMPORTANT SETTINGS - YOU MUST CHANGE/CONFIGURE TO FIT YOUR HARDWARE ************
 //*********************************************************************************************
 #define NODEID        2    //must be unique for each node on same network (range up to 254, 255 is used for broadcast)
 #define NETWORKID     100  //the same on all nodes that talk to each other (range up to 255)
@@ -21,7 +41,14 @@
 //#define FREQUENCY     RF69_915MHZ
 #define ENCRYPTKEY    "sampleEncryptKey" //exactly the same 16 characters/bytes on all nodes!
 //#define IS_RFM69HW    //uncomment only for RFM69HW! Leave out if you have RFM69W!
+//*********************************************************************************************
+//Auto Transmission Control - dials down transmit power to save battery
+//Usually you do not need to always transmit at max output power
+//By reducing TX power even a little you save a significant amount of battery power
+//This setting enables this gateway to work with remote nodes that have ATC enabled to
+//dial their power down to only the required level (ATC_RSSI)
 #define ENABLE_ATC    //comment out this line to disable AUTO TRANSMISSION CONTROL
+#define ATC_RSSI      -80
 //*********************************************************************************************
 
 #ifdef __AVR_ATmega1284P__
@@ -34,7 +61,7 @@
 
 #define SERIAL_BAUD   115200
 
-int TRANSMITPERIOD = 150; //transmit a packet to gateway so often (in ms)
+int TRANSMITPERIOD = 200; //transmit a packet to gateway so often (in ms)
 char payload[] = "123 ABCDEFGHIJKLMNOPQRSTUVWXYZ";
 char buff[20];
 byte sendSize=0;
@@ -61,7 +88,7 @@ void setup() {
 //For more variable nodes that can expect to move or experience larger temp drifts a lower margin like -70 to -80 would probably be better
 //Always test your ATC mote in the edge cases in your own environment to ensure ATC will perform as you expect
 #ifdef ENABLE_ATC
-  radio.enableAutoPower(-70);
+  radio.enableAutoPower(ATC_RSSI);
 #endif
 
   char buff[50];

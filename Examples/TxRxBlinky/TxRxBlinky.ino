@@ -1,5 +1,9 @@
 // ***************************************************************************************
-// Sample RFM69 sketch for Moteino to illustrate sending and receiving, button interrupts
+// Sample RFM69 sketch for Moteino to illustrate:
+//   - sending
+//   - receiving
+//   - automatic transmission control
+//   - button reading/interrupts
 // ***************************************************************************************
 // When you press the button on the SENDER Moteino, it will send a short message to the
 // RECEIVER Moteino and wait for an ACK (acknowledgement that message was received) from 
@@ -19,8 +23,7 @@
 // Get libraries at: https://github.com/LowPowerLab/
 // Make sure you adjust the settings in the configuration section below !!!
 // **********************************************************************************
-// Copyright Felix Rusu, LowPowerLab.com
-// Library and code by Felix Rusu - felix@lowpowerlab.com
+// Copyright Felix Rusu 2016, http://www.LowPowerLab.com/contact
 // **********************************************************************************
 // License
 // **********************************************************************************
@@ -36,24 +39,20 @@
 // PARTICULAR PURPOSE. See the GNU General Public        
 // License for more details.                              
 //                                                        
-// You should have received a copy of the GNU General    
-// Public License along with this program.
-// If not, see <http://www.gnu.org/licenses/>.
-//                                                        
 // Licence can be viewed at                               
 // http://www.gnu.org/licenses/gpl-3.0.txt
 //
 // Please maintain this license information along with authorship
 // and copyright notices in any redistribution of this code
 // **********************************************************************************
+#include <RFM69.h>         //get it here: https://www.github.com/lowpowerlab/rfm69
+#include <RFM69_ATC.h>     //get it here: https://github.com/lowpowerlab/RFM69
+#include <SPI.h>           //included with Arduino IDE (www.arduino.cc)
+#include <LowPower.h>      //get library from: https://github.com/lowpowerlab/lowpower
 
-#include <RFM69.h>    //get it here: https://www.github.com/lowpowerlab/rfm69
-#include <SPI.h>
-#include <LowPower.h> //get library from: https://github.com/lowpowerlab/lowpower
-
-//*********************************************************************************************
-// *********** IMPORTANT SETTINGS - YOU MUST CHANGE/ONFIGURE TO FIT YOUR HARDWARE *************
-//*********************************************************************************************
+//****************************************************************************************************************
+//**** IMPORTANT RADIO SETTINGS - YOU MUST CHANGE/CONFIGURE TO MATCH YOUR HARDWARE TRANSCEIVER CONFIGURATION! ****
+//****************************************************************************************************************
 #define NETWORKID     100  //the same on all nodes that talk to each other
 #define RECEIVER      1    //unique ID of the gateway/receiver
 #define SENDER        2
@@ -64,6 +63,9 @@
 #define FREQUENCY     RF69_915MHZ
 #define ENCRYPTKEY    "sampleEncryptKey" //exactly the same 16 characters/bytes on all nodes!
 #define IS_RFM69HW    //uncomment only for RFM69HW! Remove/comment if you have RFM69W!
+//*****************************************************************************************************************************
+#define ENABLE_ATC      //comment out this line to disable AUTO TRANSMISSION CONTROL
+#define ATC_RSSI        -75
 //*********************************************************************************************
 #define SERIAL_BAUD   115200
 #ifdef __AVR_ATmega1284P__
@@ -80,7 +82,11 @@
 #define LED_RED         5 //RED LED on the SENDER
 #define RX_TOGGLE_PIN   7 //GPIO to toggle on the RECEIVER
 
-RFM69 radio;
+#ifdef ENABLE_ATC
+  RFM69_ATC radio;
+#else
+  RFM69 radio;
+#endif
 
 void setup() {
   Serial.begin(SERIAL_BAUD);
@@ -89,6 +95,11 @@ void setup() {
   radio.setHighPower(); //only for RFM69HW!
 #endif
   radio.encrypt(ENCRYPTKEY);
+  
+#ifdef ENABLE_ATC
+  radio.enableAutoPower(ATC_RSSI);
+#endif
+
   char buff[50];
   sprintf(buff, "\nListening at %d Mhz...", FREQUENCY==RF69_433MHZ ? 433 : FREQUENCY==RF69_868MHZ ? 868 : 915);
   Serial.println(buff);

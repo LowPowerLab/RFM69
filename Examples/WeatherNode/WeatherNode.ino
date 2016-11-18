@@ -1,15 +1,15 @@
 // **********************************************************************************************************
-// WeatherShield sketch that works with Moteinos equipped with RFM69W/RFM69HW and WeatherShield
+// WeatherShield sketch that works with Moteinos equipped with RFM69W/RFM69HW/RFM69CW/RFM69HCW and WeatherShield R1 (Si7021+BMP180 sensors)
 // It sends periodic highly accurate weather readings (temp, hum, atm pressure) from the
 //      WeatherShield to the base node/gateway Moteino
-// Can be adapted to use Moteinos/Arduinos using RFM12B or other RFM69 variants (RFM69CW, RFM69HCW)
 // For use with MoteinoMEGA you will have to revisit the pin definitions defined below
 // http://www.LowPowerLab.com/WeatherShield
 // Used in this project: http://lowpowerlab.com/blog/2015/07/24/attic-fan-cooling-tests/
-// 2015-07-23 (C) Felix Rusu of http://www.LowPowerLab.com/
-// **********************************************************************************************************
+// **********************************************************************************
+// Copyright Felix Rusu 2016, http://www.LowPowerLab.com/contact
+// **********************************************************************************
 // License
-// **********************************************************************************************************
+// **********************************************************************************
 // This program is free software; you can redistribute it 
 // and/or modify it under the terms of the GNU General    
 // Public License as published by the Free Software       
@@ -22,31 +22,27 @@
 // PARTICULAR PURPOSE. See the GNU General Public        
 // License for more details.                              
 //                                                        
-// You should have received a copy of the GNU General    
-// Public License along with this program.
-// If not, see <http://www.gnu.org/licenses/>.
-//                                                        
 // Licence can be viewed at                               
 // http://www.gnu.org/licenses/gpl-3.0.txt
 //
 // Please maintain this license information along with authorship
 // and copyright notices in any redistribution of this code
-// ***************************************************************************************************************************
-#include <RFM69.h>         //get it here: http://github.com/lowpowerlab/rfm69
-#include <SPIFlash.h>      //get it here: http://github.com/lowpowerlab/spiflash
-#include <WirelessHEX69.h> //get it here: https://github.com/LowPowerLab/WirelessProgramming
-#include <SPI.h>           //comes with Arduino
+// **********************************************************************************
+#include <RFM69.h>         //get it here: https://github.com/lowpowerlab/rfm69
+#include <RFM69_ATC.h>     //get it here: https://github.com/lowpowerlab/RFM69
+#include <RFM69_OTA.h>     //get it here: https://github.com/lowpowerlab/RFM69
+#include <SPIFlash.h>      //get it here: https://github.com/lowpowerlab/spiflash
+#include <SPI.h>           //included with Arduino IDE (www.arduino.cc)
+#include <Wire.h>          //included with Arduino IDE (www.arduino.cc)
 
 #include <SFE_BMP180.h>    //get it here: https://github.com/LowPowerLab/SFE_BMP180
 #include <SI7021.h>        //get it here: https://github.com/LowPowerLab/SI7021
-#include <Wire.h>          //comes with Arduino
+#include <LowPower.h>      //get library from: https://github.com/lowpowerlab/lowpower
+                           //writeup here: http://www.rocketscream.com/blog/2011/07/04/lightweight-low-power-arduino-library/
 
-#include <LowPower.h> //get library from: https://github.com/lowpowerlab/lowpower
-                      //writeup here: http://www.rocketscream.com/blog/2011/07/04/lightweight-low-power-arduino-library/
-
-//*****************************************************************************************************************************
-// ADJUST THE SETTINGS BELOW DEPENDING ON YOUR HARDWARE/TRANSCEIVER SETTINGS/REQUIREMENTS
-//*****************************************************************************************************************************
+//****************************************************************************************************************
+//**** IMPORTANT RADIO SETTINGS - YOU MUST CHANGE/CONFIGURE TO MATCH YOUR HARDWARE TRANSCEIVER CONFIGURATION! ****
+//****************************************************************************************************************
 #define GATEWAYID   1
 #define NODEID      164
 #define NETWORKID   100
@@ -55,6 +51,10 @@
 #define FREQUENCY       RF69_915MHZ //Match this with the version of your Moteino! (others: RF69_433MHZ, RF69_868MHZ)
 #define ENCRYPTKEY      "sampleEncryptKey" //has to be same 16 characters/bytes on all nodes, not more not less!
 //#define IS_RFM69HW    //uncomment only for RFM69HW! Leave out if you have RFM69W!
+//*****************************************************************************************************************************
+#define ENABLE_ATC      //comment out this line to disable AUTO TRANSMISSION CONTROL
+#define ATC_RSSI        -75
+//*****************************************************************************************************************************
 #define SEND_LOOPS   15 //send data this many sleep loops (15 loops of 8sec cycles = 120sec ~ 2 minutes)
 //*********************************************************************************************
 #define SLEEP_FASTEST SLEEP_15MS
@@ -91,9 +91,19 @@ period_t sleepTime = SLEEP_LONGEST; //period_t is an enum type defined in the Lo
 //global program variables
 SI7021 weatherShield_SI7021;
 SFE_BMP180 weatherShield_BMP180;
-RFM69 radio;
 char Pstr[10];
 char buffer[50];
+
+#ifdef ENABLE_ATC
+  RFM69_ATC radio;
+#else
+  RFM69 radio;
+#endif
+//*****************************************************************************************************************************
+// flash(SPI_CS, MANUFACTURER_ID)
+// SPI_CS          - CS pin attached to SPI flash chip (8 in case of Moteino)
+// MANUFACTURER_ID - OPTIONAL, 0xEF30 for windbond 4mbit flash (Moteino OEM)
+//*****************************************************************************************************************************
 SPIFlash flash(8, 0xEF30); //WINDBOND 4MBIT flash chip on CS pin D8 (default for Moteino)
   
 void setup(void)
@@ -108,6 +118,10 @@ void setup(void)
   radio.setHighPower(); //uncomment only for RFM69HW!
 #endif
   radio.encrypt(ENCRYPTKEY);
+
+#ifdef ENABLE_ATC
+  radio.enableAutoPower(ATC_RSSI);
+#endif
 
   sprintf(buffer, "WeatherMote - transmitting at: %d Mhz...", FREQUENCY==RF69_433MHZ ? 433 : FREQUENCY==RF69_868MHZ ? 868 : 915);
   DEBUGln(buffer);

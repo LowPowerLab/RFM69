@@ -1,10 +1,11 @@
 // **********************************************************************************************************
-// MightyHat gateway base unit sketch that works with MightyHat with onboard RFM69W/RFM69HW
+// MightyHat gateway base unit sketch that works with MightyHat equipped with RFM69W/RFM69HW/RFM69CW/RFM69HCW
 // This will relay all RF data over serial to the host computer (RaspberryPi, PC etc) and vice versa
 // http://LowPowerLab.com/MightyHat
-// Copyright http://www.LowPowerLab.com (2015)
 // Also see http://LowPowerLab.com/gateway
-//**********************************************************************************
+// **********************************************************************************
+// Copyright Felix Rusu 2016, http://www.LowPowerLab.com/contact
+// **********************************************************************************
 // License
 // **********************************************************************************
 // This program is free software; you can redistribute it 
@@ -18,11 +19,7 @@
 // implied warranty of MERCHANTABILITY or FITNESS FOR A   
 // PARTICULAR PURPOSE. See the GNU General Public        
 // License for more details.                              
-//                                                        
-// You should have received a copy of the GNU General    
-// Public License along with this program.
-// If not, see <http://www.gnu.org/licenses/>.
-//                                                        
+//                                                   
 // Licence can be viewed at                               
 // http://www.gnu.org/licenses/gpl-3.0.txt
 //
@@ -31,18 +28,17 @@
 // **********************************************************************************
 #define MHAT_VERSION    3  //latest version is R3, change to "2" if you have a MightyHat R2
 // ****************************************************************************************
-
-#include <RFM69.h>         //get it here: http://github.com/lowpowerlab/rfm69
-#include <RFM69_ATC.h>     //get it here: https://www.github.com/lowpowerlab/rfm69
-#include <SPIFlash.h>      //get it here: http://github.com/lowpowerlab/spiflash
-#include <WirelessHEX69.h> //get it here: https://github.com/LowPowerLab/WirelessProgramming
-#include <SPI.h>           //comes with Arduino IDE (www.arduino.cc)
+#include <RFM69.h>         //get it here: https://github.com/lowpowerlab/rfm69
+#include <RFM69_ATC.h>     //get it here: https://github.com/lowpowerlab/RFM69
+#include <RFM69_OTA.h>     //get it here: https://github.com/lowpowerlab/RFM69
+#include <SPIFlash.h>      //get it here: https://github.com/lowpowerlab/spiflash
+#include <SPI.h>           //included with Arduino IDE (www.arduino.cc)
 #include "U8glib.h"        //https://bintray.com/olikraus/u8glib/Arduino
                            //u8g compared to adafruit lib: https://www.youtube.com/watch?v=lkWZuAnHa2Y
                            //draing bitmaps: https://www.coconauts.net/blog/2015/01/19/easy-draw-bitmaps-arduino/
-//*****************************************************************************************************************************
-// ADJUST THE SETTINGS BELOW DEPENDING ON YOUR HARDWARE/SCENARIO !
-//*****************************************************************************************************************************
+//****************************************************************************************************************
+//**** IMPORTANT RADIO SETTINGS - YOU MUST CHANGE/CONFIGURE TO MATCH YOUR HARDWARE TRANSCEIVER CONFIGURATION! ****
+//****************************************************************************************************************
 #define NODEID          1  //the gateway has ID=1
 #define NETWORKID     100  //all nodes on the same network can talk to each other
 //#define FREQUENCY     RF69_433MHZ //Match this with the version of your Moteino! (others: RF69_433MHZ, RF69_868MHZ)

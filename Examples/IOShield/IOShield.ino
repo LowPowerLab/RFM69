@@ -1,9 +1,6 @@
 // **********************************************************************************
-// IOShield sample sketch works with Moteinos equipped with RFM69W/RFM69HW
-// Can be adapted to use Moteinos/Arduinos using other RFM69 variants (RFM69CW, RFM69HCW) or even RFM12b
-// http://moteino.com
+// IOShield sample sketch works with Moteinos equipped with RFM69W/RFM69HW/RFM69CW/RFM69HCW
 // http://www.LowPowerLab.com/IOShield
-// 2015-03-13 (C) Felix Rusu of Low Power Lab LLC
 // **********************************************************************************
 // It works with IOShield(s) that have 2 shift registers (74HC595)
 // You can daisy chain up to 16 IOShields for a total of 256 outputs/stations/zones
@@ -15,6 +12,10 @@
 //       - 'OFF' turns off all outputs
 //       - 'PRG A:n ... Z:m' - runs a program in sequence, first token is station/zone/output number, second is the number of seconds to turn it ON for
 //          WARNING: there is no delay between switching zones, so beware of the frequency you switch the valves on/off
+// Example use: control your sprinkler controller wirelessly, more at lowpowerlab.com/gateway
+// Deploy and forget: wirelessly programmable via Moteino + RFM69_OTA library
+// **********************************************************************************
+// Copyright Felix Rusu 2016, http://www.LowPowerLab.com/contact
 // **********************************************************************************
 // License
 // **********************************************************************************
@@ -30,30 +31,31 @@
 // PARTICULAR PURPOSE. See the GNU General Public        
 // License for more details.                              
 //                                                        
-// You should have received a copy of the GNU General    
-// Public License along with this program.
-// If not, see <http://www.gnu.org/licenses/>.
-//                                                        
 // Licence can be viewed at                               
 // http://www.gnu.org/licenses/gpl-3.0.txt
 //
 // Please maintain this license information along with authorship
 // and copyright notices in any redistribution of this code
 // **********************************************************************************
-#include <RFM69.h>         //get it here: http://github.com/lowpowerlab/rfm69
-#include <SPIFlash.h>      //get it here: http://github.com/lowpowerlab/spiflash
-#include <WirelessHEX69.h> //get it here: https://github.com/LowPowerLab/WirelessProgramming
-#include <SPI.h>           //comes with Arduino IDE (www.arduino.cc)
-//*****************************************************************************************************************************
-// ADJUST THE SETTINGS BELOW DEPENDING ON YOUR HARDWARE/SITUATION!
-//*****************************************************************************************************************************
+#include <RFM69.h>         //get it here: https://github.com/lowpowerlab/rfm69
+#include <RFM69_ATC.h>     //get it here: https://github.com/lowpowerlab/RFM69
+#include <RFM69_OTA.h>     //get it here: https://github.com/lowpowerlab/RFM69
+#include <SPIFlash.h>      //get it here: https://github.com/lowpowerlab/spiflash
+#include <SPI.h>           //included with Arduino IDE (www.arduino.cc)
+
+//****************************************************************************************************************
+//**** IMPORTANT RADIO SETTINGS - YOU MUST CHANGE/CONFIGURE TO MATCH YOUR HARDWARE TRANSCEIVER CONFIGURATION! ****
+//****************************************************************************************************************
 #define GATEWAYID   1
 #define NODEID      121
 #define NETWORKID   250
 #define FREQUENCY       RF69_915MHZ //Match this with the version of your Moteino! (others: RF69_433MHZ, RF69_868MHZ)
 #define ENCRYPTKEY      "sampleEncryptKey" //has to be same 16 characters/bytes on all nodes, not more not less!
 //#define IS_RFM69HW    //uncomment only for RFM69HW! Leave out if you have RFM69W!
-
+//*****************************************************************************************************************************
+#define ENABLE_ATC      //comment out this line to disable AUTO TRANSMISSION CONTROL
+#define ATC_RSSI        -75
+//*****************************************************************************************************************************
 #define LATCHPIN              5
 #define CLOCKPIN              6
 #define DATAPIN               7
@@ -71,12 +73,17 @@
   #define DEBUGln(input)
 #endif
 
-RFM69 radio;
-/////////////////////////////////////////////////////////////////////////////
+#ifdef ENABLE_ATC
+  RFM69_ATC radio;
+#else
+  RFM69 radio;
+#endif
+
+//*****************************************************************************************************************************
 // flash(SPI_CS, MANUFACTURER_ID)
 // SPI_CS          - CS pin attached to SPI flash chip (8 in case of Moteino)
 // MANUFACTURER_ID - OPTIONAL, 0xEF30 for windbond 4mbit flash (Moteino OEM)
-/////////////////////////////////////////////////////////////////////////////
+//*****************************************************************************************************************************
 SPIFlash flash(8, 0xEF30); //regular Moteinos have FLASH MEM on D8, MEGA has it on D4
 char buff[30]; //max radio DATA length = 61
 String str;
@@ -95,6 +102,10 @@ void setup(void)
   radio.setHighPower(); //uncomment only for RFM69HW!
 #endif
   radio.encrypt(ENCRYPTKEY);
+
+#ifdef ENABLE_ATC
+  radio.enableAutoPower(ATC_RSSI);
+#endif
 
   //sprintf(buff, "IOShield : %d Mhz...", FREQUENCY==RF69_433MHZ ? 433 : FREQUENCY==RF69_868MHZ ? 868 : 915);
   //DEBUGln(buff);

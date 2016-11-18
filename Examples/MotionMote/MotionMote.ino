@@ -22,11 +22,7 @@
 // implied warranty of MERCHANTABILITY or FITNESS FOR A   
 // PARTICULAR PURPOSE. See the GNU General Public        
 // License for more details.                              
-//                                                        
-// You should have received a copy of the GNU General    
-// Public License along with this program.
-// If not, see <http://www.gnu.org/licenses/>.
-//                                                        
+//
 // Licence can be viewed at                               
 // http://www.gnu.org/licenses/gpl-3.0.txt
 //
@@ -42,9 +38,9 @@
 #include <SparkFunBME280.h> //get it here: https://github.com/sparkfun/SparkFun_BME280_Breakout_Board/tree/master/Libraries/Arduino/src
 #include <Wire.h>     //comes with Arduino
 
-//*********************************************************************************************
-//************ IMPORTANT SETTINGS - YOU MUST CHANGE/CONFIGURE TO FIT YOUR HARDWARE *************
-//*********************************************************************************************
+//****************************************************************************************************************
+//**** IMPORTANT RADIO SETTINGS - YOU MUST CHANGE/CONFIGURE TO MATCH YOUR HARDWARE TRANSCEIVER CONFIGURATION! ****
+//****************************************************************************************************************
 #define NODEID        88    //unique for each node on same network
 #define NETWORKID     100  //the same on all nodes that talk to each other
 #define GATEWAYID     1

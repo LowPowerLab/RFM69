@@ -16,8 +16,7 @@
 // Make sure you adjust the settings in the configuration section below !!!
 
 // **********************************************************************************
-// Copyright Felix Rusu, LowPowerLab.com
-// Library and code by Felix Rusu - felix@lowpowerlab.com
+// Copyright Felix Rusu 2016, http://www.LowPowerLab.com/contact
 // **********************************************************************************
 // License
 // **********************************************************************************
@@ -33,18 +32,15 @@
 // PARTICULAR PURPOSE. See the GNU General Public        
 // License for more details.                              
 //                                                        
-// You should have received a copy of the GNU General    
-// Public License along with this program.
-// If not, see <http://www.gnu.org/licenses/>.
-//                                                        
 // Licence can be viewed at                               
 // http://www.gnu.org/licenses/gpl-3.0.txt
 //
 // Please maintain this license information along with authorship
 // and copyright notices in any redistribution of this code
 // **********************************************************************************
-#include <SPI.h>
 #include <RFM69.h>    //get it here: https://www.github.com/lowpowerlab/rfm69
+#include <SPIFlash.h> //get it here: https://github.com/lowpowerlab/spiflash
+#include <SPI.h>      //included with Arduino IDE (www.arduino.cc)
 #include <LowPower.h> //get library from: https://github.com/lowpowerlab/lowpower
                       //writeup here: http://www.rocketscream.com/blog/2011/07/04/lightweight-low-power-arduino-library/
 

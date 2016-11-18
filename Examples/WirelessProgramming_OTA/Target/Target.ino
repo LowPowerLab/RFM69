@@ -84,7 +84,7 @@ long lastPeriod = -1;
 //*****************************************************************************************************************************
 SPIFlash flash(FLASH_SS, 0xEF30); //EF30 for windbond 4mbit flash
 
-void setup(){
+void setup() {
   pinMode(LED, OUTPUT);
   Serial.begin(SERIAL_BAUD);
   radio.initialize(FREQUENCY,NODEID,NETWORKID);
@@ -181,7 +181,7 @@ void loop(){
     for (byte i = 0; i < radio.DATALEN; i++)
       Serial.print((char)radio.DATA[i], HEX);
     Serial.println();
-    CheckForWirelessHEX(radio, flash, true);
+    CheckForWirelessHEX(radio, flash, false);
     Serial.println();
   }
   //else Serial.print('.');

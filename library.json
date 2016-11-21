@@ -12,7 +12,8 @@
   "dependencies":
   [
     {
-      "name": "SPIFlash"
+      "name": "SPIFlash",
+      "authors": "Felix Rusu"
     }
   ]
 }

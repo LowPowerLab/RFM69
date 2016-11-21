@@ -47,7 +47,6 @@
 // **********************************************************************************
 #include <RFM69.h>         //get it here: https://www.github.com/lowpowerlab/rfm69
 #include <RFM69_ATC.h>     //get it here: https://github.com/lowpowerlab/RFM69
-#include <SPIFlash.h>      //get it here: https://github.com/lowpowerlab/spiflash
 #include <SPI.h>           //included with Arduino IDE (www.arduino.cc)
 #include <LowPower.h>      //get library from: https://github.com/lowpowerlab/lowpower
 

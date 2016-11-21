@@ -39,7 +39,6 @@
 // and copyright notices in any redistribution of this code
 // **********************************************************************************
 #include <RFM69.h>    //get it here: https://www.github.com/lowpowerlab/rfm69
-#include <SPIFlash.h> //get it here: https://github.com/lowpowerlab/spiflash
 #include <SPI.h>      //included with Arduino IDE (www.arduino.cc)
 #include <LowPower.h> //get library from: https://github.com/lowpowerlab/lowpower
                       //writeup here: http://www.rocketscream.com/blog/2011/07/04/lightweight-low-power-arduino-library/

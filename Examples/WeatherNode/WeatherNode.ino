@@ -189,7 +189,7 @@ void loop()
     dtostrf(H, 3,2, Hstr);
     dtostrf(P, 3,2, Pstr);
 
-    sprintf(buffer, "BAT:%sv F:%d H:%d P:%s", BATstr, Fstr, Hstr, Pstr);
+    sprintf(buffer, "BAT:%sv F:%s H:%s P:%s", BATstr, Fstr, Hstr, Pstr);
 
     sendLen = strlen(buffer);
     radio.sendWithRetry(GATEWAYID, buffer, sendLen, 1); //retry one time

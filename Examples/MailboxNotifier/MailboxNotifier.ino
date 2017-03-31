@@ -47,7 +47,7 @@
 //#define FREQUENCY         RF69_868MHZ
 #define FREQUENCY         RF69_915MHZ
 //#define FREQUENCY_EXACT 917000000
-#define IS_RFM69HW        //uncomment only for RFM69HW! Leave out if you have RFM69W!
+#define IS_RFM69HW_HCW    //uncomment only for RFM69HW/HCW! Leave out if you have RFM69W/CW!
 #define ENCRYPTKEY        "sampleEncryptKey" //exactly the same 16 characters/bytes on all nodes!
 #define SENDEVERYXLOOPS   8 //each loop sleeps 8 seconds, so send status message every this many sleep cycles (default "4" = 32 seconds)
 //*********************************************************************************************
@@ -95,8 +95,8 @@ void setup() {
   Serial.begin(SERIAL_BAUD);
 #endif  
   radio.initialize(FREQUENCY,NODEID,NETWORKID);
-#ifdef IS_RFM69HW
-  radio.setHighPower(); //uncomment only for RFM69HW!
+#ifdef IS_RFM69HW_HCW
+  radio.setHighPower(); //must include this only for RFM69HW/HCW!
 #endif
   radio.encrypt(ENCRYPTKEY);
 

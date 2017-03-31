@@ -9,6 +9,7 @@
 #define LED         9
 #define SERIAL_BAUD 115200
 #define ACK_TIME    30  // # of ms to wait for an ack
+#define IS_RFM69HW_HCW  //uncomment only for RFM69HW/HCW! Leave out if you have RFM69W/CW!
 
 RFM69 radio;
 SPIFlash flash(8, 0xEF30); //EF40 for 16mbit windbond chip
@@ -25,7 +26,9 @@ void setup() {
   Serial.begin(SERIAL_BAUD);
   delay(10);
   radio.initialize(FREQUENCY,NODEID,NETWORKID);
-  //radio.setHighPower(); //uncomment only for RFM69HW!
+#ifdef IS_RFM69HW_HCW
+  radio.setHighPower(); //must include this only for RFM69HW/HCW!
+#endif
   radio.encrypt(KEY);
   radio.promiscuous(promiscuousMode);
   char buff[50];

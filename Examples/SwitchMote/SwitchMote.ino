@@ -172,7 +172,7 @@ void setup(void)
   radio.initialize(CONFIG.frequency,CONFIG.nodeID,CONFIG.networkID);
   radio.sleep();
 
-  if (CONFIG.isHW) radio.setHighPower(); //use with RFM69HW ONLY!
+  if (CONFIG.isHW) radio.setHighPower(); //must include this only for RFM69HW/HCW!
   if (CONFIG.encryptionKey[0]!=0) radio.encrypt(CONFIG.encryptionKey);
   
 #ifdef ENABLE_ATC
@@ -543,7 +543,7 @@ void displayMainMenu()
   Serial.print  (F("| f - set frequency band    (set to: "));Serial.print(CONFIG.frequency==RF69_433MHZ?F("433"):CONFIG.frequency==RF69_868MHZ?F("868"):F("915"));Serial.println(F("mhz)"));
   Serial.print  (F("| i - set node ID           (set to: "));Serial.print(CONFIG.nodeID);Serial.println(F(")"));
   Serial.print  (F("| n - set network ID        (set to: "));Serial.print(CONFIG.networkID);Serial.println(")");
-  Serial.print  (F("| w - set RFM69 type        (set to: "));Serial.print(CONFIG.isHW?F("HW"):F("W/CW"));Serial.println(F(")"));
+  Serial.print  (F("| w - set RFM69 type        (set to: "));Serial.print(CONFIG.isHW?F("HW/HCW"):F("W/CW"));Serial.println(F(")"));
   Serial.print  (F("| e - set encryption key    (set to: '"));Serial.print(CONFIG.encryptionKey);Serial.println(F("')"));
   Serial.print  (F("| d - set description       (set to: '"));Serial.print(CONFIG.description);Serial.println(F("')"));
   Serial.println(F("| s - save CONFIG to EEPROM"));
@@ -571,7 +571,7 @@ void handleMenuInput(char c)
         case 'i': Serial.print(F("\r\nEnter node ID (1-255 + <ENTER>): ")); CONFIG.nodeID=0;menu=c; break;
         case 'n': Serial.print(F("\r\nEnter network ID (0-255 + <ENTER>): ")); CONFIG.networkID=0; menu=c; break;
         case 'e': Serial.print(F("\r\nEnter encryption key (type 16 characters): ")); menu=c; break;
-        case 'w': Serial.print(F("\r\nIs this RFM69W/CW/HW (0=W/CW, 1=HW): ")); menu=c; break;
+        case 'w': Serial.print(F("\r\nIs this RFM69W/CW/HW (0=W/CW, 1=HW/HCW): ")); menu=c; break;
         case 'd': Serial.print(F("\r\nEnter description (10 chars max + <ENTER>): ")); menu=c; break;
         case 's': Serial.print(F("\r\nCONFIG saved to EEPROM!")); EEPROM.writeBlock(0, CONFIG); break;
         case 'E': Serial.print(F("\r\nErasing EEPROM ... ")); menu=c; break;
@@ -673,7 +673,7 @@ void handleMenuInput(char c)
       switch(c)
       {
         case '0': Serial.println(F("Set to RFM69W\\CW")); CONFIG.isHW = 0; menu=0; break;
-        case '1': Serial.println(F("Set to RFM69HW")); CONFIG.isHW = 1; menu=0; break;
+        case '1': Serial.println(F("Set to RFM69HW\\HCW")); CONFIG.isHW = 1; menu=0; break;
         case  27: displayMainMenu();menu=0;break;
       }
       break;

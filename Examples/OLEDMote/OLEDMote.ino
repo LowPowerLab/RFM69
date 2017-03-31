@@ -44,7 +44,7 @@
 //#define FREQUENCY     RF69_868MHZ
 #define FREQUENCY     RF69_915MHZ
 #define ENCRYPTKEY    "sampleEncryptKey" //exactly the same 16 characters/bytes on all nodes!
-#define IS_RFM69HW    //uncomment only for RFM69HW! Remove/comment if you have RFM69W!
+#define IS_RFM69HW_HCW  //uncomment only for RFM69HW/HCW! Leave out if you have RFM69W/CW!
 //*********************************************************************************************
 
 #define SERIAL_BAUD   115200
@@ -60,8 +60,8 @@ bool promiscuousMode = true; //set to 'true' to sniff all packets on the same ne
 void setup() {
   Serial.begin(SERIAL_BAUD);
   radio.initialize(FREQUENCY,NODEID,NETWORKID);
-#ifdef IS_RFM69HW
-  radio.setHighPower(); //only for RFM69HW!
+#ifdef IS_RFM69HW_HCW
+  radio.setHighPower(); //must include this only for RFM69HW/HCW!
 #endif
   radio.encrypt(ENCRYPTKEY);
   radio.promiscuous(promiscuousMode);

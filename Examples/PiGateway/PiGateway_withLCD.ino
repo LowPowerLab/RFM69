@@ -47,7 +47,7 @@
 #define NETWORKID     200 //the network ID of all nodes this node listens/talks to
 #define FREQUENCY     RF69_915MHZ //Match this with the version of your Moteino! (others: RF69_433MHZ, RF69_868MHZ)
 #define ENCRYPTKEY    "sampleEncryptKey" //identical 16 characters/bytes on all nodes, not more not less!
-#define IS_RFM69HW    //uncomment only for RFM69HW! Leave out if you have RFM69W!
+#define IS_RFM69HW_HCW  //uncomment only for RFM69HW/HCW! Leave out if you have RFM69W/CW!
 #define ACK_TIME       30  // # of ms to wait for an ack
 //*****************************************************************************************************************************
 #define ENABLE_ATC    //comment out this line to disable AUTO TRANSMISSION CONTROL
@@ -93,9 +93,8 @@ void setup() {
   Serial.begin(SERIAL_BAUD);
   delay(10);
   radio.initialize(FREQUENCY,NODEID,NETWORKID);
-
-#ifdef IS_RFM69HW
-  radio.setHighPower(); //uncomment only for RFM69HW!
+#ifdef IS_RFM69HW_HCW
+  radio.setHighPower(); //must include this only for RFM69HW/HCW!
 #endif
   radio.encrypt(ENCRYPTKEY);
 

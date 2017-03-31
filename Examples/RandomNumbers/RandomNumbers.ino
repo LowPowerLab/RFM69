@@ -1,4 +1,4 @@
-// Sample RFM69 random temperature sender at fixed intervals (F)
+// Sample RFM69 random temperature sender at fixed intervals (Fahrenheit)
 // **********************************************************************************
 // Copyright Felix Rusu 2016, http://www.LowPowerLab.com/contact
 // **********************************************************************************
@@ -37,7 +37,7 @@
 //Match frequency to the hardware version of the radio on your Moteino (uncomment one):
 //#define FREQUENCY     RF69_433MHZ
 #define FREQUENCY     RF69_915MHZ
-#define IS_RFM69HW   //uncomment only for RFM69HW! Leave out if you have RFM69W!
+#define IS_RFM69HW_HCW  //uncomment only for RFM69HW/HCW! Leave out if you have RFM69W/CW!
 #define ENCRYPTKEY    "sampleEncryptKey" //exactly the same 16 characters/bytes on all nodes!
 //*****************************************************************************************************************************
 #define ENABLE_ATC      //comment out this line to disable AUTO TRANSMISSION CONTROL
@@ -68,8 +68,8 @@ byte sendSize=0;
 void setup() {
   Serial.begin(SERIAL_BAUD);
   radio.initialize(FREQUENCY,NODEID,NETWORKID);
-#ifdef IS_RFM69HW
-  radio.setHighPower(); //uncomment only for RFM69HW!
+#ifdef IS_RFM69HW_HCW
+  radio.setHighPower(); //must include this only for RFM69HW/HCW!
 #endif
   radio.encrypt(ENCRYPTKEY);
 

@@ -35,6 +35,7 @@
 #include <SPIFlash.h>      //get it here: https://github.com/lowpowerlab/spiflash
 #include <SPI.h>           //included with Arduino IDE (www.arduino.cc)
 
+//For WeatherShield with BME280 see the WeatherNode example
 #ifdef WEATHERSHIELD
   #include <SFE_BMP180.h>    //get it here: https://github.com/LowPowerLab/SFE_BMP180
   #include <SI7021.h>        //get it here: https://github.com/LowPowerLab/SI7021
@@ -50,7 +51,7 @@
 //#define FREQUENCY     RF69_868MHZ
 #define FREQUENCY       RF69_915MHZ //Match this with the version of your Moteino! (others: RF69_433MHZ, RF69_868MHZ)
 #define ENCRYPTKEY      "sampleEncryptKey" //has to be same 16 characters/bytes on all nodes, not more not less!
-#define IS_RFM69HW      //uncomment only for RFM69HW! Leave out if you have RFM69W!
+#define IS_RFM69HW_HCW  //uncomment only for RFM69HW/HCW! Leave out if you have RFM69W/CW!
 //*****************************************************************************************************************************
 #define ENABLE_ATC      //comment out this line to disable AUTO TRANSMISSION CONTROL
 #define ATC_RSSI        -75
@@ -134,8 +135,8 @@ void setup(void)
   pinMode(LED, OUTPUT);
   
   radio.initialize(FREQUENCY,NODEID,NETWORKID);
-#ifdef IS_RFM69HW
-  radio.setHighPower(); //uncomment only for RFM69HW!
+#ifdef IS_RFM69HW_HCW
+  radio.setHighPower(); //must include this only for RFM69HW/HCW!
 #endif
   radio.encrypt(ENCRYPTKEY);
 

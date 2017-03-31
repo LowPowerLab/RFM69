@@ -46,7 +46,7 @@
 //#define FREQUENCY   RF69_433MHZ
 //#define FREQUENCY   RF69_868MHZ
 #define FREQUENCY     RF69_915MHZ
-//#define IS_RFM69HW  //uncomment only for RFM69HW! Leave out if you have RFM69W!
+#define IS_RFM69HW_HCW  //uncomment only for RFM69HW/HCW! Leave out if you have RFM69W/CW!
 //*****************************************************************************************************************************
 #define ENABLE_ATC    //comment out this line to disable AUTO TRANSMISSION CONTROL
 #define ATC_RSSI      -75
@@ -98,8 +98,8 @@ void setup() {
   radio.enableAutoPower(ATC_RSSI);
 #endif
 
-#ifdef IS_RFM69HW
-  radio.setHighPower(); //only for RFM69HW!
+#ifdef IS_RFM69HW_HCW
+  radio.setHighPower(); //must include this only for RFM69HW/HCW!
 #endif
   Serial.print("Start node...");
   Serial.print("Node ID = ");

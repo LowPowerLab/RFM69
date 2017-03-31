@@ -10,6 +10,7 @@
 #define LED         9
 #define SERIAL_BAUD 115200
 #define ACK_TIME    30  // # of ms to wait for an ack
+#define IS_RFM69HW_HCW  //uncomment only for RFM69HW/HCW! Leave out if you have RFM69W/CW!
 
 int TRANSMITPERIOD = 300; //transmit a packet to gateway so often (in ms)
 byte sendSize=0;
@@ -27,7 +28,9 @@ Payload theData;
 void setup() {
   Serial.begin(SERIAL_BAUD);
   radio.initialize(FREQUENCY,NODEID,NETWORKID);
-  //radio.setHighPower(); //uncomment only for RFM69HW!
+#ifdef IS_RFM69HW_HCW
+  radio.setHighPower(); //must include this only for RFM69HW/HCW!
+#endif
   radio.encrypt(KEY);
   char buff[50];
   sprintf(buff, "\nTransmitting at %d Mhz...", FREQUENCY==RF69_433MHZ ? 433 : FREQUENCY==RF69_868MHZ ? 868 : 915);

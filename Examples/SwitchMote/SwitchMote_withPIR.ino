@@ -65,10 +65,14 @@
   #define PIR_LED_ON     3000
 #endif
 // **********************************************************************************
-#define LED_RM             15  //digital pin for MIDDLE RED LED
-#define LED_GM             18  //digital pin for MIDDLE GREEN LED
+#define BTNCOUNT            2  //1 or 3 (2 also possible)
+#define BTNT                6  //digital pin of top button
+#define BTNB                4  //digital pin of bottom button
+
 #define LED_RT             16  //digital pin for TOP RED LED
 #define LED_GT             19  //digital pin for TOP GREEN LED
+#define LED_RM             15  //digital pin for MIDDLE RED LED
+//#define LED_GM             18  //digital pin for MIDDLE GREEN LED
 #define LED_RM             15  //digital pin for MIDDLE RED LED
 #define LED_RB             14  //digital pin for BOTTOM RED LED
 #define LED_GB             17  //digital pin for BOTTOM GREEN LE
@@ -77,11 +81,6 @@
 #define RELAY2              3  //digital pin connected to secondary relay (SwitchMote 2x10A only)
 #define RELAY1_INDEX        0  //index in btn[] array which is associated with the MAIN relay
 #define RELAY2_INDEX        1  //index in btn[] array which is associated with the secondary relay (SwitchMote 2x10A only)
-
-#define BTNCOUNT            2  //1 or 3 (2 also possible)
-#define BTNM                5  //digital pin of middle button
-#define BTNT                6  //digital pin of top button
-#define BTNB                4  //digital pin of bottom button
 
 #define BUTTON_BOUNCE_MS  200  //timespan before another button change can occur
 #define SYNC_ENTER       3000  //time required to hold a button before SwitchMote enters [SYNC mode]
@@ -154,11 +153,11 @@ unsigned long syncStart=0;
 unsigned long now=0;
 byte btnIndex=0; // as the sketch loops this index will loop through the available physical buttons
 byte mode[] = {ON,ON,ON}; //could use single bytes for efficiency but keeping it separate for clarity
-byte btn[] = {BTNT, BTNM, BTNB};
+byte btn[] = {BTNT, BTNB};
 byte btnLastState[]={RELEASED,RELEASED,RELEASED};
 unsigned long btnLastPress[]={0,0,0};
-byte btnLEDRED[] = {LED_RT, LED_RM, LED_RB};
-byte btnLEDGRN[] = {LED_GT, LED_GM, LED_GB};
+byte btnLEDRED[] = {LED_RT, LED_RB};
+byte btnLEDGRN[] = {LED_GT, LED_GB};
 uint32_t lastSYNC=0; //remember last status change - used to detect & stop loop conditions in circular SYNC scenarios
 char * buff="justAnEmptyString";
 
@@ -193,16 +192,14 @@ void setup(void)
   radio.enableAutoPower(ATC_RSSI);
   DEBUGln(F("\r\nRFM69_ATC Enabled (Auto Transmission Control)"));
 #endif
-
   
-  
-  pinMode(LED_RM, OUTPUT);pinMode(LED_GM, OUTPUT);
+  pinMode(LED_RM, OUTPUT);//pinMode(LED_GM, OUTPUT);
   pinMode(LED_RT, OUTPUT);pinMode(LED_GT, OUTPUT);
   pinMode(LED_RB, OUTPUT);pinMode(LED_GB, OUTPUT);
   // by writing HIGH while in INPUT mode, the internal pullup is activated
   // the button will read 1 when RELEASED (because of the pullup)
   // the button will read 0 when PRESSED (because it's shorted to GND)
-  pinMode(BTNM, INPUT);digitalWrite(BTNM, HIGH); //activate pullup
+  //pinMode(BTNM, INPUT);digitalWrite(BTNM, HIGH); //activate pullup
   pinMode(BTNT, INPUT);digitalWrite(BTNT, HIGH); //activate pullup
   pinMode(BTNB, INPUT);digitalWrite(BTNB, HIGH); //activate pullup
   pinMode(RELAY1, OUTPUT);
@@ -441,7 +438,8 @@ void action(byte whichButtonIndex, byte whatMode, boolean notifyGateway)
   DEBUG(F("]:D"));
   DEBUG(btn[whichButtonIndex]);
   DEBUG(F(" - "));
-  DEBUG(btn[whichButtonIndex]==BTNT?F("TOP:    "):btn[whichButtonIndex]==BTNM?F("MAIN:   "):btn[whichButtonIndex]==BTNB?F("BOTTOM: "):F("UNKNOWN"));
+  //DEBUG(btn[whichButtonIndex]==BTNT?F("TOP:    "):btn[whichButtonIndex]==BTNM?F("MAIN:   "):btn[whichButtonIndex]==BTNB?F("BOTTOM: "):F("UNKNOWN"));
+  DEBUG(btn[whichButtonIndex]==BTNT?F("TOP:    "):btn[whichButtonIndex]==BTNB?F("BOTTOM: "):F("UNKNOWN"));
   DEBUG(whatMode==ON?F("ON "):F("OFF"));
 
   mode[whichButtonIndex] = whatMode;

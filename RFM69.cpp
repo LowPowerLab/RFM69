@@ -36,7 +36,7 @@ volatile uint8_t RFM69::PAYLOADLEN;
 volatile uint8_t RFM69::ACK_REQUESTED;
 volatile uint8_t RFM69::ACK_RECEIVED; // should be polled immediately after sending a packet with ACK request
 volatile int16_t RFM69::RSSI;          // most accurate RSSI during reception (closest to the reception)
-volatile bool RFM69::_inISR;
+volatile bool RFM69::_haveData;
 RFM69* RFM69::selfPointer;
 
 bool RFM69::initialize(uint8_t freqBand, uint8_t nodeID, uint8_t networkID)
@@ -105,7 +105,6 @@ bool RFM69::initialize(uint8_t freqBand, uint8_t nodeID, uint8_t networkID)
   while (((readReg(REG_IRQFLAGS1) & RF_IRQFLAGS1_MODEREADY) == 0x00) && millis()-start < timeout); // wait for ModeReady
   if (millis()-start >= timeout)
     return false;
-  _inISR = false;
   attachInterrupt(_interruptNum, RFM69::isr0, RISING);
 
   selfPointer = this;
@@ -350,7 +349,7 @@ void RFM69::interruptHandler() {
 }
 
 // internal function
-void RFM69::isr0() { _inISR = true; selfPointer->interruptHandler(); _inISR = false; }
+void RFM69::isr0() { _haveData = true; }
 
 // internal function
 void RFM69::receiveBegin() {
@@ -371,7 +370,11 @@ void RFM69::receiveBegin() {
 bool RFM69::receiveDone() {
 //ATOMIC_BLOCK(ATOMIC_FORCEON)
 //{
-  noInterrupts(); // re-enabled in unselect() via setMode() or via receiveBegin()
+  //noInterrupts(); // re-enabled in unselect() via setMode() or via receiveBegin()
+  if (_haveData) {
+  	_haveData = false;
+  	interruptHandler();
+  }
   if (_mode == RF69_MODE_RX && PAYLOADLEN > 0)
   {
     setMode(RF69_MODE_STANDBY); // enables interrupts
@@ -379,7 +382,7 @@ bool RFM69::receiveDone() {
   }
   else if (_mode == RF69_MODE_RX) // already in RX no payload yet
   {
-    interrupts(); // explicitly re-enable interrupts
+    //interrupts(); // explicitly re-enable interrupts
     return false;
   }
   receiveBegin();
@@ -436,7 +439,7 @@ void RFM69::writeReg(uint8_t addr, uint8_t value)
 
 // select the RFM69 transceiver (save SPI settings, set CS low)
 void RFM69::select() {
-  noInterrupts();
+  //noInterrupts();
 #if defined (SPCR) && defined (SPSR)
   // save current SPI settings
   _SPCR = SPCR;
@@ -457,7 +460,6 @@ void RFM69::unselect() {
   SPCR = _SPCR;
   SPSR = _SPSR;
 #endif
-  maybeInterrupts();
 }
 
 // true  = disable filtering to capture all frames on network
@@ -784,10 +786,4 @@ void RFM69::rcCalibration()
 {
   writeReg(REG_OSC1, RF_OSC1_RCCAL_START);
   while ((readReg(REG_OSC1) & RF_OSC1_RCCAL_DONE) == 0x00);
-}
-
-inline void RFM69::maybeInterrupts()
-{
-  // Only reenable interrupts if we're not being called from the ISR
-  if (!_inISR) interrupts();
 }

@@ -61,7 +61,7 @@
 #ifdef PIRPRESENT
   #define PIR_POWER        18 //PIR powered by D18
   #define PIR_OUTPUT        5 //PIR output signal to D5 - SHARED WITH middle button!
-  #define PIR_DEBOUNCE  10000 //PIR signals valid at least this many ms apart
+  #define PIR_DEBOUNCE   6000 //PIR signals valid at least this many ms apart
   #define PIR_LED_ON     3000
 #endif
 // **********************************************************************************
@@ -161,6 +161,10 @@ byte btnLEDGRN[] = {LED_GT, LED_GB};
 uint32_t lastSYNC=0; //remember last status change - used to detect & stop loop conditions in circular SYNC scenarios
 char * buff="justAnEmptyString";
 
+#ifdef PIRPRESENT
+  boolean PIR_MOTION_RELAY=false;
+#endif
+
 void setup(void)
 {
   #ifdef SERIAL_EN
@@ -217,7 +221,7 @@ void setup(void)
 
 #ifdef PIRPRESENT
   pinMode(PIR_POWER, OUTPUT);
-  digitalWrite(PIR_POWER, HIGH); //give power to the PIR
+  PIR_ONOFF(HIGH); //give power to the PIR
   digitalWrite(PIR_OUTPUT, LOW); //cancel the pullup activation from BTNM above
   digitalWrite(LED_RM, LOW);
 #endif
@@ -233,6 +237,10 @@ byte offIndex=0;
   byte motionDetected=false;
   unsigned long lastMotionTime=0;
 #endif
+
+void PIR_ONOFF(byte state) {
+  digitalWrite(PIR_POWER, state);
+}
 
 void loop()
 {
@@ -253,6 +261,16 @@ void loop()
       DEBUGln(radio.RSSI);
     }
     else DEBUGln("MOTION ACK:NOK...");
+    
+    if (PIR_MOTION_RELAY)
+    {
+      offTimer = millis();
+      if(mode[offIndex] != ON) //only take action when mode is not already ON
+      {
+        action(offIndex, ON, true); //senderID!=GATEWAYID
+        checkSYNC(0);
+      }
+    }
   }
   else if (motionDetected && millis()-lastMotionTime > PIR_LED_ON) //RED-LED-MIDDLE light up for 3 sec
   {
@@ -273,11 +291,28 @@ void loop()
   if (btnState != btnLastState[btnIndex] && now-btnLastPress[btnIndex] >= BUTTON_BOUNCE_MS) //button event happened
   {
     btnLastState[btnIndex] = btnState;
-    if (btnState == PRESSED) btnLastPress[btnIndex] = now;    
+    if (btnState == PRESSED) btnLastPress[btnIndex] = now;
 
     //if normal button press, do the RELAY/LED action and notify sync-ed SwitchMotes
     if (btnState == RELEASED && !isSyncMode)
     {
+      DEBUG("BTN PRESS: ");DEBUGln(btnIndex);
+      
+      //when PIR is installed, both button pressed toggles PIR ON/OFF
+#ifdef PIRPRESENT
+      if (BTNCOUNT == 2)
+      {
+        byte otherBtnIndex = (btnIndex == 0 ? 1:0);
+        if (digitalRead(btn[otherBtnIndex]) == RELEASED && now-btnLastPress[otherBtnIndex] >= BUTTON_BOUNCE_MS && now-btnLastPress[otherBtnIndex] <= 2*BUTTON_BOUNCE_MS)
+        {
+          //other button was also pressed at same time, toggle PIR-motion->RELAY-ON function
+          PIR_MOTION_RELAY = !PIR_MOTION_RELAY;
+          DEBUG("PIR_MOTION_RELAY: ");DEBUGln(PIR_MOTION_RELAY);
+          return; //don't do anything else
+        }
+      }
+#endif
+
       ignorePress=false;
       action(btnIndex, mode[btnIndex]==ON ? OFF : ON);
       checkSYNC(0);

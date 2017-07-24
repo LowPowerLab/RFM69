@@ -772,6 +772,32 @@ void RFM69::readAllRegs()
   unselect();
 }
 
+void RFM69::readAllRegsCompact() {
+  // Print the header row and first register entry
+  Serial.println();Serial.print("     ");
+  for ( uint8_t reg = 0x00; reg<0x10; reg++ ) {
+    Serial.print(reg, HEX);
+    Serial.print("  ");
+  }
+  Serial.println();
+  Serial.print("00: -- ");
+
+  // Loop over the registers from 0x01 to 0x7F and print their values
+  for ( uint8_t reg = 0x01; reg<0x80; reg++ ) {
+    if ( reg % 16 == 0 ) {    // Print the header column entries
+      Serial.println();
+      Serial.print( reg, HEX );
+      Serial.print(": ");
+    }
+
+    // Print the actual register values
+    uint8_t ret = readReg( reg );
+    if ( ret < 0x10 ) Serial.print("0");  // Handle values less than 10
+    Serial.print( ret, HEX);
+    Serial.print(" ");
+  }
+}
+
 uint8_t RFM69::readTemperature(uint8_t calFactor) // returns centigrade
 {
   setMode(RF69_MODE_STANDBY);

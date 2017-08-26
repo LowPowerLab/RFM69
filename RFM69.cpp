@@ -25,7 +25,7 @@
 // **********************************************************************************
 #include <RFM69.h>
 #include <RFM69registers.h>
-#include <SPI.h>
+#include <RFM69_SPI.h>
 
 volatile uint8_t RFM69::DATA[RF69_MAX_DATA_LEN];
 volatile uint8_t RFM69::_mode;        // current transceiver state
@@ -490,6 +490,7 @@ void RFM69::setCS(uint8_t newSPISlaveSelect) {
   pinMode(_slaveSelectPin, OUTPUT);
 }
 
+#if defined(SERIAL_DEBUG)
 //for debugging
 #define REGISTER_DETAIL 0
 #if REGISTER_DETAIL
@@ -797,6 +798,8 @@ void RFM69::readAllRegsCompact() {
     Serial.print(" ");
   }
 }
+
+#endif // SERIAL_DEBUG
 
 uint8_t RFM69::readTemperature(uint8_t calFactor) // returns centigrade
 {

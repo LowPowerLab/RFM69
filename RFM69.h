@@ -5,19 +5,19 @@
 // **********************************************************************************
 // License
 // **********************************************************************************
-// This program is free software; you can redistribute it 
-// and/or modify it under the terms of the GNU General    
-// Public License as published by the Free Software       
-// Foundation; either version 3 of the License, or        
-// (at your option) any later version.                    
-//                                                        
-// This program is distributed in the hope that it will   
-// be useful, but WITHOUT ANY WARRANTY; without even the  
-// implied warranty of MERCHANTABILITY or FITNESS FOR A   
-// PARTICULAR PURPOSE. See the GNU General Public        
-// License for more details.                              
-//                                                        
-// Licence can be viewed at                               
+// This program is free software; you can redistribute it
+// and/or modify it under the terms of the GNU General
+// Public License as published by the Free Software
+// Foundation; either version 3 of the License, or
+// (at your option) any later version.
+//
+// This program is distributed in the hope that it will
+// be useful, but WITHOUT ANY WARRANTY; without even the
+// implied warranty of MERCHANTABILITY or FITNESS FOR A
+// PARTICULAR PURPOSE. See the GNU General Public
+// License for more details.
+//
+// Licence can be viewed at
 // http://www.gnu.org/licenses/gpl-3.0.txt
 //
 // Please maintain this license information along with authorship
@@ -43,9 +43,9 @@
 #elif defined(__arm__)//Use pin 10 or any pin you want
   #define RF69_IRQ_PIN          10
   #define RF69_IRQ_NUM          10
-#else 
+#else
   #define RF69_IRQ_PIN          2
-  #define RF69_IRQ_NUM          0  
+  #define RF69_IRQ_NUM          0
 #endif
 
 

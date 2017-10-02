@@ -7,19 +7,19 @@
 // **********************************************************************************
 // License
 // **********************************************************************************
-// This program is free software; you can redistribute it 
-// and/or modify it under the terms of the GNU General    
-// Public License as published by the Free Software       
-// Foundation; either version 3 of the License, or        
-// (at your option) any later version.                    
-//                                                        
-// This program is distributed in the hope that it will   
-// be useful, but WITHOUT ANY WARRANTY; without even the  
-// implied warranty of MERCHANTABILITY or FITNESS FOR A   
-// PARTICULAR PURPOSE. See the GNU General Public        
-// License for more details.                              
-//                                                        
-// Licence can be viewed at                               
+// This program is free software; you can redistribute it
+// and/or modify it under the terms of the GNU General
+// Public License as published by the Free Software
+// Foundation; either version 3 of the License, or
+// (at your option) any later version.
+//
+// This program is distributed in the hope that it will
+// be useful, but WITHOUT ANY WARRANTY; without even the
+// implied warranty of MERCHANTABILITY or FITNESS FOR A
+// PARTICULAR PURPOSE. See the GNU General Public
+// License for more details.
+//
+// Licence can be viewed at
 // http://www.gnu.org/licenses/gpl-3.0.txt
 //
 // Please maintain this license information along with authorship
@@ -46,7 +46,7 @@ class RFM69_ATC: public RFM69 {
     bool sendWithRetry(uint8_t toAddress, const void* buffer, uint8_t bufferSize, uint8_t retries=2, uint8_t retryWaitTime=40); // 40ms roundtrip req for 61byte packets
     void  enableAutoPower(int16_t targetRSSI=-90);  // TWS: New method to enable/disable auto Power control
     void setMode(uint8_t mode);  // TWS: moved from protected to try to build block()/unblock() wrapper
-    
+
     int16_t getAckRSSI(void);       // TWS: New method to retrieve the ack'd RSSI (if any)
     uint8_t setLNA(uint8_t newReg); // TWS: function to control LNA reg for power testing purposes
     int16_t _targetRSSI;     // if non-zero then this is the desired end point RSSI for our transmission

@@ -5,19 +5,19 @@
 // **********************************************************************************
 // License
 // **********************************************************************************
-// This program is free software; you can redistribute it 
-// and/or modify it under the terms of the GNU General    
-// Public License as published by the Free Software       
-// Foundation; either version 3 of the License, or        
-// (at your option) any later version.                    
-//                                                        
-// This program is distributed in the hope that it will   
-// be useful, but WITHOUT ANY WARRANTY; without even the  
-// implied warranty of MERCHANTABILITY or FITNESS FOR A   
-// PARTICULAR PURPOSE. See the GNU General Public        
-// License for more details.                              
-//                                                        
-// Licence can be viewed at                               
+// This program is free software; you can redistribute it
+// and/or modify it under the terms of the GNU General
+// Public License as published by the Free Software
+// Foundation; either version 3 of the License, or
+// (at your option) any later version.
+//
+// This program is distributed in the hope that it will
+// be useful, but WITHOUT ANY WARRANTY; without even the
+// implied warranty of MERCHANTABILITY or FITNESS FOR A
+// PARTICULAR PURPOSE. See the GNU General Public
+// License for more details.
+//
+// Licence can be viewed at
 // http://www.gnu.org/licenses/gpl-3.0.txt
 //
 // Please maintain this license information along with authorship
@@ -43,9 +43,9 @@
 #elif defined(__arm__)//Use pin 10 or any pin you want
   #define RF69_IRQ_PIN          10
   #define RF69_IRQ_NUM          10
-#else 
+#else
   #define RF69_IRQ_PIN          2
-  #define RF69_IRQ_NUM          0  
+  #define RF69_IRQ_NUM          0
 #endif
 
 
@@ -65,7 +65,13 @@
 #define null                  0
 #define COURSE_TEMP_COEF    -90 // puts the temperature reading in the ballpark, user can fine tune the returned value
 #define RF69_BROADCAST_ADDR 255
+
+// 40ms roundtrip req for 61byte packets
+#define DEFAULT_RETRY_WAIT_MS 40
+#define DEFAULT_RETRY_NB       2
+
 #define RF69_CSMA_LIMIT_MS 1000
+#define RF69_CSMA_LIMIT_ACK_MS 35
 #define RF69_TX_LIMIT_MS   1000
 #define RF69_FSTEP  61.03515625 // == FXOSC / 2^19 = 32MHz / 2^19 (p13 in datasheet)
 
@@ -100,7 +106,7 @@ class RFM69 {
     void setNetwork(uint8_t networkID);
     bool canSend();
     virtual void send(uint8_t toAddress, const void* buffer, uint8_t bufferSize, bool requestACK=false);
-    virtual bool sendWithRetry(uint8_t toAddress, const void* buffer, uint8_t bufferSize, uint8_t retries=2, uint8_t retryWaitTime=40); // 40ms roundtrip req for 61byte packets
+    virtual bool sendWithRetry(uint8_t toAddress, const void* buffer, uint8_t bufferSize, uint8_t retries=DEFAULT_RETRY_NB, uint8_t retryWaitTime=DEFAULT_RETRY_WAIT_MS);
     virtual bool receiveDone();
     bool ACKReceived(uint8_t fromNodeID);
     bool ACKRequested();

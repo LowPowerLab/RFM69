@@ -7,19 +7,19 @@
 // **********************************************************************************
 // License
 // **********************************************************************************
-// This program is free software; you can redistribute it 
-// and/or modify it under the terms of the GNU General    
-// Public License as published by the Free Software       
-// Foundation; either version 3 of the License, or        
-// (at your option) any later version.                    
-//                                                        
-// This program is distributed in the hope that it will   
-// be useful, but WITHOUT ANY WARRANTY; without even the  
-// implied warranty of MERCHANTABILITY or FITNESS FOR A   
-// PARTICULAR PURPOSE. See the GNU General Public        
-// License for more details.                              
-//                                                        
-// Licence can be viewed at                               
+// This program is free software; you can redistribute it
+// and/or modify it under the terms of the GNU General
+// Public License as published by the Free Software
+// Foundation; either version 3 of the License, or
+// (at your option) any later version.
+//
+// This program is distributed in the hope that it will
+// be useful, but WITHOUT ANY WARRANTY; without even the
+// implied warranty of MERCHANTABILITY or FITNESS FOR A
+// PARTICULAR PURPOSE. See the GNU General Public
+// License for more details.
+//
+// Licence can be viewed at
 // http://www.gnu.org/licenses/gpl-3.0.txt
 //
 // Please maintain this license information along with authorship
@@ -67,10 +67,10 @@ void RFM69_ATC::sendACK(const void* buffer, uint8_t bufferSize) {
   ACK_REQUESTED = 0;   // TomWS1 added to make sure we don't end up in a timing race and infinite loop sending Acks
   uint8_t sender = SENDERID;
   int16_t _RSSI = RSSI; // save payload received RSSI value
-  bool sendRSSI = ACK_RSSI_REQUESTED;  
+  bool sendRSSI = ACK_RSSI_REQUESTED;
   writeReg(REG_PACKETCONFIG2, (readReg(REG_PACKETCONFIG2) & 0xFB) | RF_PACKET2_RXRESTART); // avoid RX deadlocks
   uint32_t now = millis();
-  while (!canSend() && millis() - now < RF69_CSMA_LIMIT_MS) receiveDone();
+  while (!canSend() && millis() - now < RF69_CSMA_LIMIT_ACK_MS) receiveDone();
   SENDERID = sender;    // TomWS1: Restore SenderID after it gets wiped out by receiveDone()
   sendFrame(sender, buffer, bufferSize, false, true, sendRSSI, _RSSI);   // TomWS1: Special override on sendFrame with extra params
   RSSI = _RSSI; // restore payload RSSI
@@ -91,7 +91,7 @@ void RFM69_ATC::sendFrame(uint8_t toAddress, const void* buffer, uint8_t bufferS
   setMode(RF69_MODE_STANDBY); // turn off receiver to prevent reception while filling fifo
   while ((readReg(REG_IRQFLAGS1) & RF_IRQFLAGS1_MODEREADY) == 0x00); // wait for ModeReady
   writeReg(REG_DIOMAPPING1, RF_DIOMAPPING1_DIO0_00); // DIO0 is "Packet Sent"
-  
+
   bufferSize += (sendACK && sendRSSI)?1:0;  // if sending ACK_RSSI then increase data size by 1
   if (bufferSize > RF69_MAX_DATA_LEN) bufferSize = RF69_MAX_DATA_LEN;
 
@@ -207,7 +207,7 @@ void RFM69_ATC::receiveBegin() {
       // if (powerLevel < 50) {
         // _powerLevel = powerLevel - 34;  // leaves 14-15
       // } else {
-        // if (powerLevel > 51) 
+        // if (powerLevel > 51)
           // powerLevel = 51;  // saturate
         // _powerLevel = powerLevel - 36;  // leaves 14-15
       // }
@@ -223,7 +223,7 @@ void RFM69_ATC::receiveBegin() {
 // void RFM69_ATC::setHighPower(bool onOff, byte PA_ctl) {
   // _isRFM69HW = onOff;
   // writeReg(REG_OCP, (_isRFM69HW && PA_ctl==0x60) ? RF_OCP_OFF : RF_OCP_ON);
-  // if (_isRFM69HW) { //turning ON based on module type 
+  // if (_isRFM69HW) { //turning ON based on module type
     // _powerLevel = readReg(REG_PALEVEL) & 0x1F; // make sure internal value matches reg
     // _powerBoost = (PA_ctl == 0x60);
     // _PA_Reg = PA_ctl;

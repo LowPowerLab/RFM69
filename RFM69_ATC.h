@@ -43,7 +43,7 @@ class RFM69_ATC: public RFM69 {
     void sendACK(const void* buffer = "", uint8_t bufferSize=0);
     //void setHighPower(bool onOFF=true, uint8_t PA_ctl=0x60); //have to call it after initialize for RFM69HW
     //void setPowerLevel(uint8_t level); // reduce/increase transmit power level
-    bool sendWithRetry(uint8_t toAddress, const void* buffer, uint8_t bufferSize, uint8_t retries=2, uint8_t retryWaitTime=40); // 40ms roundtrip req for 61byte packets
+    bool sendWithRetry(uint8_t toAddress, const void* buffer, uint8_t bufferSize, uint8_t retries=DEFAULT_RETRY_NB, uint8_t retryWaitTime=DEFAULT_RETRY_WAIT_MS);
     void  enableAutoPower(int16_t targetRSSI=-90);  // TWS: New method to enable/disable auto Power control
     void setMode(uint8_t mode);  // TWS: moved from protected to try to build block()/unblock() wrapper
 

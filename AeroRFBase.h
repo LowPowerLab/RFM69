@@ -4,9 +4,12 @@
  *  Created on: Oct 28, 2017
  *      Author: Joel Blackthorne
  *
+ *  AeroRFLib is a radio library designed for long-distance, high-frequency,
+ *  distance measurement as part of the AeroTracker project.
  *
- *  This module is based on the RFM69HW_HCW HopeRF transceiver
- *  and will only work with this specific module.
+ *
+ *  This module is based on the RFM69HW_HCW and RFM69HW_HW HopeRF transceivers
+ *  operating at 915mhz and will only work with those specific modules.
  *
  *  Extends work Copyright Felix Rusu 2016, http://www.LowPowerLab.com/contact
  */
@@ -63,8 +66,9 @@
 //This setting enables this gateway to work with remote nodes that have ATC enabled to
 //dial their power down to only the required level
 //*********************************************************************************************
-#define SERIAL_EN     //comment out if you don't want any serial verbose output
+#define SERIAL_EN     //Must be enabled
 #define SERIAL_BAUD   115200
+#define SERPRINT(input){Serial.println(input);}
 
 //*********************************************************************************************
 //Configure the distance ping
@@ -74,15 +78,21 @@
 //ATC Notes: DO NOT Enable Automatic Transmission Control!
 //#define ENABLE_ATC    //comment out this line to disable AUTO TRANSMISSION CONTROL
 
+//Pin for status LED
+//#define STATUS_LED         9
 
-#ifdef SERIAL_EN
-  #define DEBUG(input)   {Serial.print(input); delay(1);}
-  #define DEBUGln(input) {Serial.println(input); delay(1);}
+//#define DEBUG_EN //comment out to disable debugging
+
+
+#ifdef DEBUG_EN
+  #define DEBUG(input)   {Serial.print(input);}
+  #define DEBUGln(input) {Serial.println(input);}
 #else
   #define DEBUG(input);
   #define DEBUGln(input);
 #endif
 
+#define BLINK_DELAY 100
 
 class AeroRFBase {
 public:
@@ -91,11 +101,13 @@ public:
 	uint8_t getNodeId();
 	uint8_t getNetworkId();
 	void run_cycle();
-	bool initialize(uint8_t networkId, uint8_t nodeId);
+	bool initialize();
 	RFM69 radio;
+	void blink(uint8_t pin);
 private:
 	uint8_t _nodeId;
 	uint8_t _networkId;
+	bool _blink_on;
 };
 
 #endif /* AERORFBASE_H_ */

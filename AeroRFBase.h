@@ -68,7 +68,7 @@
 //*********************************************************************************************
 #define SERIAL_EN     //Must be enabled
 #define SERIAL_BAUD   115200
-#define SERPRINT(input){Serial.println(input);}
+#define SER_WRITE(input){Serial.write(input);}
 
 //*********************************************************************************************
 //Configure the distance ping

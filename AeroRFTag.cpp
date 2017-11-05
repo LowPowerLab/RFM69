@@ -60,7 +60,7 @@ void AeroRFTag::run_cycle() {
 #ifdef STATUS_LED
 	this->blink(STATUS_LED);
 #endif
-	delayMicroseconds(250); //TODO - Put in variable value
+	delayMicroseconds(100); //TODO - Put in variable value
 }
 
 bool AeroRFTag::initialize() {

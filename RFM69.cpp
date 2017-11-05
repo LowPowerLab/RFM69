@@ -817,3 +817,11 @@ inline void RFM69::maybeInterrupts()
   // Only reenable interrupts if we're not being called from the ISR
   if (!_inISR) interrupts();
 }
+
+void RFM69::setListenOnly() {
+	this->setMode(RF69_MODE_RX);
+}
+
+void RFM69::setSendOnly() {
+	this->setMode(RF69_MODE_TX);
+}

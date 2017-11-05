@@ -122,6 +122,8 @@ class RFM69 {
     void writeReg(uint8_t addr, uint8_t val);
     void readAllRegs();
     void readAllRegsCompact();
+    void setListenOnly();
+    void setSendOnly();
 
   protected:
     static void isr0();

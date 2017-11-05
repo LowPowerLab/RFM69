@@ -71,6 +71,8 @@ void AeroRFSensor::print_debug(uint8_t tagId, int16_t rssi) {
 
 void AeroRFSensor::print_packet(uint8_t tagId, int16_t rssi) {
 	#ifdef SERIAL_EN
+	SER_WRITE(DATA_PREFIX_CHAR);
+	SER_WRITE(DATA_PREFIX_CHAR);
 	SER_WRITE(tagId);
 	SER_WRITE(((uint8_t)rssi & 0xFF));
 	SER_WRITE((rssi >> 8));

@@ -40,6 +40,8 @@
 
 #include "AeroRFBase.h"
 
+#define DATA_PREFIX_CHAR 0xFA
+
 class AeroRFSensor: public AeroRFBase {
 public:
 	AeroRFSensor(uint8_t networkId, uint8_t nodeId);

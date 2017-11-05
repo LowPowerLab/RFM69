@@ -41,6 +41,7 @@
 #include <AeroRFBase.h>
 
 #define DEFAULT_SEND_ADDRESS 1
+#define PING_DELAY_MS 20
 
 typedef struct{
 	uint8_t nodeId;

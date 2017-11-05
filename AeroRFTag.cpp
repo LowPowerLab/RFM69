@@ -60,7 +60,7 @@ void AeroRFTag::run_cycle() {
 #ifdef STATUS_LED
 	this->blink(STATUS_LED);
 #endif
-	delayMicroseconds(100); //TODO - Put in variable value
+	delay(PING_DELAY_MS); //Slows Tag to about 40hz ping rate
 }
 
 bool AeroRFTag::initialize() {

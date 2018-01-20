@@ -1,3 +1,10 @@
+AeroRFLib by Joel Blackthorne.
+
+This library extends the RFM69 library by Felix Rusu with the goal of optomizing the driver for long-distance, high-frequency distance measure.  Also, this driver will only work with the RFM69HW and RFM69HCW radios, operating at 915 mhz.
+
+# Features of this library:
+
+
 # RFM69 Library  [![Build Status](https://travis-ci.org/LowPowerLab/RFM69.svg)](https://travis-ci.org/LowPowerLab/RFM69)
 
 By Felix Rusu, [LowPowerLab.com](http://LowPowerLab.com)

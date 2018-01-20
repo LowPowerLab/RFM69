@@ -68,7 +68,9 @@
 //*********************************************************************************************
 #define SERIAL_EN     //Must be enabled
 #define SERIAL_BAUD   115200
+//#define SERIAL_BAUD   9600
 #define SER_WRITE(input){Serial.write(input);}
+#define SER_WRITELN(input){Serial.println(input);}
 
 //*********************************************************************************************
 //Configure the distance ping
@@ -81,8 +83,9 @@
 //Pin for status LED
 //#define STATUS_LED         9
 
-//#define DEBUG_EN //comment out to disable debugging
+#define DEBUG_EN //comment out to disable debugging
 
+#define PROD_NAME "AeroTracker RF"
 
 #ifdef DEBUG_EN
   #define DEBUG(input)   {Serial.print(input);}
@@ -93,21 +96,87 @@
 #endif
 
 #define BLINK_DELAY 100
+#define GUID_SEP 0x2D
+
+#define EEPROM_ADDR_START 0
+#define CHECK_BYTE_INITIAL_FLASH 0x0A
+
+//Custom Types
+#define AY_GUID_SIZE 36
+#define AY_VERSION_SIZE 3
+#define AY_DATE_SIZE 8
+#define AY_REG_KEY_SIZE 10
+
+typedef uint8_t AeroRFGUID[AY_GUID_SIZE];
+typedef uint8_t AeroRFVersion[AY_VERSION_SIZE]; //3 bytes in form <major><minor><dot>
+typedef uint8_t chdate[AY_DATE_SIZE];
+typedef uint8_t AeroRFRegKey[AY_REG_KEY_SIZE];
+
+//Common EEPROM structure used by all AeroRF Objects
+typedef struct AeroEEPROM{
+	uint8_t check_byte; //security check byte
+	uint8_t network_id; //network id for RF
+	uint8_t node_id;    //node id for RF
+	AeroRFGUID guid;    //custom GUID set once
+	chdate created_on; //Date of firmware and GUID set
+	AeroRFVersion fw_version; //version number
+	chdate registerd_on; //registration date in YYYYMMDD
+	AeroRFRegKey regisration_key; //key of last registration
+} AeroEEPROM;
+
+// #############################################
+// EEPROM Indexes
+#define IS_CHECK_BYTE (EEPROM_ADDR_START)
+#define IS_NETWORK_ID (IS_CHECK_BYTE + 1)
+#define IS_NODE_ID (IS_NETWORK_ID + 1)
+#define IS_GUID (IS_NODE_ID + 1)
+#define IE_GUID (IS_GUID + AY_GUID_SIZE)
+#define IS_CREATED_ON (IE_GUID + 1)
+#define IE_CREATED_ON (IS_CREATED_ON + AY_DATE_SIZE)
+#define IS_VERSION (IE_CREATED_ON + 1)
+#define IE_VERSION (IS_VERSION + AY_VERSION_SIZE)
+#define IS_REG_ON (IE_VERSION + 1)
+#define IE_REG_ON (IS_REG_ON + AY_DATE_SIZE)
+#define IS_REG_KEY (IE_REG_ON + 1)
+#define IE_REG_KEY (IS_REG_KEY + AY_REG_KEY_SIZE)
+// #############################################
 
 class AeroRFBase {
 public:
-	AeroRFBase(uint8_t networkId, uint8_t nodeId);
+	RFM69 radio;
+	AeroRFBase();
 	virtual ~AeroRFBase();
 	uint8_t getNodeId();
 	uint8_t getNetworkId();
+	AeroRFGUID* get_guid();
 	void run_cycle();
 	bool initialize();
-	RFM69 radio;
 	void blink(uint8_t pin);
+	void print_info();
+	void set_firmware_info(char* created_on,
+			char* version,
+			uint8_t networkId,
+			uint8_t nodeId);
+	void init_chdate(uint8_t *val);
+	void ascii_array_to_byte(char* ascii_lst, uint8_t* byte_lst, uint16_t lst_size);
+	void byte_array_to_ascii(uint8_t* byte_lst, char* ascii_lst, uint16_t lst_size);
+	void byte_array_copy(uint8_t* source_list, uint8_t* target_list, uint16_t lst_size);
 private:
+	uint8_t _check_byte;
 	uint8_t _nodeId;
 	uint8_t _networkId;
+	AeroRFGUID _guid;
+	chdate _created_on;
+	AeroRFVersion _fw_version;
+	chdate _registered_on;
+	AeroRFRegKey _registration_key;
 	bool _blink_on;
+	bool read_all_eeprom(AeroEEPROM eeprom_val);
+	void load_eeprom();
+	bool read_eeprom_char(unsigned char *val, int addr, int len);
+	void write_eeprom_char(unsigned char *val, int addr, int len);
+	void create_guid(AeroRFGUID guid);
+	void version_str_to_bytes(char* version_list, AeroRFVersion ver_bytes);
 };
 
 #endif /* AERORFBASE_H_ */

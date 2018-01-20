@@ -34,6 +34,11 @@
 // Please maintain this license information along with authorship
 // and copyright notices in any redistribution of this code
 // **********************************************************************************
+/*
+ * Note: The microchip uses 5 pins for communication:
+ *    4 SPI pins SCK, MISO, MOSI, SS
+ *    IRQ0 to Radio DIO0 (Defined at RF69_IRQ_PIN in RFM69.h
+ */
 
 #ifndef AERORFTAG_H_
 #define AERORFTAG_H_
@@ -50,13 +55,14 @@ typedef struct{
 
 class AeroRFTag: public AeroRFBase {
 public:
-	AeroRFTag(uint8_t networkId, uint8_t nodeId);
+	AeroRFTag();
 	void run_cycle();
 	bool initialize();
 private:
 	PingPacket _packet;
 	uint8_t _packetSize;
 	void incr_ping_packet();
+	void registration_mode();
 };
 
 #endif /* AERORFTAG_H_ */

@@ -37,19 +37,21 @@
 
 #include "AeroRFSensor.h"
 
-AeroRFSensor::AeroRFSensor(uint8_t networkId, uint8_t nodeId): AeroRFBase::AeroRFBase(networkId, nodeId) {
+AeroRFSensor::AeroRFSensor(): AeroRFBase::AeroRFBase() {
+	last_command = 0; //initialize
 }
 
 void AeroRFSensor::run_cycle() {
 	AeroRFBase::run_cycle();
-	if (radio.receiveDone()){
-		this->print_packet(radio.SENDERID, radio.RSSI);
-		#ifdef DEBUG_EN
-			this->print_debug(radio.SENDERID, radio.RSSI);
-		#endif
-		#ifdef STATUS_LED
-			this->blink(STATUS_LED);
-		#endif
+
+	return;
+	switch (this->last_command){
+	case 0:
+		this->print_info();
+		break;
+	case CMD_LISTEN_START:
+		this->check_radio();
+		break;
 	}
 }
 
@@ -77,4 +79,64 @@ void AeroRFSensor::print_packet(uint8_t tagId, int16_t rssi) {
 	SER_WRITE(((uint8_t)rssi & 0xFF));
 	SER_WRITE((rssi >> 8));
 	#endif
+}
+
+//Checks hardware serial to see if a request
+//for a command packet has been received
+//
+//Command packets can be at most 2 bytes
+void AeroRFSensor::check_for_command_packet() {
+	bool command_started = false;
+	char nchar = 0;
+	while (Serial.available()){
+		nchar = (char)Serial.read();
+		if (nchar == CMD_START){
+			command_started = true;
+		}
+		else if (command_started){
+			//Full command is now received, so process
+			this->process_command(nchar);
+			command_started = false;
+		}
+		else{
+			command_started = false;
+		}
+	}
+}
+
+//Performs a read on the radio
+void AeroRFSensor::check_radio() {
+	if (radio.receiveDone()){
+		this->print_packet(radio.SENDERID, radio.RSSI);
+		#ifdef DEBUG_EN
+			this->print_debug(radio.SENDERID, radio.RSSI);
+		#endif
+		#ifdef STATUS_LED
+			this->blink(STATUS_LED);
+		#endif
+	}
+}
+
+//Executes a command immediately if applicable
+void AeroRFSensor::process_command(char cmd) {
+	switch (cmd){
+	case CMD_IDENTIFY:
+		this->send_identification();
+		break;
+	}
+	this->last_command = cmd;
+}
+
+//Sends a sensor identification over serial
+//
+//Identification packet is 4 bytes in the form:
+// <begin response>
+// <begin response>
+// <network id>
+// <node id>
+void AeroRFSensor::send_identification() {
+	SER_WRITE(CMD_RESPONSE);
+	SER_WRITE(CMD_RESPONSE);
+	SER_WRITE(this->getNetworkId());
+	SER_WRITE(this->getNodeId());
 }

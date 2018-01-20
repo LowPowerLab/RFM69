@@ -37,8 +37,8 @@
 
 #include <AeroRFTag.h>
 
-AeroRFTag::AeroRFTag(uint8_t networkId, uint8_t nodeId) : AeroRFBase::AeroRFBase(networkId, nodeId){
-	this->_packet.nodeId = nodeId;
+AeroRFTag::AeroRFTag() : AeroRFBase::AeroRFBase(){
+
 }
 
 /*
@@ -72,4 +72,11 @@ bool AeroRFTag::initialize() {
 
 void AeroRFTag::incr_ping_packet() {
 	this->_packet.counter++;
+}
+
+/*
+ * A 10 second cycle on startup that allows for tags to be
+ * registered with a specific Node ID.
+ */
+void AeroRFTag::registration_mode() {
 }

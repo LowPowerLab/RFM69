@@ -35,6 +35,15 @@
 // and copyright notices in any redistribution of this code
 // **********************************************************************************
 
+//*********************************************************************************************
+// Command Packet Definitions:
+#define CMD_START 0x99 			//start of command
+#define CMD_IDENTIFY 0x103		//request identification
+#define CMD_LISTEN_START 0x104	//start listening to sensors
+#define CMD_LISTEN_STOP 0x105 	//stop listening to sensors
+#define CMD_RESPONSE 0xFC
+//*********************************************************************************************
+
 #ifndef AERORFSENSOR_H_
 #define AERORFSENSOR_H_
 
@@ -44,12 +53,17 @@
 
 class AeroRFSensor: public AeroRFBase {
 public:
-	AeroRFSensor(uint8_t networkId, uint8_t nodeId);
+	char last_command;
+	AeroRFSensor();
 	void run_cycle();
 	bool initialize();
 private:
 	void print_debug(uint8_t tagId, int16_t rssi);
 	void print_packet(uint8_t tagId, int16_t rssi);
+	void check_radio();
+	void check_for_command_packet();
+	void process_command(char cmd);
+	void send_identification();
 };
 
 #endif /* AERORFSENSOR_H_ */

@@ -57,6 +57,7 @@ public:
 	AeroRFSensor();
 	void run_cycle();
 	bool initialize();
+	void write_bytes(uint8_t* lst_val, uint16_t size);
 private:
 	void print_debug(uint8_t tagId, int16_t rssi);
 	void print_packet(uint8_t tagId, int16_t rssi);

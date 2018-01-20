@@ -112,8 +112,8 @@ void AeroRFBase::blink(uint8_t pin) {
 #endif
 }
 
-AeroRFGUID* AeroRFBase::get_guid() {
-	return &this->_guid;
+uint8_t* AeroRFBase::get_guid() {
+	return this->_guid;
 }
 
 /*
@@ -330,7 +330,7 @@ void AeroRFBase::create_guid(AeroRFGUID guid) {
  * Converts an ascii char list to byte list.
  */
 void AeroRFBase::ascii_array_to_byte(char* ascii_lst, uint8_t* byte_lst, uint16_t lst_size) {
-	for (int i=0; i< lst_size; i++){
+	for (uint16_t i=0; i< lst_size; i++){
 		byte_lst[i] = (ascii_lst[i] - 48);
 	}
 }
@@ -340,7 +340,7 @@ void AeroRFBase::ascii_array_to_byte(char* ascii_lst, uint8_t* byte_lst, uint16_
  */
 void AeroRFBase::byte_array_to_ascii(uint8_t* byte_lst, char* ascii_lst,
 		uint16_t lst_size) {
-	for (int i=0; i< lst_size; i++){
+	for (uint16_t i=0; i< lst_size; i++){
 		ascii_lst[i] = ((byte_lst[i]) + 48);
 	}
 }
@@ -350,7 +350,7 @@ void AeroRFBase::byte_array_to_ascii(uint8_t* byte_lst, char* ascii_lst,
  */
 void AeroRFBase::byte_array_copy(uint8_t* source_list, uint8_t* target_list,
 		uint16_t lst_size) {
-	for (int i=0; i< lst_size; i++){
+	for (uint16_t i=0; i< lst_size; i++){
 		target_list[i] = source_list[i];
 	}
 }
@@ -364,4 +364,12 @@ void AeroRFBase::version_str_to_bytes(char* version_list,
 	ver_bytes[0] = (version_list[0]) - 48;
 	ver_bytes[1] = (version_list[3]) - 48;
 	ver_bytes[2] = (version_list[5]) - 48;
+}
+
+uint8_t* AeroRFBase::get_fw_version() {
+	return this->_fw_version;
+}
+
+uint8_t* AeroRFBase::get_created_on() {
+	return this->_created_on;
 }

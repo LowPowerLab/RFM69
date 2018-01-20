@@ -44,13 +44,18 @@ AeroRFSensor::AeroRFSensor(): AeroRFBase::AeroRFBase() {
 void AeroRFSensor::run_cycle() {
 	AeroRFBase::run_cycle();
 
-	return;
 	switch (this->last_command){
 	case 0:
-		this->print_info();
+		break;
+	case CMD_IDENTIFY:
+//		this->print_info();
+		this->send_identification();
 		break;
 	case CMD_LISTEN_START:
 		this->check_radio();
+		break;
+	case CMD_LISTEN_STOP:
+		//stop all communication
 		break;
 	}
 }
@@ -129,14 +134,28 @@ void AeroRFSensor::process_command(char cmd) {
 
 //Sends a sensor identification over serial
 //
-//Identification packet is 4 bytes in the form:
+//Identification packet is in the form:
 // <begin response>
 // <begin response>
 // <network id>
 // <node id>
+// <guid>
+// <version>
+// <created on>
 void AeroRFSensor::send_identification() {
+
 	SER_WRITE(CMD_RESPONSE);
 	SER_WRITE(CMD_RESPONSE);
 	SER_WRITE(this->getNetworkId());
 	SER_WRITE(this->getNodeId());
+	this->write_bytes(this->get_guid(), AY_GUID_SIZE);
+	this->write_bytes(this->get_fw_version(), AY_VERSION_SIZE);
+	this->write_bytes(this->get_created_on(), AY_DATE_SIZE);
+
+}
+
+void AeroRFSensor::write_bytes(uint8_t* lst_val, uint16_t size) {
+	for (uint16_t i=0; i<size; i++){
+		SER_WRITE(lst_val[i]);
+	}
 }

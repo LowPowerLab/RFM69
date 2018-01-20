@@ -83,7 +83,7 @@
 //Pin for status LED
 //#define STATUS_LED         9
 
-#define DEBUG_EN //comment out to disable debugging
+//#define DEBUG_EN //comment out to disable debugging
 
 #define PROD_NAME "AeroTracker RF"
 
@@ -148,7 +148,9 @@ public:
 	virtual ~AeroRFBase();
 	uint8_t getNodeId();
 	uint8_t getNetworkId();
-	AeroRFGUID* get_guid();
+	uint8_t* get_guid();
+	uint8_t* get_fw_version();
+	uint8_t* get_created_on();
 	void run_cycle();
 	bool initialize();
 	void blink(uint8_t pin);

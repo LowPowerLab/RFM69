@@ -64,18 +64,8 @@ uint8_t AeroRFBase::getNetworkId() {
 bool AeroRFBase::initialize() {
 	this->init_chdate(this->_created_on);
 	this->init_chdate(this->_registered_on);
-
-//	DEBUG("this->_registered_on: ");
-//	DEBUG(this->_registered_on[0]);
-//	DEBUG(this->_registered_on[1]);
-//	DEBUG(this->_registered_on[2]);
-//	DEBUG(this->_registered_on[3]);
-//	DEBUG(this->_registered_on[4]);
-//	DEBUG(this->_registered_on[5]);
-//	DEBUG(this->_registered_on[6]);
-//	DEBUGln(this->_registered_on[7]);
-
-//	this->load_eeprom();
+	//Load the EEPROM to the object attributes
+	this->load_eeprom();
 	bool rval = true;
 #ifdef STATUS_LED
 //	pinMode(STATUS_LED, OUTPUT);
@@ -166,7 +156,11 @@ bool AeroRFBase::read_all_eeprom(AeroEEPROM *eeprom_val) {
 //		DEBUGln(ev);
 
 	}
+
 //	DEBUG("eeprom_val->registerd_on: ");
+//	DEBUG(" Size: ");
+//	DEBUG(sizeof(eeprom_val->registerd_on));
+//	DEBUG(" val: ");
 //	DEBUG(eeprom_val->registerd_on[0]);
 //	DEBUG(eeprom_val->registerd_on[1]);
 //	DEBUG(eeprom_val->registerd_on[2]);
@@ -182,6 +176,7 @@ bool AeroRFBase::read_all_eeprom(AeroEEPROM *eeprom_val) {
  * human readable form (ascii).
  */
 void AeroRFBase::print_info() {
+	int i=0;
 	Serial.println("");
 	Serial.println("**********************");
 	Serial.println(PROD_NAME);
@@ -210,28 +205,30 @@ void AeroRFBase::print_info() {
 	Serial.print("Node Id: ");
 	Serial.println(this->_nodeId);
 
-//	Serial.print("GUID: ");
-//	char guid_ascii[AY_GUID_SIZE];
-//	this->byte_array_to_ascii(this->get_guid(), guid_ascii, AY_GUID_SIZE);
-//	Serial.println(guid_ascii);
-
-//	DEBUG("this->_registered_on: ");
-//	DEBUG(this->_registered_on[0]);
-//	DEBUG(this->_registered_on[1]);
-//	DEBUG(this->_registered_on[2]);
-//	DEBUG(this->_registered_on[3]);
-//	DEBUG(this->_registered_on[4]);
-//	DEBUG(this->_registered_on[5]);
-//	DEBUG(this->_registered_on[6]);
-//	DEBUGln(this->_registered_on[7]);
+	Serial.print("GUID: ");
+	this->print_guid(this->get_guid());
 
 	Serial.print("Registered On: ");
 	char reg_ascii[AY_DATE_SIZE];
 	this->byte_array_to_ascii(this->_registered_on, reg_ascii, AY_DATE_SIZE);
-	Serial.println(reg_ascii);
+	//Note: there is a defect in Serial.println such that it is not writing
+	//the custom types correctly.
+	Serial.print(reg_ascii[0]);
+	Serial.print(reg_ascii[1]);
+	Serial.print(reg_ascii[2]);
+	Serial.print(reg_ascii[3]);
+	Serial.print(reg_ascii[4]);
+	Serial.print(reg_ascii[5]);
+	Serial.print(reg_ascii[6]);
+	Serial.println(reg_ascii[7]);
 
 	Serial.print("Registration Key: ");
-	Serial.println((char*)this->_registration_key);
+	char reg_key_ascii[AY_REG_KEY_SIZE];
+	this->byte_array_to_ascii(this->_registration_key, reg_key_ascii, AY_REG_KEY_SIZE);
+	for (i=0; i<AY_REG_KEY_SIZE; i++){
+		Serial.print(reg_key_ascii[i]);
+	}
+	Serial.println("");
 }
 
 /*
@@ -248,16 +245,14 @@ void AeroRFBase::set_firmware_info(char* created_on, char* fw_version,
 	AeroEEPROM tmpEEPROM;
 	uint8_t wrk=0;
 	chdate tmp_date;
+	bool force_new_guid = true;
 
 	this->read_all_eeprom(&tmpEEPROM);
 
 	//initialize unused
 	this->init_chdate(tmpEEPROM.registerd_on);
+	this->init_regkey(tmpEEPROM.regisration_key);
 
-//	Serial.print("Network: ");
-//	Serial.print(networkId);
-//	Serial.print(" Node: ");
-//	Serial.println(nodeId);
 	DEBUGln("Preparing to set eeprom");
 
 	//Set check byte to indicate values flashed
@@ -273,14 +268,15 @@ void AeroRFBase::set_firmware_info(char* created_on, char* fw_version,
 	this->version_str_to_bytes(fw_version, this->_fw_version);
 	this->write_eeprom_char(this->_fw_version, IS_VERSION, AY_VERSION_SIZE);
 	//GUID if needed
-	if ((tmpEEPROM.guid[0] == 0) && (tmpEEPROM.guid[1] == 0)){
-		DEBUGln("Creating new GUID");
+	if ((force_new_guid) || ((tmpEEPROM.guid[0] == 0) && (tmpEEPROM.guid[1] == 0))){
 		//GUID has never been set, so create and set
 		this->create_guid(tmpEEPROM.guid);
 		this->write_eeprom_char(tmpEEPROM.guid, IS_GUID, AY_GUID_SIZE);
 	}
 	//Registered on
 	this->write_eeprom_char(tmpEEPROM.registerd_on, IS_REG_ON, AY_DATE_SIZE);
+	//Registration key
+	this->write_eeprom_char(tmpEEPROM.regisration_key, IS_REG_KEY, AY_REG_KEY_SIZE);
 
 	DEBUGln("Completed setting eeprom");
 	this->load_eeprom();
@@ -350,28 +346,15 @@ void AeroRFBase::write_eeprom_char(unsigned char* val, int addr, int len) {
  * Generates a GUID.
  */
 void AeroRFBase::create_guid(AeroRFGUID guid) {
-	int tmp=0;
+	uint8_t tmp=0;
+	//Seed with random sample of unused analog pin
+	randomSeed(analogRead(A0));
 	for (int i=0; i<AY_GUID_SIZE; i++){
-		switch (i){
-		case 8:
-			guid[i]=(uint8_t)GUID_SEP;
-			break;
-		case 13:
-			guid[i]=(uint8_t)GUID_SEP;
-			break;
-		case 18:
-			guid[i]=(uint8_t)GUID_SEP;
-			break;
-		case 23:
-			guid[i]=(uint8_t)GUID_SEP;
-			break;
-		default:
-			tmp=rand() & 0x10;
-			guid[i]=(uint8_t)tmp;
-		}
+		tmp=random(0,15);
+		guid[i]=tmp;
 	}
-	DEBUG("Created new GUID:");
-	DEBUGln((char*)guid);
+	Serial.print("Created new GUID: ");
+	this->print_guid(guid);
 }
 
 /*
@@ -420,4 +403,56 @@ uint8_t* AeroRFBase::get_fw_version() {
 
 uint8_t* AeroRFBase::get_created_on() {
 	return this->_created_on;
+}
+
+/*
+ * Prints a guid in human readable form.
+ */
+void AeroRFBase::print_guid(AeroRFGUID guid) {
+	char tmp_char = '0';
+	for (int i=0; i<AY_GUID_SIZE; i++){
+		tmp_char = this->hex_to_ascii_char(guid[i]);
+		Serial.print(tmp_char);
+		if (i == 7)
+			Serial.print('-');
+		else if (i ==11)
+			Serial.print('-');
+		else if (i ==15)
+					Serial.print('-');
+		else if (i ==19)
+					Serial.print('-');
+	}
+	Serial.println("");
+}
+
+/*
+ * Converts a hex byte to a readable char.
+ */
+char AeroRFBase::hex_to_ascii_char(uint8_t byte_val) {
+	char rval = '0';
+	if ((byte_val >= 0) && (byte_val <= 9)){
+		rval = byte_val + 48;
+	}
+	else if(byte_val == 10)
+		rval = 'A';
+	else if(byte_val == 11)
+		rval = 'B';
+	else if(byte_val == 12)
+		rval = 'C';
+	else if(byte_val == 13)
+		rval = 'D';
+	else if(byte_val == 14)
+		rval = 'E';
+	else if(byte_val == 15)
+		rval = 'F';
+	return rval;
+}
+
+/*
+ * Blanks and initializes the registration key.
+ */
+void AeroRFBase::init_regkey(AeroRFRegKey reg_key) {
+	for (int i=0; i<AY_REG_KEY_SIZE; i++){
+		reg_key[i] = 0;
+	}
 }

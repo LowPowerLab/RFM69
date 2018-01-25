@@ -84,7 +84,7 @@
 //Pin for status LED
 //#define STATUS_LED         9
 
-#define DEBUG_EN //comment out to disable debugging
+//#define DEBUG_EN //comment out to disable debugging
 
 #define PROD_NAME "AeroTracker RF"
 
@@ -103,7 +103,7 @@
 #define CHECK_BYTE_INITIAL_FLASH 0x0A
 
 //Custom Types
-#define AY_GUID_SIZE 36
+#define AY_GUID_SIZE 32
 #define AY_VERSION_SIZE 3
 #define AY_DATE_SIZE 8
 #define AY_REG_KEY_SIZE 10
@@ -152,6 +152,7 @@ public:
 	uint8_t* get_guid();
 	uint8_t* get_fw_version();
 	uint8_t* get_created_on();
+	void print_guid(AeroRFGUID guid);
 	void run_cycle();
 	bool initialize();
 	void blink(uint8_t pin);
@@ -161,9 +162,11 @@ public:
 			uint8_t networkId,
 			uint8_t nodeId);
 	void init_chdate(uint8_t *val);
+	void init_regkey(AeroRFRegKey reg_key);
 	void ascii_array_to_byte(char* ascii_lst, uint8_t* byte_lst, uint16_t lst_size);
 	void byte_array_to_ascii(uint8_t* byte_lst, char* ascii_lst, uint16_t lst_size);
 	void byte_array_copy(uint8_t* source_list, uint8_t* target_list, uint16_t lst_size);
+	char hex_to_ascii_char(uint8_t byte_val);
 private:
 	uint8_t _check_byte;
 	uint8_t _nodeId;

@@ -41,7 +41,8 @@
 #define CMD_IDENTIFY 0x103		//request identification
 #define CMD_LISTEN_START 0x104	//start listening to sensors
 #define CMD_LISTEN_STOP 0x105 	//stop listening to sensors
-#define CMD_RESPONSE 0xFC
+#define CMD_RESPONSE_START 0xFC
+#define CMD_TERMINATOR 0x13
 //*********************************************************************************************
 
 #ifndef AERORFSENSOR_H_

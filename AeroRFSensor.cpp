@@ -44,6 +44,9 @@ AeroRFSensor::AeroRFSensor(): AeroRFBase::AeroRFBase() {
 void AeroRFSensor::run_cycle() {
 	AeroRFBase::run_cycle();
 
+	this->send_identification();
+	return;
+
 	switch (this->last_command){
 	case 0:
 		break;
@@ -62,8 +65,8 @@ void AeroRFSensor::run_cycle() {
 
 bool AeroRFSensor::initialize(){
 	AeroRFBase::initialize();
-	radio.promiscuous(1);
-	radio.setListenOnly();
+//	radio.promiscuous(1);
+//	radio.setListenOnly();
 	return true;
 }
 
@@ -144,14 +147,15 @@ void AeroRFSensor::process_command(char cmd) {
 // <created on>
 void AeroRFSensor::send_identification() {
 
-	SER_WRITE(CMD_RESPONSE);
-	SER_WRITE(CMD_RESPONSE);
+	SER_WRITE(CMD_RESPONSE_START);
+	SER_WRITE(CMD_IDENTIFY);
 	SER_WRITE(this->getNetworkId());
 	SER_WRITE(this->getNodeId());
 	this->write_bytes(this->get_guid(), AY_GUID_SIZE);
 	this->write_bytes(this->get_fw_version(), AY_VERSION_SIZE);
 	this->write_bytes(this->get_created_on(), AY_DATE_SIZE);
 
+	SER_WRITE(CMD_TERMINATOR);
 }
 
 void AeroRFSensor::write_bytes(uint8_t* lst_val, uint16_t size) {

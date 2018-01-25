@@ -64,28 +64,39 @@ uint8_t AeroRFBase::getNetworkId() {
 bool AeroRFBase::initialize() {
 	this->init_chdate(this->_created_on);
 	this->init_chdate(this->_registered_on);
-	this->load_eeprom();
+
+//	DEBUG("this->_registered_on: ");
+//	DEBUG(this->_registered_on[0]);
+//	DEBUG(this->_registered_on[1]);
+//	DEBUG(this->_registered_on[2]);
+//	DEBUG(this->_registered_on[3]);
+//	DEBUG(this->_registered_on[4]);
+//	DEBUG(this->_registered_on[5]);
+//	DEBUG(this->_registered_on[6]);
+//	DEBUGln(this->_registered_on[7]);
+
+//	this->load_eeprom();
 	bool rval = true;
 #ifdef STATUS_LED
-	pinMode(STATUS_LED, OUTPUT);
-	this->blink(STATUS_LED);
+//	pinMode(STATUS_LED, OUTPUT);
+//	this->blink(STATUS_LED);
 #endif
 
 
-	//Initialize the radio
-	radio.initialize(FREQUENCY,this->_nodeId,this->_networkId);
-	radio.setHighPower(); //must include this only for RFM69HW/HCW!
-
-	//Output debugging only if serial is enabled
-	#ifdef DEBUG_EN
-		char buff[50];
-		sprintf(buff, "\nTransmitting at %d Mhz...", int(radio.getFrequency()/1000000));
-		DEBUGln(buff);
-	#endif
-	#ifdef STATUS_LED
-		this->blink(STATUS_LED);
-	#endif
-	return rval;
+//	//Initialize the radio
+//	radio.initialize(FREQUENCY,this->_nodeId,this->_networkId);
+//	radio.setHighPower(); //must include this only for RFM69HW/HCW!
+//
+//	//Output debugging only if serial is enabled
+//	#ifdef DEBUG_EN
+//		char buff[50];
+//		sprintf(buff, "\nTransmitting at %d Mhz...", int(radio.getFrequency()/1000000));
+//		DEBUGln(buff);
+//	#endif
+//	#ifdef STATUS_LED
+//		this->blink(STATUS_LED);
+//	#endif
+//	return rval;
 }
 
 /*
@@ -119,7 +130,7 @@ uint8_t* AeroRFBase::get_guid() {
 /*
  * Read eeprom and set properties.
  */
-bool AeroRFBase::read_all_eeprom(AeroEEPROM eeprom_val) {
+bool AeroRFBase::read_all_eeprom(AeroEEPROM *eeprom_val) {
 
 	uint8_t ev=0;
 
@@ -127,26 +138,27 @@ bool AeroRFBase::read_all_eeprom(AeroEEPROM eeprom_val) {
 		ev = EEPROM.read(i);
 
 		if (i==IS_CHECK_BYTE){
-			eeprom_val.check_byte = ev;
+			eeprom_val->check_byte = ev;
 			if (ev == 0){
 				//No eeprom set, so abort
 				return false;
 			}
 		}
 		else if (i==IS_NETWORK_ID)
-			eeprom_val.check_byte = ev;
+			eeprom_val->network_id = ev;
 		else if (i==IS_NODE_ID)
-			eeprom_val.node_id = ev;
+			eeprom_val->node_id = ev;
 		else if ((i >= IS_GUID) && (i < IE_GUID))
-			eeprom_val.guid[i-IS_GUID] = ev;
+			eeprom_val->guid[i-IS_GUID] = ev;
 		else if ((i >= IS_CREATED_ON) && (i < IE_CREATED_ON))
-			eeprom_val.created_on[i-IS_CREATED_ON] = ev;
-		else if ((i >= IS_VERSION) && (i < IE_VERSION))
-			eeprom_val.fw_version[i-IS_VERSION] = ev;
+			eeprom_val->created_on[i-IS_CREATED_ON] = ev;
+		else if ((i >= IS_VERSION) && (i < IE_VERSION)){
+			eeprom_val->fw_version[i-IS_VERSION] = ev;
+		}
 		else if ((i >= IS_REG_ON) && (i < IE_REG_ON))
-			eeprom_val.registerd_on[i-IS_REG_ON] = ev;
+			eeprom_val->registerd_on[i-IS_REG_ON] = ev;
 		else if ((i >= IS_REG_KEY) && (i < IE_REG_KEY))
-			eeprom_val.regisration_key[i-IS_REG_KEY] = ev;
+			eeprom_val->regisration_key[i-IS_REG_KEY] = ev;
 
 //		DEBUG("Read eeprom addr: ");
 //		DEBUG(i);
@@ -154,7 +166,15 @@ bool AeroRFBase::read_all_eeprom(AeroEEPROM eeprom_val) {
 //		DEBUGln(ev);
 
 	}
-	return true;
+//	DEBUG("eeprom_val->registerd_on: ");
+//	DEBUG(eeprom_val->registerd_on[0]);
+//	DEBUG(eeprom_val->registerd_on[1]);
+//	DEBUG(eeprom_val->registerd_on[2]);
+//	DEBUG(eeprom_val->registerd_on[3]);
+//	DEBUG(eeprom_val->registerd_on[4]);
+//	DEBUG(eeprom_val->registerd_on[5]);
+//	DEBUG(eeprom_val->registerd_on[6]);
+//	DEBUGln(eeprom_val->registerd_on[7]);
 }
 
 /*
@@ -162,20 +182,21 @@ bool AeroRFBase::read_all_eeprom(AeroEEPROM eeprom_val) {
  * human readable form (ascii).
  */
 void AeroRFBase::print_info() {
+	Serial.println("");
 	Serial.println("**********************");
 	Serial.println(PROD_NAME);
-
-	char buff[50];
-	sprintf(buff, "Transmitting at: %d Mhz", int(radio.getFrequency()/1000000));
-	Serial.println(buff);
+//
+//	char buff[50];
+//	sprintf(buff, "Transmitting at: %d Mhz", int(radio.getFrequency()/1000000));
+//	Serial.println(buff);
 
 	Serial.print("Version: ");
 	char cver[5];
-	cver[0] = this->_fw_version[0];
+	cver[0] = (this->_fw_version[0]) + 48;
 	cver[1] = '.';
-	cver[2] = this->_fw_version[1];
+	cver[2] = (this->_fw_version[1]) + 48;
 	cver[3] = '.';
-	cver[4] = this->_fw_version[2];
+	cver[4] = (this->_fw_version[2]) + 48;
 	Serial.println(cver);
 
 	Serial.print("Created: ");
@@ -189,11 +210,25 @@ void AeroRFBase::print_info() {
 	Serial.print("Node Id: ");
 	Serial.println(this->_nodeId);
 
-	Serial.print("GUID: ");
-	Serial.println((char*)this->get_guid());
+//	Serial.print("GUID: ");
+//	char guid_ascii[AY_GUID_SIZE];
+//	this->byte_array_to_ascii(this->get_guid(), guid_ascii, AY_GUID_SIZE);
+//	Serial.println(guid_ascii);
+
+//	DEBUG("this->_registered_on: ");
+//	DEBUG(this->_registered_on[0]);
+//	DEBUG(this->_registered_on[1]);
+//	DEBUG(this->_registered_on[2]);
+//	DEBUG(this->_registered_on[3]);
+//	DEBUG(this->_registered_on[4]);
+//	DEBUG(this->_registered_on[5]);
+//	DEBUG(this->_registered_on[6]);
+//	DEBUGln(this->_registered_on[7]);
 
 	Serial.print("Registered On: ");
-	Serial.println((char*)this->_registered_on);
+	char reg_ascii[AY_DATE_SIZE];
+	this->byte_array_to_ascii(this->_registered_on, reg_ascii, AY_DATE_SIZE);
+	Serial.println(reg_ascii);
 
 	Serial.print("Registration Key: ");
 	Serial.println((char*)this->_registration_key);
@@ -214,12 +249,15 @@ void AeroRFBase::set_firmware_info(char* created_on, char* fw_version,
 	uint8_t wrk=0;
 	chdate tmp_date;
 
-	this->read_all_eeprom(tmpEEPROM);
+	this->read_all_eeprom(&tmpEEPROM);
 
-	Serial.print("Network: ");
-	Serial.print(networkId);
-	Serial.print(" Node: ");
-	Serial.println(nodeId);
+	//initialize unused
+	this->init_chdate(tmpEEPROM.registerd_on);
+
+//	Serial.print("Network: ");
+//	Serial.print(networkId);
+//	Serial.print(" Node: ");
+//	Serial.println(nodeId);
 	DEBUGln("Preparing to set eeprom");
 
 	//Set check byte to indicate values flashed
@@ -236,10 +274,14 @@ void AeroRFBase::set_firmware_info(char* created_on, char* fw_version,
 	this->write_eeprom_char(this->_fw_version, IS_VERSION, AY_VERSION_SIZE);
 	//GUID if needed
 	if ((tmpEEPROM.guid[0] == 0) && (tmpEEPROM.guid[1] == 0)){
+		DEBUGln("Creating new GUID");
 		//GUID has never been set, so create and set
 		this->create_guid(tmpEEPROM.guid);
 		this->write_eeprom_char(tmpEEPROM.guid, IS_GUID, AY_GUID_SIZE);
 	}
+	//Registered on
+	this->write_eeprom_char(tmpEEPROM.registerd_on, IS_REG_ON, AY_DATE_SIZE);
+
 	DEBUGln("Completed setting eeprom");
 	this->load_eeprom();
 	this->print_info();
@@ -250,7 +292,7 @@ void AeroRFBase::set_firmware_info(char* created_on, char* fw_version,
  */
 void AeroRFBase::init_chdate(uint8_t* val) {
 	for (int i=0; i<AY_DATE_SIZE; i++){
-		val[i] = '0';
+		val[i] = 0;
 	}
 }
 
@@ -258,8 +300,14 @@ void AeroRFBase::init_chdate(uint8_t* val) {
  * Reads an eeprom range to a char.
  */
 bool AeroRFBase::read_eeprom_char(unsigned char *val, int addr, int len) {
+	uint8_t tmp = 0;
 	for (int i=0; i<len; i++){
-		val[addr + i] = EEPROM.read(addr + i);
+		tmp = EEPROM.read(addr + i);
+		val[addr + i] = tmp;
+		DEBUG("Reading eeprom addr: ");
+		DEBUG(addr + i);
+		DEBUG(" value: ");
+		DEBUGln(tmp);
 	}
 	return true;
 }
@@ -269,7 +317,7 @@ bool AeroRFBase::read_eeprom_char(unsigned char *val, int addr, int len) {
  */
 void AeroRFBase::load_eeprom() {
 	AeroEEPROM tmpEEPROM;
-	this->read_all_eeprom(tmpEEPROM);
+	this->read_all_eeprom(&tmpEEPROM);
 
 	if (tmpEEPROM.check_byte > 0){
 		this->_check_byte = tmpEEPROM.check_byte;
@@ -290,10 +338,10 @@ void AeroRFBase::write_eeprom_char(unsigned char* val, int addr, int len) {
 	uint8_t tmp = 0;
 	for (int i=0; i<len; i++){
 		tmp = val[i];
-//		DEBUG("Writing eeprom addr: ");
-//		DEBUG(addr + i);
-//		DEBUG(" value: ");
-//		DEBUGln(tmp);
+		DEBUG("Writing eeprom addr: ");
+		DEBUG(addr + i);
+		DEBUG(" value: ");
+		DEBUGln(tmp);
 		EEPROM.write(addr + i, tmp);
 	}
 }
@@ -362,8 +410,8 @@ void AeroRFBase::byte_array_copy(uint8_t* source_list, uint8_t* target_list,
 void AeroRFBase::version_str_to_bytes(char* version_list,
 		AeroRFVersion ver_bytes) {
 	ver_bytes[0] = (version_list[0]) - 48;
-	ver_bytes[1] = (version_list[3]) - 48;
-	ver_bytes[2] = (version_list[5]) - 48;
+	ver_bytes[1] = (version_list[2]) - 48;
+	ver_bytes[2] = (version_list[4]) - 48;
 }
 
 uint8_t* AeroRFBase::get_fw_version() {

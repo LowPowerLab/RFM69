@@ -41,6 +41,7 @@
 
 #include <Arduino.h>            // assumes Arduino IDE v1.0 or greater
 #include <RFM69.h>
+#include <SPI.h>
 
 //*********************************************************************************************
 //************ IMPORTANT SETTINGS - YOU MUST CHANGE/CONFIGURE TO FIT YOUR HARDWARE *************
@@ -83,7 +84,7 @@
 //Pin for status LED
 //#define STATUS_LED         9
 
-//#define DEBUG_EN //comment out to disable debugging
+#define DEBUG_EN //comment out to disable debugging
 
 #define PROD_NAME "AeroTracker RF"
 
@@ -173,7 +174,7 @@ private:
 	chdate _registered_on;
 	AeroRFRegKey _registration_key;
 	bool _blink_on;
-	bool read_all_eeprom(AeroEEPROM eeprom_val);
+	bool read_all_eeprom(AeroEEPROM *eeprom_val);
 	void load_eeprom();
 	bool read_eeprom_char(unsigned char *val, int addr, int len);
 	void write_eeprom_char(unsigned char *val, int addr, int len);

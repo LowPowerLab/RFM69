@@ -230,7 +230,7 @@ uint8_t HandleWirelessHEXData(RFM69 radio, uint8_t remoteID, SPIFlash flash, uin
 
 //===================================================================================================================
 // readSerialLine() - reads a line feed (\n) terminated line from the serial stream
-// returns # of bytes read, up to 255
+// returns # of bytes read, up to 254
 // timeout in ms, will timeout and return after so long
 // this is called at the OTA programmer side
 //===================================================================================================================

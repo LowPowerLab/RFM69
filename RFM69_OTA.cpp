@@ -30,6 +30,7 @@
 // Please maintain this license information along with authorship
 // and copyright notices in any redistribution of this code
 // **********************************************************************************
+#ifndef __arm__
 #include <RFM69_OTA.h>
 #include <RFM69registers.h>
 #include <avr/wdt.h>
@@ -173,6 +174,10 @@ uint8_t HandleWirelessHEXData(RFM69& radio, uint8_t remoteID, SPIFlash& flash, u
                 flash.writeByte(bytesFlashed++, radio.DATA[i]);
                 if (bytesFlashed%32768==0) flash.blockErase32K(bytesFlashed);//erase subsequent 32K blocks (possible in case of atmega1284p)
               }
+              //faster alternative using writeBytes - the gain is only up to 2 seconds
+              //if (bytesFlashed<=32768 && (bytesFlashed+dataLen-index)>32768) flash.blockErase32K(32768);//erase subsequent 32K blocks (possible in case of atmega1284p)
+              //flash.writeBytes(bytesFlashed, (void*)(radio.DATA+index), dataLen-index);
+              //bytesFlashed += dataLen-index;
             }
 
             //send ACK
@@ -491,27 +496,17 @@ uint8_t sendHEXPacket(RFM69& radio, uint8_t targetID, uint8_t* sendBuf, uint8_t 
 //===================================================================================================================
 // PrintHex83() - prints 8-bit data in HEX format
 //===================================================================================================================
-void PrintHex83(uint8_t *data, uint8_t length) 
+void PrintHex83(uint8_t* data, uint8_t length) 
 {
-  char tmp[length*2+1];
-  uint8_t first ;
-  int j=0;
+  uint8_t tmp;
   for (uint8_t i=0; i<length; i++) 
   {
-    first = (data[i] >> 4) | 48;
-    if (first > 57) tmp[j] = first + (uint8_t)39;
-    else tmp[j] = first ;
-    j++;
-
-    first = (data[i] & 0x0F) | 48;
-    if (first > 57) tmp[j] = first + (uint8_t)39; 
-    else tmp[j] = first;
-    j++;
+    tmp = (data[i] >> 4) | 48;
+    Serial.print((char)((tmp > 57) ? tmp+7 : tmp));
+    tmp = (data[i] & 0x0F) | 48;
+    Serial.print((char)((tmp > 57) ? tmp+7 : tmp));
   }
-  tmp[length*2] = 0;
-  Serial.println(tmp);
 }
-
 
 //===================================================================================================================
 // resetUsingWatchdog() - Use watchdog to reset the MCU
@@ -523,3 +518,4 @@ void resetUsingWatchdog(uint8_t DEBUG)
   wdt_enable(WDTO_15MS);
   while(1) if (DEBUG) Serial.print(F("."));
 }
+#endif

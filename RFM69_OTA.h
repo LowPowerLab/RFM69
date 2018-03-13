@@ -30,6 +30,8 @@
 // Please maintain this license information along with authorship
 // and copyright notices in any redistribution of this code
 // **********************************************************************************
+#ifndef __arm__
+
 #ifndef RFM69_OTA_H
 #define RFM69_OTA_H
 #ifdef __AVR_ATmega1284P__
@@ -76,4 +78,5 @@ uint8_t BYTEfromHEX(char MSB, char LSB);
 uint8_t readSerialLine(char* input, char endOfLineChar=10, uint8_t maxLength=115, uint16_t timeout=1000);
 void PrintHex83(uint8_t* data, uint8_t length);
 
+#endif
 #endif

@@ -42,7 +42,7 @@
 // Assumes radio has been initialized and has just received a message (is not in SLEEP mode, and you called CRCPass())
 // Assumes flash is an external SPI flash memory chip that has been initialized
 //===================================================================================================================
-void CheckForWirelessHEX(RFM69 radio, SPIFlash flash, uint8_t DEBUG, uint8_t LEDpin)
+void CheckForWirelessHEX(RFM69& radio, SPIFlash& flash, uint8_t DEBUG, uint8_t LEDpin)
 {
   //special FLASH command, enter a FLASH image exchange sequence
   if (radio.DATALEN >= 4 && radio.DATA[0]=='F' && radio.DATA[1]=='L' && radio.DATA[2]=='X' && radio.DATA[3]=='?')
@@ -74,7 +74,7 @@ void CheckForWirelessHEX(RFM69 radio, SPIFlash flash, uint8_t DEBUG, uint8_t LED
 //===================================================================================================================
 // HandleHandshakeACK() - checks there is a FLASH chip and sends an ACK for the OTA request handshake
 //===================================================================================================================
-void HandleHandshakeACK(RFM69 radio, SPIFlash flash, uint8_t flashCheck) {
+void HandleHandshakeACK(RFM69& radio, SPIFlash& flash, uint8_t flashCheck) {
   if (flashCheck)
   {
     if (!flash.initialize())
@@ -93,7 +93,7 @@ void HandleHandshakeACK(RFM69 radio, SPIFlash flash, uint8_t flashCheck) {
 // that also shifts channel when SHIFTCHANNEL is defined
 //===================================================================================================================
 #ifdef SHIFTCHANNEL
-uint8_t HandleWirelessHEXDataWrapper(RFM69 radio, uint8_t remoteID, SPIFlash flash, uint8_t DEBUG, uint8_t LEDpin) {
+uint8_t HandleWirelessHEXDataWrapper(RFM69& radio, uint8_t remoteID, SPIFlash& flash, uint8_t DEBUG, uint8_t LEDpin) {
   HandleHandshakeACK(radio, flash);
   if (DEBUG) { Serial.println(F("FLX?OK (ACK sent)")); Serial.print(F("Shifting channel to ")); Serial.println(radio.getFrequency() + SHIFTCHANNEL);}
   radio.setFrequency(radio.getFrequency() + SHIFTCHANNEL); //shift center freq by SHIFTCHANNEL amount
@@ -109,7 +109,7 @@ uint8_t HandleWirelessHEXDataWrapper(RFM69 radio, uint8_t remoteID, SPIFlash fla
 // HandleWirelessHEXData() - ACKs the wireless programming handshake and handles
 // the complete transmission of the HEX image at the OTA programmed node side
 //===================================================================================================================
-uint8_t HandleWirelessHEXData(RFM69 radio, uint8_t remoteID, SPIFlash flash, uint8_t DEBUG, uint8_t LEDpin) {
+uint8_t HandleWirelessHEXData(RFM69& radio, uint8_t remoteID, SPIFlash& flash, uint8_t DEBUG, uint8_t LEDpin) {
   uint32_t now=0;
   uint16_t tmp,seq=0;
   char buffer[16];
@@ -249,7 +249,7 @@ uint8_t readSerialLine(char* input, char endOfLineChar, uint8_t maxLength, uint1
 // CheckForSerialHEX() - returns TRUE if a HEX file transmission was detected and it was actually transmitted successfully
 // this is called at the OTA programmer side
 //===================================================================================================================
-uint8_t CheckForSerialHEX(uint8_t* input, uint8_t inputLen, RFM69 radio, uint8_t targetID, uint16_t TIMEOUT, uint16_t ACKTIMEOUT, uint8_t DEBUG)
+uint8_t CheckForSerialHEX(uint8_t* input, uint8_t inputLen, RFM69& radio, uint8_t targetID, uint16_t TIMEOUT, uint16_t ACKTIMEOUT, uint8_t DEBUG)
 {
   if (inputLen == 4 && input[0]=='F' && input[1]=='L' && input[2]=='X' && input[3]=='?') {
     if (HandleSerialHandshake(radio, targetID, false, TIMEOUT, ACKTIMEOUT, DEBUG))
@@ -283,7 +283,7 @@ uint8_t CheckForSerialHEX(uint8_t* input, uint8_t inputLen, RFM69 radio, uint8_t
 //===================================================================================================================
 // HandleSerialHandshake() - handles the handshake with the serial port
 //===================================================================================================================
-uint8_t HandleSerialHandshake(RFM69 radio, uint8_t targetID, uint8_t isEOF, uint16_t TIMEOUT, uint16_t ACKTIMEOUT, uint8_t DEBUG)
+uint8_t HandleSerialHandshake(RFM69& radio, uint8_t targetID, uint8_t isEOF, uint16_t TIMEOUT, uint16_t ACKTIMEOUT, uint8_t DEBUG)
 {
   long now = millis();
 
@@ -303,7 +303,7 @@ uint8_t HandleSerialHandshake(RFM69 radio, uint8_t targetID, uint8_t isEOF, uint
 // HandleSerialHEXDataWrapper() - wrapper for HandleSerialHEXData(), also shifts the channel if SHIFTCHANNEL is defined
 //===================================================================================================================
 #ifdef SHIFTCHANNEL
-uint8_t HandleSerialHEXDataWrapper(RFM69 radio, uint8_t targetID, uint16_t TIMEOUT, uint16_t ACKTIMEOUT, uint8_t DEBUG) {
+uint8_t HandleSerialHEXDataWrapper(RFM69& radio, uint8_t targetID, uint16_t TIMEOUT, uint16_t ACKTIMEOUT, uint8_t DEBUG) {
   radio.setFrequency(radio.getFrequency() + SHIFTCHANNEL); //shift center freq by SHIFTCHANNEL amount
   uint8_t result = HandleSerialHEXData(radio, targetID, TIMEOUT, ACKTIMEOUT, DEBUG);
   radio.setFrequency(radio.getFrequency() - SHIFTCHANNEL); //shift center freq by SHIFTCHANNEL amount
@@ -316,7 +316,7 @@ uint8_t HandleSerialHEXDataWrapper(RFM69 radio, uint8_t targetID, uint16_t TIMEO
 // HandleSerialHEXData() - handles the transmission of the HEX image from the serial port to the node being OTA programmed
 // this is called at the OTA programmer side
 //===================================================================================================================
-uint8_t HandleSerialHEXData(RFM69 radio, uint8_t targetID, uint16_t TIMEOUT, uint16_t ACKTIMEOUT, uint8_t DEBUG) {
+uint8_t HandleSerialHEXData(RFM69& radio, uint8_t targetID, uint16_t TIMEOUT, uint16_t ACKTIMEOUT, uint8_t DEBUG) {
   long now=millis();
   uint16_t seq=0, tmp=0, inputLen;
   uint8_t remoteID = radio.SENDERID; //save the remoteID as soon as possible
@@ -456,7 +456,7 @@ uint8_t BYTEfromHEX(char MSB, char LSB)
 //===================================================================================================================
 // sendHEXPacket() - return the SEQ of the ACK received, or -1 if invalid
 //===================================================================================================================
-uint8_t sendHEXPacket(RFM69 radio, uint8_t targetID, uint8_t* sendBuf, uint8_t hexDataLen, uint16_t seq, uint16_t TIMEOUT, uint16_t ACKTIMEOUT, uint8_t DEBUG)
+uint8_t sendHEXPacket(RFM69& radio, uint8_t targetID, uint8_t* sendBuf, uint8_t hexDataLen, uint16_t seq, uint16_t TIMEOUT, uint16_t ACKTIMEOUT, uint8_t DEBUG)
 {
   long now = millis();
   

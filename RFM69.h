@@ -150,6 +150,14 @@
 #define RFM69_CTL_SENDACK   0x80
 #define RFM69_CTL_REQACK    0x40
 
+//#define RF69_LISTENMODE_ENABLE  //comment this line out to compile sketches without the ListenMode (saves ~2k)
+
+#if defined(RF69_LISTENMODE_ENABLE)
+  // By default, receive for 256uS in listen mode and idle for ~1s
+  #define  DEFAULT_LISTEN_RX_US 256
+  #define  DEFAULT_LISTEN_IDLE_US 1000000
+#endif
+
 class RFM69 {
   public:
     static volatile uint8_t DATA[RF69_MAX_DATA_LEN]; // recv/xmit buf, including header & crc bytes
@@ -221,6 +229,55 @@ class RFM69 {
     virtual void select();
     virtual void unselect();
     inline void maybeInterrupts();
+
+#if defined(RF69_LISTENMODE_ENABLE)
+  //=============================================================================
+  //                     ListenMode specific declarations  
+  //=============================================================================
+  public:
+    // When we receive a packet in listen mode, this is the time left in the sender's burst.
+    // You need to wait at least this long before trying to reply.
+    static volatile uint16_t RF69_LISTEN_BURST_REMAINING_MS;
+    
+    void listenModeStart(void);
+    void listenModeEnd(void);
+    void listenModeHighSpeed(bool highSpeed) { _isHighSpeed = highSpeed; }
+    
+    // rx and idle duration in microseconds
+    bool listenModeSetDurations(uint32_t& rxDuration, uint32_t& idleDuration);
+
+    // The values passed to listenModeSetDurations() may be slightly different to accomodate
+    // what is allowed by the radio. This function returns the actual values used.
+    void listenModeGetDurations(uint32_t& rxDuration, uint32_t& idleDuration);
+
+    // This repeatedly sends the message to the target node for the duration
+    // of an entire listen cycle. The amount of time remaining in the burst
+    // is transmitted to the receiver, and it is expected that the receiver
+    // wait for the burst to end before attempting a reply.
+    // See RF69_LISTEN_BURST_REMAINING_MS above.
+    void listenModeSendBurst(uint8_t targetNode, void* buffer, uint8_t size);
+
+  protected:
+    void listenModeInterruptHandler(void);
+    void listenModeApplyHighSpeedSettings();
+    void listenModeReset(); //resets variables used on the receiving end
+    bool reinitRadio(void);
+    static void listenModeIrq();
+
+    bool _isHighSpeed;
+    bool _haveEncryptKey;
+    char _encryptKey[16];
+
+    // Save these so we can reinitialize the radio after sending a burst
+    // or exiting listen mode.
+    uint8_t _freqBand;
+    uint8_t _networkID;
+    uint8_t _rxListenCoef;
+    uint8_t _rxListenResolution;
+    uint8_t _idleListenCoef;
+    uint8_t _idleListenResolution;
+    uint32_t _listenCycleDurationUs;
+#endif
 };
 
 #endif

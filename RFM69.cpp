@@ -85,7 +85,7 @@ bool RFM69::initialize(uint8_t freqBand, uint8_t nodeID, uint8_t networkID)
 
   digitalWrite(_slaveSelectPin, HIGH);
   pinMode(_slaveSelectPin, OUTPUT);
-  _spi.begin();
+  SPI.begin();
   unsigned long start = millis();
   uint8_t timeout = 50;
   do writeReg(REG_SYNCVALUE1, 0xAA); while (readReg(REG_SYNCVALUE1) != 0xaa && millis()-start < timeout);
@@ -287,14 +287,14 @@ void RFM69::sendFrame(uint8_t toAddress, const void* buffer, uint8_t bufferSize,
 
   // write to FIFO
   select();
-  _spi.transfer(REG_FIFO | 0x80);
-  _spi.transfer(bufferSize + 3);
-  _spi.transfer(toAddress);
-  _spi.transfer(_address);
-  _spi.transfer(CTLbyte);
+  SPI.transfer(REG_FIFO | 0x80);
+  SPI.transfer(bufferSize + 3);
+  SPI.transfer(toAddress);
+  SPI.transfer(_address);
+  SPI.transfer(CTLbyte);
 
   for (uint8_t i = 0; i < bufferSize; i++)
-    _spi.transfer(((uint8_t*) buffer)[i]);
+    SPI.transfer(((uint8_t*) buffer)[i]);
   unselect();
 
   // no need to wait for transmit mode to be ready since its handled by the radio
@@ -314,10 +314,10 @@ void RFM69::interruptHandler() {
     //RSSI = readRSSI();
     setMode(RF69_MODE_STANDBY);
     select();
-    _spi.transfer(REG_FIFO & 0x7F);
-    PAYLOADLEN = _spi.transfer(0);
+    SPI.transfer(REG_FIFO & 0x7F);
+    PAYLOADLEN = SPI.transfer(0);
     PAYLOADLEN = PAYLOADLEN > 66 ? 66 : PAYLOADLEN; // precaution
-    TARGETID = _spi.transfer(0);
+    TARGETID = SPI.transfer(0);
     if(!(_promiscuousMode || TARGETID == _address || TARGETID == RF69_BROADCAST_ADDR) // match this node's address, or broadcast address or anything in promiscuous mode
        || PAYLOADLEN < 3) // address situation could receive packets that are malformed and don't fit this libraries extra fields
     {
@@ -329,8 +329,8 @@ void RFM69::interruptHandler() {
     }
 
     DATALEN = PAYLOADLEN - 3;
-    SENDERID = _spi.transfer(0);
-    uint8_t CTLbyte = _spi.transfer(0);
+    SENDERID = SPI.transfer(0);
+    uint8_t CTLbyte = SPI.transfer(0);
 
     ACK_RECEIVED = CTLbyte & RFM69_CTL_SENDACK; // extract ACK-received flag
     ACK_REQUESTED = CTLbyte & RFM69_CTL_REQACK; // extract ACK-requested flag
@@ -339,7 +339,7 @@ void RFM69::interruptHandler() {
 
     for (uint8_t i = 0; i < DATALEN; i++)
     {
-      DATA[i] = _spi.transfer(0);
+      DATA[i] = SPI.transfer(0);
     }
     if (DATALEN < RF69_MAX_DATA_LEN) DATA[DATALEN] = 0; // add null at end of string
     unselect();
@@ -395,9 +395,9 @@ void RFM69::encrypt(const char* key) {
   if (key != 0)
   {
     select();
-    _spi.transfer(REG_AESKEY1 | 0x80);
+    SPI.transfer(REG_AESKEY1 | 0x80);
     for (uint8_t i = 0; i < 16; i++)
-      _spi.transfer(key[i]);
+      SPI.transfer(key[i]);
     unselect();
   }
   writeReg(REG_PACKETCONFIG2, (readReg(REG_PACKETCONFIG2) & 0xFE) | (key ? 1 : 0));
@@ -420,8 +420,8 @@ int16_t RFM69::readRSSI(bool forceTrigger) {
 uint8_t RFM69::readReg(uint8_t addr)
 {
   select();
-  _spi.transfer(addr & 0x7F);
-  uint8_t regval = _spi.transfer(0);
+  SPI.transfer(addr & 0x7F);
+  uint8_t regval = SPI.transfer(0);
   unselect();
   return regval;
 }
@@ -429,8 +429,8 @@ uint8_t RFM69::readReg(uint8_t addr)
 void RFM69::writeReg(uint8_t addr, uint8_t value)
 {
   select();
-  _spi.transfer(addr | 0x80);
-  _spi.transfer(value);
+  SPI.transfer(addr | 0x80);
+  SPI.transfer(value);
   unselect();
 }
 
@@ -443,12 +443,12 @@ void RFM69::select() {
   _SPSR = SPSR;
 #endif
   // set RFM69 SPI settings
-  _spi.setDataMode(SPI_MODE0);
-  _spi.setBitOrder(MSBFIRST);
+  SPI.setDataMode(SPI_MODE0);
+  SPI.setBitOrder(MSBFIRST);
 #ifdef __arm__
-	_spi.setClockDivider(SPI_CLOCK_DIV16);
+	SPI.setClockDivider(SPI_CLOCK_DIV16);
 #else
-  _spi.setClockDivider(SPI_CLOCK_DIV4); // decided to slow down from DIV2 after SPI stalling in some instances, especially visible on mega1284p when RFM69 and FLASH chip both present
+  SPI.setClockDivider(SPI_CLOCK_DIV4); // decided to slow down from DIV2 after SPI stalling in some instances, especially visible on mega1284p when RFM69 and FLASH chip both present
 #endif
   digitalWrite(_slaveSelectPin, LOW);
 }
@@ -527,8 +527,8 @@ void RFM69::readAllRegs()
   for (uint8_t regAddr = 1; regAddr <= 0x4F; regAddr++)
   {
     select();
-    _spi.transfer(regAddr & 0x7F); // send address + r/w bit
-    regVal = _spi.transfer(0);
+    SPI.transfer(regAddr & 0x7F); // send address + r/w bit
+    regVal = SPI.transfer(0);
     unselect();
 
     Serial.print(regAddr, HEX);

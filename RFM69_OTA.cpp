@@ -30,7 +30,7 @@
 // Please maintain this license information along with authorship
 // and copyright notices in any redistribution of this code
 // **********************************************************************************
-#ifdef __AVR__
+#ifndef __arm__
 #include <RFM69_OTA.h>
 #include <RFM69registers.h>
 #include <avr/wdt.h>
@@ -518,4 +518,4 @@ void resetUsingWatchdog(uint8_t DEBUG)
   wdt_enable(WDTO_15MS);
   while(1) if (DEBUG) Serial.print(F("."));
 }
-#endif // __AVR__
+#endif

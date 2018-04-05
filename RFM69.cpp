@@ -39,8 +39,30 @@ volatile int16_t RFM69::RSSI;          // most accurate RSSI during reception (c
 volatile bool RFM69::_inISR;
 RFM69* RFM69::selfPointer;
 
+RFM69::RFM69(uint8_t slaveSelectPin, uint8_t interruptPin, bool isRFM69HW)
+{
+  _slaveSelectPin = slaveSelectPin;
+  _interruptPin = interruptPin;
+  _mode = RF69_MODE_STANDBY;
+  _promiscuousMode = false;
+  _powerLevel = 31;
+  _isRFM69HW = isRFM69HW;
+  #if defined(RF69_LISTENMODE_ENABLE)
+  _isHighSpeed = true;
+  _haveEncryptKey = false;
+  uint32_t rxDuration = DEFAULT_LISTEN_RX_US;
+  uint32_t idleDuration = DEFAULT_LISTEN_IDLE_US;
+  listenModeSetDurations(rxDuration, idleDuration);
+#endif
+}
+
 bool RFM69::initialize(uint8_t freqBand, uint8_t nodeID, uint8_t networkID)
 {
+  _interruptNum = digitalPinToInterrupt(_interruptPin);
+  if (_interruptNum == NOT_AN_INTERRUPT) return false;
+#ifdef RF69_ATTACHINTERRUPT_TAKES_PIN_NUMBER
+    _interruptNum = _interruptPin;
+#endif
   const uint8_t CONFIG[][2] =
   {
     /* 0x01 */ { REG_OPMODE, RF_OPMODE_SEQUENCER_ON | RF_OPMODE_LISTEN_OFF | RF_OPMODE_STANDBY },

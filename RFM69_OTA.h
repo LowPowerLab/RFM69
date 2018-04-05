@@ -30,7 +30,7 @@
 // Please maintain this license information along with authorship
 // and copyright notices in any redistribution of this code
 // **********************************************************************************
-#ifndef __arm__
+#ifdef __AVR__
 
 #ifndef RFM69_OTA_H
 #define RFM69_OTA_H

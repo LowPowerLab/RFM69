@@ -26,29 +26,106 @@
 #ifndef RFM69_h
 #define RFM69_h
 #include <Arduino.h>            // assumes Arduino IDE v1.0 or greater
+#include <SPI.h>
 
-#define RF69_MAX_DATA_LEN       61 // to take advantage of the built in AES/CRC we want to limit the frame size to the internal FIFO size (66 bytes - 3 bytes overhead - 2 bytes crc)
+//////////////////////////////////////////////////////////////////////
+//Platform and digitalPinToInterrupt definitions credit to RadioHead//
+//////////////////////////////////////////////////////////////////////
+// Select platform automatically, if possible
+#ifndef RF69_PLATFORM
+ #if (MPIDE>=150 && defined(ARDUINO))
+  // Using ChipKIT Core on Arduino IDE
+  #define RF69_PLATFORM RF69_PLATFORM_CHIPKIT_CORE
+ #elif defined(MPIDE)
+  // Uno32 under old MPIDE, which has been discontinued:
+  #define RF69_PLATFORM RF69_PLATFORM_UNO32
+#elif defined(NRF51)
+  #define RF69_PLATFORM RF69_PLATFORM_NRF51
+#elif defined(NRF52)
+  #define RF69_PLATFORM RF69_PLATFORM_NRF52
+ #elif defined(ESP8266)
+  #define RF69_PLATFORM RF69_PLATFORM_ESP8266
+ #elif defined(ESP32)
+  #define RF69_PLATFORM RF69_PLATFORM_ESP32
+ #elif defined(ARDUINO)
+  #define RF69_PLATFORM RF69_PLATFORM_ARDUINO
+ #elif defined(__MSP430G2452__) || defined(__MSP430G2553__)
+  #define RF69_PLATFORM RF69_PLATFORM_MSP430
+ #elif defined(MCU_STM32F103RE)
+  #define RF69_PLATFORM RF69_PLATFORM_STM32
+ #elif defined(STM32F2XX)
+  #define RF69_PLATFORM RF69_PLATFORM_STM32F2
+ #elif defined(USE_STDPERIPH_DRIVER)
+  #define RF69_PLATFORM RF69_PLATFORM_STM32STD
+ #elif defined(RASPBERRY_PI)
+  #define RF69_PLATFORM RF69_PLATFORM_RASPI
+#elif defined(__unix__) // Linux
+  #define RF69_PLATFORM RF69_PLATFORM_UNIX
+#elif defined(__APPLE__) // OSX
+  #define RF69_PLATFORM RF69_PLATFORM_UNIX
+ #else
+  #error Platform not defined! 	
+ #endif
+#endif
+
+// digitalPinToInterrupt is not available prior to Arduino 1.5.6 and 1.0.6
+// See http://arduino.cc/en/Reference/attachInterrupt
+#ifndef NOT_AN_INTERRUPT
+ #define NOT_AN_INTERRUPT -1
+#endif
+#ifndef digitalPinToInterrupt
+ #if (RF69_PLATFORM == RF69_PLATFORM_ARDUINO) && !defined(__arm__)
+  #if defined(__AVR_ATmega1280__) || defined(__AVR_ATmega2560__)
+   // Arduino Mega, Mega ADK, Mega Pro
+   // 2->0, 3->1, 21->2, 20->3, 19->4, 18->5
+   #define digitalPinToInterrupt(p) ((p) == 2 ? 0 : ((p) == 3 ? 1 : ((p) >= 18 && (p) <= 21 ? 23 - (p) : NOT_AN_INTERRUPT)))
+  #elif defined(__AVR_ATmega1284__) || defined(__AVR_ATmega1284P__) 
+   // Arduino 1284 and 1284P - See Manicbug and Optiboot
+   // 10->0, 11->1, 2->2
+   #define digitalPinToInterrupt(p) ((p) == 10 ? 0 : ((p) == 11 ? 1 : ((p) == 2 ? 2 : NOT_AN_INTERRUPT)))
+  #elif defined(__AVR_ATmega32U4__)
+   // Leonardo, Yun, Micro, Pro Micro, Flora, Esplora
+   // 3->0, 2->1, 0->2, 1->3, 7->4
+   #define digitalPinToInterrupt(p) ((p) == 0 ? 2 : ((p) == 1 ? 3 : ((p) == 2 ? 1 : ((p) == 3 ? 0 : ((p) == 7 ? 4 : NOT_AN_INTERRUPT)))))
+  #else
+   // All other arduino except Due:
+   // Serial Arduino, Extreme, NG, BT, Uno, Diecimila, Duemilanove, Nano, Menta, Pro, Mini 04, Fio, LilyPad, Ethernet etc
+   // 2->0, 3->1
+   #define digitalPinToInterrupt(p)  ((p) == 2 ? 0 : ((p) == 3 ? 1 : NOT_AN_INTERRUPT))
+  #endif
+ #elif (RF69_PLATFORM == RF69_PLATFORM_UNO32) || (RF69_PLATFORM == RF69_PLATFORM_CHIPKIT_CORE)
+  // Hmmm, this is correct for Uno32, but what about other boards on ChipKIT Core?
+  #define digitalPinToInterrupt(p) ((p) == 38 ? 0 : ((p) == 2 ? 1 : ((p) == 7 ? 2 : ((p) == 8 ? 3 : ((p) == 735 ? 4 : NOT_AN_INTERRUPT)))))
+ #else
+  // Everything else (including Due and Teensy) interrupt number the same as the interrupt pin number
+  #define digitalPinToInterrupt(p) (p)
+ #endif
+#endif
+
+// On some platforms, attachInterrupt() takes a pin number, not an interrupt number
+#if (RF69_PLATFORM == RF69_PLATFORM_ARDUINO) && defined (__arm__) && (defined(ARDUINO_ARCH_SAMD) || defined(ARDUINO_SAM_DUE))
+ #define RF69_ATTACHINTERRUPT_TAKES_PIN_NUMBER
+#endif
+////////////////////////////////////////////////////
+
 #define RF69_SPI_CS             SS // SS is the SPI slave select pin, for instance D10 on ATmega328
 
 // INT0 on AVRs should be connected to RFM69's DIO0 (ex on ATmega328 it's D2, on ATmega644/1284 it's D2)
 #if defined(__AVR_ATmega168__) || defined(__AVR_ATmega328P__) || defined(__AVR_ATmega88) || defined(__AVR_ATmega8__) || defined(__AVR_ATmega88__)
   #define RF69_IRQ_PIN          2
-  #define RF69_IRQ_NUM          0
 #elif defined(__AVR_ATmega644P__) || defined(__AVR_ATmega1284P__)
   #define RF69_IRQ_PIN          2
-  #define RF69_IRQ_NUM          2
 #elif defined(__AVR_ATmega32U4__)
-  #define RF69_IRQ_PIN          3
-  #define RF69_IRQ_NUM          0
-#elif defined(__arm__)//Use pin 10 or any pin you want
+  #define RF69_IRQ_PIN          7
+#elif defined(__STM32F1__)
   #define RF69_IRQ_PIN          PA3
-  #define RF69_IRQ_NUM          3
-#else 
+#elif defined(ARDUINO_SAMD_ZERO) //includes Feather SAMD
+  #define RF69_IRQ_PIN          3
+#else
   #define RF69_IRQ_PIN          2
-  #define RF69_IRQ_NUM          0  
 #endif
 
-
+#define RF69_MAX_DATA_LEN       61 // to take advantage of the built in AES/CRC we want to limit the frame size to the internal FIFO size (66 bytes - 3 bytes overhead - 2 bytes crc)
 #define CSMA_LIMIT              -90 // upper RX signal sensitivity threshold in dBm for carrier sense access
 #define RF69_MODE_SLEEP         0 // XTAL OFF
 #define RF69_MODE_STANDBY       1 // XTAL ON
@@ -85,15 +162,10 @@ class RFM69 {
     static volatile int16_t RSSI; // most accurate RSSI during reception (closest to the reception)
     static volatile uint8_t _mode; // should be protected?
 
-    RFM69(uint8_t slaveSelectPin=RF69_SPI_CS, uint8_t interruptPin=RF69_IRQ_PIN, bool isRFM69HW=false, uint8_t interruptNum=RF69_IRQ_NUM) {
-      _slaveSelectPin = slaveSelectPin;
-      _interruptPin = interruptPin;
-      _interruptNum = interruptNum;
-      _mode = RF69_MODE_STANDBY;
-      _promiscuousMode = false;
-      _powerLevel = 31;
-      _isRFM69HW = isRFM69HW;
-    }
+    RFM69(uint8_t slaveSelectPin, uint8_t interruptPin, bool isRFM69HW, uint8_t interruptNum) //interruptNum is now deprecated
+                : RFM69(slaveSelectPin, interruptPin, isRFM69HW){};
+
+    RFM69(uint8_t slaveSelectPin=RF69_SPI_CS, uint8_t interruptPin=RF69_IRQ_PIN, bool isRFM69HW=false);
 
     bool initialize(uint8_t freqBand, uint8_t ID, uint8_t networkID=1);
     void setAddress(uint8_t addr);

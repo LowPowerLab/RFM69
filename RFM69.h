@@ -123,11 +123,7 @@
   #define RF69_IRQ_PIN          9
 #elif defined(ARDUINO_SAMD_ZERO) //includes Feather SAMD
   #define RF69_IRQ_PIN          3
-  #define RF69_IRQ_NUM          0
-#elif defined(__arm__)//Use pin 10 or any pin you want
-  #define RF69_IRQ_PIN          PA3
-  #define RF69_IRQ_NUM          3
-#else 
+#else
   #define RF69_IRQ_PIN          2
 #endif
 

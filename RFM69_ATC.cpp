@@ -98,26 +98,26 @@ void RFM69_ATC::sendFrame(uint8_t toAddress, const void* buffer, uint8_t bufferS
 
   // write to FIFO
   select();
-  SPI.transfer(REG_FIFO | 0x80);
-  SPI.transfer(bufferSize + 3);
-  SPI.transfer(toAddress);
-  SPI.transfer(_address);
+  _spi->transfer(REG_FIFO | 0x80);
+  _spi->transfer(bufferSize + 3);
+  _spi->transfer(toAddress);
+  _spi->transfer(_address);
 
   // control byte
   if (sendACK) {                   // TomWS1: adding logic to return ACK_RSSI if requested
-    SPI.transfer(RFM69_CTL_SENDACK | (sendRSSI?RFM69_CTL_RESERVE1:0));  // TomWS1  TODO: Replace with EXT1
+    _spi->transfer(RFM69_CTL_SENDACK | (sendRSSI?RFM69_CTL_RESERVE1:0));  // TomWS1  TODO: Replace with EXT1
     if (sendRSSI) {
-      SPI.transfer(abs(lastRSSI)); //RSSI dBm is negative expected between [-100 .. -20], convert to positive and pass along as single extra header byte
+      _spi->transfer(abs(lastRSSI)); //RSSI dBm is negative expected between [-100 .. -20], convert to positive and pass along as single extra header byte
       bufferSize -=1;              // account for the extra ACK-RSSI 'data' byte
     }
   }
   else if (requestACK) {  // TODO: add logic to request ackRSSI with ACK - this is when both ends of a transmission would dial power down. May not work well for gateways in multi node networks
-    SPI.transfer(_targetRSSI ? RFM69_CTL_REQACK | RFM69_CTL_RESERVE1 : RFM69_CTL_REQACK);
+    _spi->transfer(_targetRSSI ? RFM69_CTL_REQACK | RFM69_CTL_RESERVE1 : RFM69_CTL_REQACK);
   }
-  else SPI.transfer(0x00);
+  else _spi->transfer(0x00);
 
   for (uint8_t i = 0; i < bufferSize; i++)
-    SPI.transfer(((uint8_t*) buffer)[i]);
+    _spi->transfer(((uint8_t*) buffer)[i]);
   unselect();
 
   // no need to wait for transmit mode to be ready since its handled by the radio
@@ -137,7 +137,7 @@ void RFM69_ATC::interruptHook(uint8_t CTLbyte) {
   if (ACK_RECEIVED && ACK_RSSI_REQUESTED) {
     // the next two bytes contain the ACK_RSSI (assuming the datalength is valid)
     if (DATALEN >= 1) {
-      _ackRSSI = -1 * SPI.transfer(0); //rssi was sent as single byte positive value, get the real value by * -1
+      _ackRSSI = -1 * _spi->transfer(0); //rssi was sent as single byte positive value, get the real value by * -1
       DATALEN -= 1;   // and compensate data length accordingly
       // TomWS1: Now dither transmitLevel value (register update occurs later when transmitting);
       if (_targetRSSI != 0) {

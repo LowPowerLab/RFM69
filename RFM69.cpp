@@ -108,11 +108,12 @@ bool RFM69::initialize(uint8_t freqBand, uint8_t nodeID, uint8_t networkID)
 
   digitalWrite(_slaveSelectPin, HIGH);
   pinMode(_slaveSelectPin, OUTPUT);
-  _spi.begin();
-  
-#ifdef SPI_HAS_TRANSACTION
+
+  if (_spi == nullptr) {
+    _spi = &SPI;
+  }
+  _spi->begin();
   _settings = SPISettings(4000000, MSBFIRST, SPI_MODE0);
-#endif
 
   unsigned long start = millis();
   uint8_t timeout = 50;

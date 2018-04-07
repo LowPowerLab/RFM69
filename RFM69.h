@@ -123,7 +123,11 @@
   #define RF69_IRQ_PIN          9
 #elif defined(ARDUINO_SAMD_ZERO) //includes Feather SAMD
   #define RF69_IRQ_PIN          3
-#else
+  #define RF69_IRQ_NUM          0
+#elif defined(__arm__)//Use pin 10 or any pin you want
+  #define RF69_IRQ_PIN          PA3
+  #define RF69_IRQ_NUM          3
+#else 
   #define RF69_IRQ_PIN          2
 #endif
 
@@ -175,7 +179,7 @@ class RFM69 {
     RFM69(uint8_t slaveSelectPin, uint8_t interruptPin, bool isRFM69HW, uint8_t interruptNum) //interruptNum is now deprecated
                 : RFM69(slaveSelectPin, interruptPin, isRFM69HW){};
 
-    RFM69(uint8_t slaveSelectPin=RF69_SPI_CS, uint8_t interruptPin=RF69_IRQ_PIN, bool isRFM69HW=false);
+    RFM69(uint8_t slaveSelectPin=RF69_SPI_CS, uint8_t interruptPin=RF69_IRQ_PIN, bool isRFM69HW=false, SPIClass *spi=nullptr);
 
     bool initialize(uint8_t freqBand, uint8_t ID, uint8_t networkID=1);
     void setAddress(uint8_t addr);
@@ -220,6 +224,7 @@ class RFM69 {
     bool _promiscuousMode;
     uint8_t _powerLevel;
     bool _isRFM69HW;
+    SPIClass *_spi;
 #if defined (SPCR) && defined (SPSR)
     uint8_t _SPCR;
     uint8_t _SPSR;

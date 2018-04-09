@@ -1,7 +1,7 @@
 // **********************************************************************************
 // Driver definition for HopeRF RFM69W/RFM69HW/RFM69CW/RFM69HCW, Semtech SX1231/1231H
 // **********************************************************************************
-// Copyright Felix Rusu 2016, http://www.LowPowerLab.com/contact
+// Copyright LowPowerLab LLC 2018, https://www.LowPowerLab.com/contact
 // **********************************************************************************
 // License
 // **********************************************************************************
@@ -80,7 +80,7 @@
    // 2->0, 3->1, 21->2, 20->3, 19->4, 18->5
    #define digitalPinToInterrupt(p) ((p) == 2 ? 0 : ((p) == 3 ? 1 : ((p) >= 18 && (p) <= 21 ? 23 - (p) : NOT_AN_INTERRUPT)))
   #elif defined(__AVR_ATmega1284__) || defined(__AVR_ATmega1284P__) 
-   // Arduino 1284 and 1284P - See Manicbug and Optiboot
+   // Arduino 1284 and 1284P - See Maniacbug and Optiboot
    // 10->0, 11->1, 2->2
    #define digitalPinToInterrupt(p) ((p) == 10 ? 0 : ((p) == 11 ? 1 : ((p) == 2 ? 2 : NOT_AN_INTERRUPT)))
   #elif defined(__AVR_ATmega32U4__)

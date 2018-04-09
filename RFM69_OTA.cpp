@@ -8,7 +8,7 @@
 //   - RFM69      - get library at: https://github.com/LowPowerLab/RFM69
 //   - SPIFLash.h - get it here: http://github.com/LowPowerLab/SPIFlash
 // **********************************************************************************
-// Copyright Felix Rusu 2016, http://www.LowPowerLab.com/contact
+// Copyright LowPowerLab LLC 2018, https://www.LowPowerLab.com/contact
 // **********************************************************************************
 // License
 // **********************************************************************************

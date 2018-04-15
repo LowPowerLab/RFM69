@@ -40,6 +40,7 @@ setPowerLevel	KEYWORD2
 readTemperature	KEYWORD2
 rcCalibration	KEYWORD2
 readAllRegs	KEYWORD2
+readAllRegsCompact	KEYWORD2
 enableAutoPower	KEYWORD2
 
 CheckForSerialHEX	KEYWORD2

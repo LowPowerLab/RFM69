@@ -698,7 +698,7 @@ void RFM69::readAllRegs()
         case 0x6 : {
             freqDev |= regVal;
             SerialPrint( "Frequency deviation\nFdev : " );
-            unsigned long val = 61UL * freqDev;
+            unsigned long val = RF69_FSTEP * freqDev;
             Serial.println( val );
             SerialPrint ( "\n" );
             break;
@@ -719,7 +719,7 @@ void RFM69::readAllRegs()
         case 0x9 : {        
             freqCenter = freqCenter | regVal;
             SerialPrint ( "RF Carrier frequency\nFRF : " );
-            unsigned long val = 61UL * freqCenter;
+            unsigned long val = RF69_FSTEP * freqCenter;
             Serial.println( val );
             SerialPrint( "\n" );
             break;

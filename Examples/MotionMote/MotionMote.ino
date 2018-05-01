@@ -6,7 +6,7 @@
 // IMPORTANT: adjust the settings in the configuration section below !!!
 
 // **********************************************************************************
-// Copyright Felix Rusu of LowPowerLab.com, 2016
+// Copyright Felix Rusu of LowPowerLab.com, 2018
 // RFM69 library and sample code by Felix Rusu - lowpowerlab.com/contact
 // **********************************************************************************
 // License
@@ -29,21 +29,21 @@
 // Please maintain this license information along with authorship
 // and copyright notices in any redistribution of this code
 // **********************************************************************************
-#include <RFM69.h>    //get it here: https://www.github.com/lowpowerlab/rfm69
-#include <RFM69_ATC.h>//get it here: https://www.github.com/lowpowerlab/rfm69
-#include <SPI.h>      //comes with Arduino IDE (www.arduino.cc)
-#include <LowPower.h> //get library from: https://github.com/lowpowerlab/lowpower
-                      //writeup here: http://www.rocketscream.com/blog/2011/07/04/lightweight-low-power-arduino-library/
-#include <SPIFlash.h> //get it here: https://www.github.com/lowpowerlab/spiflash
-#include <SparkFunBME280.h> //get it here: https://github.com/sparkfun/SparkFun_BME280_Breakout_Board/tree/master/Libraries/Arduino/src
-#include <Wire.h>     //comes with Arduino
+#include <RFM69.h>         //get it here: https://www.github.com/lowpowerlab/rfm69
+#include <RFM69_ATC.h>     //get it here: https://www.github.com/lowpowerlab/rfm69
+#include <SPI.h>           //comes with Arduino IDE (www.arduino.cc)
+#include <LowPower.h>      //get library from: https://github.com/lowpowerlab/lowpower
+                           //writeup here: http://www.rocketscream.com/blog/2011/07/04/lightweight-low-power-arduino-library/
+#include <SPIFlash.h>      //get it here: https://www.github.com/lowpowerlab/spiflash
+#include <SparkFunBME280.h>//get it here: https://github.com/sparkfun/SparkFun_BME280_Arduino_Library/tree/master/src
+#include <Wire.h>          //comes with Arduino
 
 //****************************************************************************************************************
 //**** IMPORTANT RADIO SETTINGS - YOU MUST CHANGE/CONFIGURE TO MATCH YOUR HARDWARE TRANSCEIVER CONFIGURATION! ****
 //****************************************************************************************************************
+#define GATEWAYID     1
 #define NODEID        88    //unique for each node on same network
 #define NETWORKID     100  //the same on all nodes that talk to each other
-#define GATEWAYID     1
 //Match frequency to the hardware version of the radio on your Moteino (uncomment one):
 //#define FREQUENCY     RF69_433MHZ
 //#define FREQUENCY     RF69_868MHZ
@@ -96,8 +96,10 @@ char BATstr[10]; //longest battery voltage reading message = 9chars
 char sendBuf[32];
 byte sendLen;
 #ifdef ENABLE_BME280
-  float temperature=0;
+  double F,P,H;
+  char Pstr[10];
   char Fstr[10];
+  char Hstr[10];
 #endif
 
 void motionIRQ(void);
@@ -135,14 +137,22 @@ void setup() {
   if (flash.initialize()) flash.sleep(); //if Moteino has FLASH-MEM, make sure it sleeps
 
 #ifdef ENABLE_BME280
-  bme280.settings.commInterface = I2C_MODE;
-  bme280.settings.I2CAddress = 0x77;
-  bme280.settings.runMode = 3; //Normal mode
-  bme280.settings.tStandby = 0;
-  bme280.settings.filter = 0;
-  bme280.settings.tempOverSample = 1;
-  bme280.settings.pressOverSample = 1;
-  bme280.settings.humidOverSample = 1;
+
+  Wire.begin();
+  Wire.setClock(400000); //Increase to fast I2C speed!
+
+  //initialize weather shield BME280 sensor
+  bme280.setI2CAddress(0x77); //0x76,0x77 is valid.
+  bme280.beginI2C();
+  bme280.setMode(MODE_SLEEP); //MODE_SLEEP, MODE_FORCED, MODE_NORMAL is valid. See 3.3
+  bme280.setStandbyTime(0); //0 to 7 valid. Time between readings. See table 27.
+  bme280.setFilter(0); //0 to 4 is valid. Filter coefficient. See 3.4.4
+  bme280.setTempOverSample(1); //0 to 16 are valid. 0 disables temp sensing. See table 24.
+  bme280.setPressureOverSample(1); //0 to 16 are valid. 0 disables pressure sensing. See table 23.
+  bme280.setHumidityOverSample(1); //0 to 16 are valid. 0 disables humidity sensing. See table 19.
+  P = bme280.readFloatPressure() * 0.0002953; //read Pa and convert to inHg
+  F = bme280.readTempF();
+  H = bme280.readFloatHumidity();
 #endif
 }
 
@@ -167,10 +177,16 @@ void loop() {
 
 #ifdef ENABLE_BME280
     //read BME sensor
-    bme280.begin();
-    dtostrf(bme280.readTempF(), 3,2, Fstr);
-    bme280.writeRegister(BME280_CTRL_MEAS_REG, 0x00); //sleep the BME280
-    sprintf(sendBuf, "MOTION BAT:%sv F:%s", BATstr, Fstr);
+    bme280.setMode(MODE_FORCED); //Wake up sensor and take reading
+    P = bme280.readFloatPressure() * 0.0002953; //read Pa and convert to inHg
+    F = bme280.readTempF();
+    H = bme280.readFloatHumidity();
+    
+    dtostrf(F, 3,2, Fstr);
+    dtostrf(H, 3,2, Hstr);
+    dtostrf(P, 3,2, Pstr);
+    
+    sprintf(sendBuf, "MOTION BAT:%sv F:%s H:%s P:%s", BATstr, Fstr, Hstr, Pstr);
 #else
     sprintf(sendBuf, "MOTION BAT:%sv", BATstr);
 #endif
@@ -195,10 +211,16 @@ void loop() {
   {
 #ifdef ENABLE_BME280
     //read BME sensor
-    bme280.begin();
-    dtostrf(bme280.readTempF(), 3,2, Fstr);
-    bme280.writeRegister(BME280_CTRL_MEAS_REG, 0x00); //sleep the BME280
-    sprintf(sendBuf, "BAT:%sv F:%s", BATstr, Fstr);
+    bme280.setMode(MODE_FORCED); //Wake up sensor and take reading
+    P = bme280.readFloatPressure() * 0.0002953; //read Pa and convert to inHg
+    F = bme280.readTempF();
+    H = bme280.readFloatHumidity();
+    
+    dtostrf(F, 3,2, Fstr);
+    dtostrf(H, 3,2, Hstr);
+    dtostrf(P, 3,2, Pstr);
+    
+    sprintf(sendBuf, "MOTION BAT:%sv F:%s H:%s P:%s", BATstr, Fstr, Hstr, Pstr);
 #else
     sprintf(sendBuf, "BAT:%sv", BATstr);
 #endif

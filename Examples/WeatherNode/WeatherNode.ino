@@ -5,7 +5,7 @@
 // http://www.LowPowerLab.com/WeatherShield
 // Example setup (with R1): http://lowpowerlab.com/blog/2015/07/24/attic-fan-cooling-tests/
 // **********************************************************************************
-// Copyright Felix Rusu 2016, http://www.LowPowerLab.com/contact
+// Copyright Felix Rusu 2018, http://www.LowPowerLab.com/contact
 // **********************************************************************************
 // License
 // **********************************************************************************
@@ -33,7 +33,7 @@
 #include <SPIFlash.h>      //get it here: https://github.com/lowpowerlab/spiflash
 #include <SPI.h>           //included in Arduino IDE (www.arduino.cc)
 #include <Wire.h>          //included in Arduino IDE (www.arduino.cc)
-#include <SparkFunBME280.h>//get it here: https://github.com/sparkfun/SparkFun_BME280_Breakout_Board/tree/master/Libraries/Arduino/src
+#include <SparkFunBME280.h>//get it here: https://github.com/sparkfun/SparkFun_BME280_Arduino_Library/tree/master/src
 #include <LowPower.h>      //get it here: https://github.com/lowpowerlab/lowpower
                            //writeup here: http://www.rocketscream.com/blog/2011/07/04/lightweight-low-power-arduino-library/
 
@@ -104,6 +104,7 @@ BME280 bme280;
 char Pstr[10];
 char Fstr[10];
 char Hstr[10];
+double F,P,H;
 char buffer[50];
 
 void setup(void)
@@ -130,15 +131,21 @@ void setup(void)
   sprintf(buffer, "WeatherMote - transmitting at: %d Mhz...", FREQUENCY==RF69_433MHZ ? 433 : FREQUENCY==RF69_868MHZ ? 868 : 915);
   DEBUGln(buffer);
 
+  Wire.begin();
+  Wire.setClock(400000); //Increase to fast I2C speed!
+
   //initialize weather shield BME280 sensor
-  bme280.settings.commInterface = I2C_MODE;
-  bme280.settings.I2CAddress = 0x77;
-  bme280.settings.runMode = 3; //Normal mode
-  bme280.settings.tStandby = 0;
-  bme280.settings.filter = 0;
-  bme280.settings.tempOverSample = 1;
-  bme280.settings.pressOverSample = 1;
-  bme280.settings.humidOverSample = 1;
+  bme280.setI2CAddress(0x77); //0x76,0x77 is valid.
+  bme280.beginI2C();
+  bme280.setMode(MODE_SLEEP); //MODE_SLEEP, MODE_FORCED, MODE_NORMAL is valid. See 3.3
+  bme280.setStandbyTime(0); //0 to 7 valid. Time between readings. See table 27.
+  bme280.setFilter(0); //0 to 4 is valid. Filter coefficient. See 3.4.4
+  bme280.setTempOverSample(1); //0 to 16 are valid. 0 disables temp sensing. See table 24.
+  bme280.setPressureOverSample(1); //0 to 16 are valid. 0 disables pressure sensing. See table 23.
+  bme280.setHumidityOverSample(1); //0 to 16 are valid. 0 disables humidity sensing. See table 19.
+  P = bme280.readFloatPressure() * 0.0002953; //read Pa and convert to inHg
+  F = bme280.readTempF();
+  H = bme280.readFloatHumidity();
 
   radio.sendWithRetry(GATEWAYID, "START", 6);
   Blink(LED, 100);Blink(LED, 100);Blink(LED, 100);
@@ -159,7 +166,6 @@ void setup(void)
 
 unsigned long doorPulseCount = 0;
 char input=0;
-double F,P,H;
 byte sendLoops=0;
 byte battReadLoops=0;
 float batteryVolts = 5;
@@ -179,12 +185,11 @@ void loop()
     sendLoops = SEND_LOOPS-1;
     
     //read BME sensor
-    bme280.begin();
+    bme280.setMode(MODE_FORCED); //Wake up sensor and take reading
     P = bme280.readFloatPressure() * 0.0002953; //read Pa and convert to inHg
     F = bme280.readTempF();
     H = bme280.readFloatHumidity();
-    bme280.writeRegister(BME280_CTRL_MEAS_REG, 0x00); //sleep the BME280
-
+ 
     dtostrf(F, 3,2, Fstr);
     dtostrf(H, 3,2, Hstr);
     dtostrf(P, 3,2, Pstr);

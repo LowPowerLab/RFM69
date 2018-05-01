@@ -1,10 +1,10 @@
 // Sample RFM69 sender/node sketch for the MotionMote
-// http://lowpowerlab.com/motionmote
+// https://lowpowerlab.com/guide/motionmote/
 // PIR motion sensor connected to D3 (INT1)
 // When RISE happens on D3, the sketch transmits a "MOTION" msg to receiver Moteino and goes back to sleep
 // In sleep mode, Moteino + PIR motion sensor use about ~60uA
+// With Panasonic PIRs it's possible to use only around ~9uA, see guide link above for details
 // IMPORTANT: adjust the settings in the configuration section below !!!
-
 // **********************************************************************************
 // Copyright Felix Rusu of LowPowerLab.com, 2018
 // RFM69 library and sample code by Felix Rusu - lowpowerlab.com/contact
@@ -41,9 +41,9 @@
 //****************************************************************************************************************
 //**** IMPORTANT RADIO SETTINGS - YOU MUST CHANGE/CONFIGURE TO MATCH YOUR HARDWARE TRANSCEIVER CONFIGURATION! ****
 //****************************************************************************************************************
-#define GATEWAYID     1
 #define NODEID        88    //unique for each node on same network
 #define NETWORKID     100  //the same on all nodes that talk to each other
+#define GATEWAYID     1
 //Match frequency to the hardware version of the radio on your Moteino (uncomment one):
 //#define FREQUENCY     RF69_433MHZ
 //#define FREQUENCY     RF69_868MHZ
@@ -137,14 +137,13 @@ void setup() {
   if (flash.initialize()) flash.sleep(); //if Moteino has FLASH-MEM, make sure it sleeps
 
 #ifdef ENABLE_BME280
-
   Wire.begin();
   Wire.setClock(400000); //Increase to fast I2C speed!
 
   //initialize weather shield BME280 sensor
   bme280.setI2CAddress(0x77); //0x76,0x77 is valid.
   bme280.beginI2C();
-  bme280.setMode(MODE_SLEEP); //MODE_SLEEP, MODE_FORCED, MODE_NORMAL is valid. See 3.3
+  bme280.setMode(MODE_FORCED); //MODE_SLEEP, MODE_FORCED, MODE_NORMAL is valid. See 3.3
   bme280.setStandbyTime(0); //0 to 7 valid. Time between readings. See table 27.
   bme280.setFilter(0); //0 to 4 is valid. Filter coefficient. See 3.4.4
   bme280.setTempOverSample(1); //0 to 16 are valid. 0 disables temp sensing. See table 24.
@@ -153,6 +152,7 @@ void setup() {
   P = bme280.readFloatPressure() * 0.0002953; //read Pa and convert to inHg
   F = bme280.readTempF();
   H = bme280.readFloatHumidity();
+  bme280.setMode(MODE_SLEEP);
 #endif
 }
 
@@ -181,7 +181,7 @@ void loop() {
     P = bme280.readFloatPressure() * 0.0002953; //read Pa and convert to inHg
     F = bme280.readTempF();
     H = bme280.readFloatHumidity();
-    
+    bme280.setMode(MODE_SLEEP);
     dtostrf(F, 3,2, Fstr);
     dtostrf(H, 3,2, Hstr);
     dtostrf(P, 3,2, Pstr);
@@ -215,16 +215,15 @@ void loop() {
     P = bme280.readFloatPressure() * 0.0002953; //read Pa and convert to inHg
     F = bme280.readTempF();
     H = bme280.readFloatHumidity();
-    
+    bme280.setMode(MODE_SLEEP); 
     dtostrf(F, 3,2, Fstr);
     dtostrf(H, 3,2, Hstr);
     dtostrf(P, 3,2, Pstr);
-    
-    sprintf(sendBuf, "MOTION BAT:%sv F:%s H:%s P:%s", BATstr, Fstr, Hstr, Pstr);
+    sprintf(sendBuf, "BAT:%sv F:%s H:%s P:%s", BATstr, Fstr, Hstr, Pstr);
 #else
     sprintf(sendBuf, "BAT:%sv", BATstr);
 #endif
-    
+
     sendLen = strlen(sendBuf);
     BLO = time;
     radio.sendWithRetry(GATEWAYID, sendBuf, sendLen);
@@ -236,7 +235,7 @@ void loop() {
 
   //while motion recently happened sleep for small slots of time to better approximate last motion event
   //this helps with debouncing a "MOTION" event more accurately for sensors that fire the IRQ very rapidly (ie panasonic sensors)
-  if (motionDetected ||motionRecentlyCycles>0)
+  if (motionDetected || motionRecentlyCycles>0)
   {
     if (motionDetected) motionRecentlyCycles=8;
     else motionRecentlyCycles--;

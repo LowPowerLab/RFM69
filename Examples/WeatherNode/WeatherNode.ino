@@ -137,16 +137,16 @@ void setup(void)
   //initialize weather shield BME280 sensor
   bme280.setI2CAddress(0x77); //0x76,0x77 is valid.
   bme280.beginI2C();
-  bme280.setMode(MODE_FORCED); //MODE_SLEEP, MODE_FORCED, MODE_NORMAL is valid. See 3.3
+  
   bme280.setStandbyTime(0); //0 to 7 valid. Time between readings. See table 27.
   bme280.setFilter(0); //0 to 4 is valid. Filter coefficient. See 3.4.4
   bme280.setTempOverSample(1); //0 to 16 are valid. 0 disables temp sensing. See table 24.
   bme280.setPressureOverSample(1); //0 to 16 are valid. 0 disables pressure sensing. See table 23.
   bme280.setHumidityOverSample(1); //0 to 16 are valid. 0 disables humidity sensing. See table 19.
+  bme280.setMode(MODE_FORCED); //MODE_SLEEP, MODE_FORCED, MODE_NORMAL is valid. See 3.3
   P = bme280.readFloatPressure() * 0.0002953; //read Pa and convert to inHg
   F = bme280.readTempF();
   H = bme280.readFloatHumidity();
-  bme280.setMode(MODE_SLEEP);
 
   radio.sendWithRetry(GATEWAYID, "START", 6);
   Blink(LED, 100);Blink(LED, 100);Blink(LED, 100);
@@ -190,7 +190,6 @@ void loop()
     P = bme280.readFloatPressure() * 0.0002953; //read Pa and convert to inHg
     F = bme280.readTempF();
     H = bme280.readFloatHumidity();
-    bme280.setMode(MODE_SLEEP);
 
     dtostrf(F, 3,2, Fstr);
     dtostrf(H, 3,2, Hstr);

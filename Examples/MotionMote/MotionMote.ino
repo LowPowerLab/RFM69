@@ -41,9 +41,9 @@
 //****************************************************************************************************************
 //**** IMPORTANT RADIO SETTINGS - YOU MUST CHANGE/CONFIGURE TO MATCH YOUR HARDWARE TRANSCEIVER CONFIGURATION! ****
 //****************************************************************************************************************
+#define GATEWAYID     1     //ID of  your main/gateway/receiver node (can be any ID but good to keep this as 1 or an easy to remember number)
 #define NODEID        88    //unique for each node on same network
 #define NETWORKID     100  //the same on all nodes that talk to each other
-#define GATEWAYID     1
 //Match frequency to the hardware version of the radio on your Moteino (uncomment one):
 //#define FREQUENCY     RF69_433MHZ
 //#define FREQUENCY     RF69_868MHZ

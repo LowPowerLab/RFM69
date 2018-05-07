@@ -2,11 +2,12 @@
 // Library for OTA wireless programming of Moteinos using an RFM69 transceiver
 // **********************************************************************************
 // Hardware requirements:
-//   - DualOptiboot bootloader - ships with all Moteinos
-//   - SPI "Flash MEM" chip on Moteino (optional)
+//   - DualOptiboot bootloader - ships with all AVR Moteino boards
+//   - LowPowerLab Samba MultiBoot - ships with all ARM SAMD21 MoteinoM0 boards
+//   - SPI "Flash MEM" chip on Moteino
 // Library requirements:
 //   - RFM69      - get library at: https://github.com/LowPowerLab/RFM69
-//   - SPIFLash.h - get it here: http://github.com/LowPowerLab/SPIFlash
+//   - SPIFlash.h - get it here: http://github.com/LowPowerLab/SPIFlash
 // **********************************************************************************
 // Copyright LowPowerLab LLC 2018, https://www.LowPowerLab.com/contact
 // **********************************************************************************
@@ -30,15 +31,20 @@
 // Please maintain this license information along with authorship
 // and copyright notices in any redistribution of this code
 // **********************************************************************************
-#ifdef __AVR__
-
 #ifndef RFM69_OTA_H
 #define RFM69_OTA_H
-#ifdef __AVR_ATmega1284P__
+
+#include <RFM69.h>
+#include <SPIFlash.h>
+
+#if defined(MOTEINO_ZERO)
+  #define LED           13 // Moteino M0
+#elif defined(__AVR_ATmega1284P__)
   #define LED           15 // Moteino MEGAs have LEDs on D15
-#else
+#elif defined (__AVR_ATmega328P__)
   #define LED           9 // Moteinos have LEDs on D9
 #endif
+
 #define SHIFTCHANNEL 1000000 //amount to shift frequency of HEX transmission to keep original channel free of the HEX transmission traffic
 
 #ifndef DEFAULT_TIMEOUT
@@ -48,9 +54,6 @@
 #ifndef ACK_TIMEOUT
   #define ACK_TIMEOUT 20
 #endif
-
-#include <RFM69.h>
-#include <SPIFlash.h>
 
 //functions used in the REMOTE node
 void CheckForWirelessHEX(RFM69& radio, SPIFlash& flash, uint8_t DEBUG=false, uint8_t LEDpin=LED);
@@ -78,5 +81,4 @@ uint8_t BYTEfromHEX(char MSB, char LSB);
 uint8_t readSerialLine(char* input, char endOfLineChar=10, uint8_t maxLength=115, uint16_t timeout=1000);
 void PrintHex83(uint8_t* data, uint8_t length);
 
-#endif
 #endif

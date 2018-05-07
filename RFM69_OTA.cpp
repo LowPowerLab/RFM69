@@ -30,12 +30,18 @@
 // Please maintain this license information along with authorship
 // and copyright notices in any redistribution of this code
 // **********************************************************************************
-#ifdef __AVR__
 #include <RFM69_OTA.h>
 #include <RFM69registers.h>
-#include <avr/wdt.h>
 
+#ifdef __AVR__
+  #include <avr/wdt.h>
+#endif
 
+#ifdef MOTEINO_ZERO
+  #if defined(SERIAL_PORT_USBVIRTUAL)
+    #define Serial SERIAL_PORT_USBVIRTUAL // output on SerialUSB instead of Serial
+  #endif
+#endif
 //===================================================================================================================
 // CheckForWirelessHEX() - Checks whether the last message received was a wireless programming request handshake
 // If so it will start the handshake protocol, receive the new HEX image and 
@@ -115,7 +121,7 @@ uint8_t HandleWirelessHEXData(RFM69& radio, uint8_t remoteID, SPIFlash& flash, u
   uint16_t tmp,seq=0;
   char buffer[16];
   uint16_t timeout = 3000; //3s for flash data
-  uint16_t bytesFlashed=10;
+  
 #ifndef SHIFTCHANNEL
   HandleHandshakeACK(radio, flash);
   if (DEBUG) Serial.println(F("FLX?OK (ACK sent)"));
@@ -124,8 +130,15 @@ uint8_t HandleWirelessHEXData(RFM69& radio, uint8_t remoteID, SPIFlash& flash, u
   //first clear the fist 32k block (dedicated to a new FLASH image)
   flash.blockErase32K(0);
   flash.writeBytes(0,"FLXIMG:", 7);
+#if defined (MOTEINO_ZERO)
+  flash.writeByte(10,':');
+  uint32_t bytesFlashed=11;
+#else
   flash.writeByte(9,':');
+  uint32_t bytesFlashed=10;
+#endif
   now=millis();
+  pinMode(LEDpin,OUTPUT);
     
   while(1)
   {
@@ -133,6 +146,7 @@ uint8_t HandleWirelessHEXData(RFM69& radio, uint8_t remoteID, SPIFlash& flash, u
     {
       uint8_t dataLen = radio.DATALEN;
 
+      digitalWrite(LEDpin,HIGH);
       if (dataLen >= 4 && radio.DATA[0]=='F' && radio.DATA[1]=='L' && radio.DATA[2]=='X')
       {
         if (radio.DATA[3]==':' && dataLen >= 7) //FLX:_:_
@@ -196,7 +210,14 @@ uint8_t HandleWirelessHEXData(RFM69& radio, uint8_t remoteID, SPIFlash& flash, u
           }
           if (dataLen==7 && radio.DATA[4]=='E' && radio.DATA[5]=='O' && radio.DATA[6]=='F') //Expected EOF
           {
-#ifdef __AVR_ATmega1284P__
+          
+#if defined (MOTEINO_ZERO)
+            if ((bytesFlashed-10)>253952) { //max 65536 - 10 bytes (signature)
+              if (DEBUG) Serial.println(F("IMG > 64k, too big"));
+              radio.sendACK("FLX?NOK:HEX>64k",15);
+              return false; //just return, let MAIN timeout
+            }
+#elif defined(__AVR_ATmega1284P__)
             if ((bytesFlashed-10)>65526) { //max 65536 - 10 bytes (signature)
               if (DEBUG) Serial.println(F("IMG > 64k, too big"));
               radio.sendACK("FLX?NOK:HEX>64k",15);
@@ -212,16 +233,21 @@ uint8_t HandleWirelessHEXData(RFM69& radio, uint8_t remoteID, SPIFlash& flash, u
             HandleHandshakeACK(radio, flash, false);
             if (DEBUG) Serial.println(F("FLX?OK"));
             //save # of bytes written
+#ifdef MOTEINO_ZERO
+            flash.writeByte(7,(bytesFlashed-11)>>16);
+            flash.writeByte(8,(bytesFlashed-11)>>8);
+            flash.writeByte(9,(bytesFlashed-11));
+            //flash.writeByte(10,':'); //already done
+#else
             flash.writeByte(7,(bytesFlashed-10)>>8);
             flash.writeByte(8,(bytesFlashed-10));
-            flash.writeByte(9,':');
+            //flash.writeByte(9,':'); //already done
+#endif
             return true;
           }
         }
       }
-      #ifdef LED //blink!
-      pinMode(LEDpin,OUTPUT); digitalWrite(LEDpin,HIGH); delay(1); digitalWrite(LEDpin,LOW);
-      #endif
+      digitalWrite(LEDpin,LOW);
     }
     
     //abort FLASH sequence if no valid packet received for a long time
@@ -358,7 +384,7 @@ uint8_t HandleSerialHEXData(RFM69& radio, uint8_t targetID, uint16_t TIMEOUT, ui
           index++;
           uint8_t hexDataLen = validateHEXData(input+index, inputLen-index);
 
-          if (hexDataLen>0)
+          if (hexDataLen>0 && hexDataLen<253)
           {
             if (tmp==seq) //only read data when packet number is the next expected SEQ number
             {
@@ -375,7 +401,8 @@ uint8_t HandleSerialHEXData(RFM69& radio, uint8_t targetID, uint16_t TIMEOUT, ui
               else return false;
             }
           }
-          else Serial.println(F("FLX:INV"));
+          //else Serial.print(F("FLX:INV"));
+          else { Serial.print(F("FLX:INV:"));Serial.println(hexDataLen); }
         }
         if (inputLen==7 && input[3]=='?' && input[4]=='E' && input[5]=='O' && input[6]=='F')
         {
@@ -414,24 +441,24 @@ uint8_t validateHEXData(void* data, uint8_t length)
   for (uint8_t i=0; i<length;i++)
   {
     if (!((input[i] >=48 && input[i]<=57) || (input[i] >=65 && input[i]<=70))) //0-9,A-F
-      return 0;
+      return 255;
     if (i%2 && i<length-2) checksum+=BYTEfromHEX(input[i-1], input[i]);
   }
   checksum=(checksum^0xFF)+1;
   
   //TODO : CHECK for address continuity (intel HEX addresses are big endian)
-  
+
   //Serial.print(F("final CRC:"));Serial.println((uint8_t)checksum, HEX);
   //Serial.print(F("CRC byte:"));Serial.println(BYTEfromHEX(input[length-2], input[length-1]), HEX);
 
   //check CHECKSUM byte
   if (((uint8_t)checksum) != BYTEfromHEX(input[length-2], input[length-1]))
-    return 0;
+    return 254;
 
   uint8_t dataLength = BYTEfromHEX(input[0], input[1]); //length of actual HEX flash data (usually 16bytes)
   //calculate record length
   if (length != dataLength*2 + 10) //add headers and checksum bytes (a total of 10 combined)
-    return 0;
+    return 253;
 
   return dataLength; //all validation OK!
 }
@@ -513,9 +540,18 @@ void PrintHex83(uint8_t* data, uint8_t length)
 //===================================================================================================================
 void resetUsingWatchdog(uint8_t DEBUG)
 {
+#ifdef __AVR__
   //wdt_disable();
   if (DEBUG) Serial.print(F("REBOOTING"));
   wdt_enable(WDTO_15MS);
   while(1) if (DEBUG) Serial.print(F("."));
-}
+#elif defined(MOTEINO_ZERO)
+  WDT->CTRL.reg = 0; // disable watchdog
+  while (WDT->STATUS.bit.SYNCBUSY == 1); // sync is required
+  WDT->CONFIG.reg = 0; // see Table 18.8.2 Timeout Period (valid values 0-11)
+  WDT->CTRL.reg = WDT_CTRL_ENABLE; //enable WDT
+  while (WDT->STATUS.bit.SYNCBUSY == 1);
+  WDT->CLEAR.reg= 0x00; // system reset via WDT
+  while (WDT->STATUS.bit.SYNCBUSY == 1);
 #endif
+}

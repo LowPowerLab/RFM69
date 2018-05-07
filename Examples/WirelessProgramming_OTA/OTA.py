@@ -41,6 +41,7 @@
 import time, sys, serial
 import collections
 import re
+from sys import exit
 
 ### GENERAL SETTINGS ###
 SERIALPORT = "COM100"  # the default com/serial port the receiver is connected to
@@ -87,6 +88,12 @@ if (sys.argv and len(sys.argv) > 1):
         exit(1)
   #}
 
+def LOG(message):
+  sys.stdout.write(message)
+
+def LOGln(message):
+  sys.stdout.write('\n' + message)
+  
 def millis():
   return int(round(time.time() * 1000))
   
@@ -108,21 +115,21 @@ def waitForHandshake(isEOF=False):
         serWriteln(ser, "FLX?EOF")
       else:
         serWriteln(ser, "FLX?")
-        print "FLX?\n"
+        LOGln("FLX?")
       ser.flush()
       rx = ser.readline().rstrip().upper()
 
       if len(rx) > 0:
       #{
-        print "Moteino: [" + rx + "]"
+        LOGln("Moteino: [" + rx + "]")
         if rx == "FLX?OK":
-          print "HANDSHAKE OK!"
+          LOGln("HANDSHAKE OK!")
           return HANDSHAKE_OK
         elif rx == "FLX?NOK":
-          print "HANDSHAKE FAIL [TIMEOUT]: " + rx
+          LOGln("HANDSHAKE FAIL [TIMEOUT]: " + rx)
           return HANDSHAKE_FAIL
         elif (len(rx)>7 and rx.startswith("FLX?NOK") or rx.startswith("FLX?ERR")):
-          print "HANDSHAKE FAIL [HEX IMG refused by target node], reason: " + rx
+          LOGln("HANDSHAKE FAIL [HEX IMG refused by target node], reason: " + rx)
           return HANDSHAKE_FAIL_ERROR
       #}
     #}
@@ -131,7 +138,7 @@ def waitForHandshake(isEOF=False):
 def waitForTargetSet(targetNode):
   now = millis()
   to = "TO:" + str(TARGET)
-  print to
+  LOGln(to)
   serWriteln(ser, to)
   ser.flush()
   while True:
@@ -141,7 +148,7 @@ def waitForTargetSet(targetNode):
       rx = ser.readline().rstrip()
       if len(rx) > 0:
       #{
-        print "Moteino: [" + rx + "]"
+        LOGln("Moteino: [" + rx + "]")
         if rx == to + ":OK":
           return True
         else: return False
@@ -159,19 +166,21 @@ def waitForSEQ(seq):
 
       if (rx.upper().startswith("RFTX >") or rx.upper().startswith("RFACK >")):
       #{
-          print "Moteino DEBUG: " + rx
+          LOGln("Moteino DEBUG: " + rx)
           rx = ""
           continue
       #}
 
       if len(rx) > 0:
       #{
-        print "Moteino: " + rx
-        result = re.match("FLX:([0-9]*):OK", rx)
+        pattern = "FLX:([0-9]*):OK"
+        LOG(" RX > " + rx)
+        result = re.match(pattern, rx)
         if result != None:
           if int(result.group(1)) == seq:
             return 1
           else: return 2
+        else: LOGln("Programmer reply '"+rx+"' does not match expected pattern: '"+pattern+"'")
       #}
     else: return 0
 
@@ -186,23 +195,23 @@ try:
   time.sleep(2) #wait for Programmer Moteino reset after port open and potential bootloader time (~1.6s) 
   ser.flushInput();
 except IOError as e:
-  print "COM Port [", SERIALPORT, "] not found, exiting..."
-  exit(1)
+  LOGln("COM Port [", SERIALPORT, "] not found, exiting...")
+  exitNow(1)
 
 try:
   if not 0<TARGET<= 255:
-    print "TARGET not provided (use -h for help), now exiting..."
+    LOGln("TARGET not provided (use -h for help), now exiting...")
     exit(1)
   
   #send target ID first
   if waitForTargetSet(TARGET):
-    print "TARGET SET OK"
+    LOGln("TARGET SET OK")
   else:
-    print "TARGET SET FAIL, exiting..."
+    LOGln("TARGET SET FAIL, exiting...")
     exit(1)
   
   with open(HEX) as f:
-    print "File found, passing to Moteino..."
+    LOGln("File found, passing to Moteino OTA Programmer...")
     
     handshakeResponse = waitForHandshake()
     if (handshakeResponse == HANDSHAKE_OK):
@@ -222,44 +231,46 @@ try:
           hexDataToSend = currentLine
 
           #bundle 2 or 3 HEX lines in 1 RF packet (assuming: 1 HEX line has 16 bytes of data, following HEX lines also each being 16 bytes)
-          if LINESPERPACKET > 1 and currentLine[1:3] == '10' and len(currentLine)==43:
+          if LINESPERPACKET > 1 and currentLine[7:9] == '00':
           #{
             #check if next line != EOF, so we can bundle 2 lines
             nextLine = content[seq+1].strip()
-            if nextLine != ":00000001FF" and nextLine[1:3] == "10" and len(nextLine) == 43:
+            if nextLine != ":00000001FF" and nextLine[7:9] == '00':
             #{
               #need to sum: the 2 lines checksums + address bytes of nextLine (to arrive at a correct final checksum of combined 2 lines
-              checksum = int(currentLine[41:43], 16) + int(nextLine[41:43], 16) + int(nextLine[3:5], 16) + int(nextLine[5:7], 16)
+              checksum = int(currentLine[len(currentLine)-2:len(currentLine)], 16) + int(nextLine[len(nextLine)-2:len(nextLine)], 16) + int(nextLine[3:5], 16) + int(nextLine[5:7], 16)
+              addressByte = int(currentLine[1:3], 16) + int(nextLine[1:3], 16)
               
               #check if a third line != EOF, so we can bundle 3 lines
               nextLine2 = content[seq+2].strip()
-              if LINESPERPACKET==3 and nextLine2 != ":00000001FF" and nextLine2[1:3] == "10" and len(nextLine2) == 43:
+              if LINESPERPACKET==3 and nextLine2 != ":00000001FF" and nextLine2[7:9] == "00":
               #{
                 #need to sum: the previous checksum + address bytes of nextLine2 (to arrive at a correct final checksum of combined 3 lines
-                checksum += int(nextLine2[41:43], 16) + int(nextLine2[3:5], 16) + int(nextLine2[5:7], 16)
-                hexDataToSend = ":3" + hexDataToSend[2:(len(hexDataToSend)-2)] + nextLine[9:41] + nextLine2[9:41] + ('%0*X' % (2,checksum%256))
+                checksum += int(nextLine2[len(nextLine2)-2:len(nextLine2)], 16) + int(nextLine2[3:5], 16) + int(nextLine2[5:7], 16)
+                addressByte += int(nextLine2[1:3], 16)
+                hexDataToSend = ":" + ('%0*X' % (2,addressByte%256)) + hexDataToSend[3:len(hexDataToSend)-2] + nextLine[9:len(nextLine)-2] + nextLine2[9:len(nextLine)-2] + ('%0*X' % (2,checksum%256))
                 bundledLines=3
               #}
               else:
               #{
-                hexDataToSend = ":2" + hexDataToSend[2:(len(hexDataToSend)-2)] + nextLine[9:41] + ('%0*X' % (2,checksum%256))
+                hexDataToSend = ":" + ('%0*X' % (2,addressByte%256)) + hexDataToSend[3:len(hexDataToSend)-2] + nextLine[9:len(nextLine)-2] + ('%0*X' % (2,checksum%256))
                 bundledLines=2;
               #}
             #}
           #}
           tx = "FLX:" + str(packetCounter) + hexDataToSend
-          print "TX > " + tx
+          LOGln("TX > " + tx)
           serWriteln(ser, tx)
           result = waitForSEQ(packetCounter)
         #}
         elif waitForHandshake(True) == HANDSHAKE_OK:
         #{
-          print "SUCCESS! (time elapsed: " + ("%.2f" % ((millis()-start)/1000.0)) + "s)"
+          LOGln("SUCCESS! (time elapsed: " + ("%.2f" % ((millis()-start)/1000.0)) + "s)")
           exit(0);
         #}
         else:
         #{
-          print "FAIL, IMG REFUSED BY TARGET (size exceeded? verify target MCU matches compiled target)"
+          LOGln("FAIL, IMG REFUSED BY TARGET (size exceeded? verify target MCU matches compiled target)")
           exit(99)
         #}
 
@@ -272,21 +283,21 @@ try:
         #{
           if retries > 0:
             retries-=1
-            print "OUT OF SYNC: retrying...\n"
+            LOGln("OUT OF SYNC: retrying...\n")
             continue
           else:
-            print "FAIL: out of sync (are you running the latest OTA libs/sources?)"
+            LOGln("FAIL: out of sync (are you running the latest OTA libs/sources?)")
             exit(1)
         #}
         else:
         #{
           if retries > 0:
             retries-=1
-            print "Timeout, retry...\n"
+            LOGln("Timeout, retry...\n")
             continue
           else:
           #{
-            print "FAIL: timeout (are you running the latest OTA libs/sources?)"
+            LOGln("FAIL: timeout (are you running the latest OTA libs/sources?)")
             exit(1)
           #}
         #}
@@ -295,21 +306,21 @@ try:
       while 1:
       #{
         rx = ser.readline()
-        if (len(rx) > 0): print rx.strip()
+        if (len(rx) > 0): LOGln(rx.strip())
       #}
 
     elif (handshakeResponse == HANDSHAKE_FAIL_TIMEOUT):
-      print "FAIL: No response from Moteino programmer, is it connected to " + port 
+      LOGln("FAIL: No response from Moteino programmer, is it connected to " + port)
       exit(1)
     elif (handshakeResponse == HANDSHAKE_FAIL_TIMEOUT):
-      print "FAIL: No response from Moteino programmer, is it connected to " + port 
+      LOGln("FAIL: No response from Moteino programmer, is it connected to " + port)
       exit(1)
     else:
-      print "FAIL: No response from Moteino Target, is Target listening on same Freq/NetworkID & OTA enabled?"
+      LOGln("FAIL: No response from Moteino Target, is Target listening on same Freq/NetworkID & OTA enabled?")
       exit(1)
 
 except IOError:
-  print "File [", HEX, "] not found, exiting..."
+  LOGln("File [", HEX, "] not found, exiting...")
   exit(1)
   
 finally:

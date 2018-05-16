@@ -43,6 +43,8 @@
   #define LED           15 // Moteino MEGAs have LEDs on D15
 #elif defined (__AVR_ATmega328P__)
   #define LED           9 // Moteinos have LEDs on D9
+#else
+  #define LED           13 // catch all others (UNO, pro mini etc)
 #endif
 
 #define SHIFTCHANNEL 1000000 //amount to shift frequency of HEX transmission to keep original channel free of the HEX transmission traffic

@@ -1,6 +1,8 @@
 # RFM69 Library  [![Build Status](https://travis-ci.org/LowPowerLab/RFM69.svg)](https://travis-ci.org/LowPowerLab/RFM69)
 
-### *NOTE:* This is an experimental branch of the [main repository](https://github.com/LowPowerLab/RFM69), with ListenMode functionality. More details are in [this forum](https://lowpowerlab.com/forum/low-power-techniques/).
+### *DEPRECATED:* The LISTEN_MODE changes in this experimental branch have been [manually merged](https://github.com/LowPowerLab/RFM69/commit/e1145c9543b71a0973b248ca9411633c5a8f6622#diff-f932f1addbc3ec62d9c4e8427a047905) into the main RFM69 branch. This is no longer maintained and only kept for reference, it may eventually be removed. To use listen mode, look for the [LISTEN_MODE_ENABLE directive](https://github.com/LowPowerLab/RFM69/blob/master/RFM69.h#L153) in the main branch RFM69.h
+
+### *NOTE:* This was an experimental branch of the [main repository](https://github.com/LowPowerLab/RFM69), with ListenMode functionality. More details are in [this forum](https://lowpowerlab.com/forum/low-power-techniques/).
 
 By Felix Rusu, [LowPowerLab.com](http://LowPowerLab.com)
 <br/>

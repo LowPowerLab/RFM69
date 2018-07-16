@@ -403,7 +403,8 @@ bool RFM69::receiveDone() {
   noInterrupts(); // re-enabled in unselect() via setMode() or via receiveBegin()
   if (_mode == RF69_MODE_RX && PAYLOADLEN > 0)
   {
-    setMode(RF69_MODE_STANDBY); // enables interrupts
+    setMode(RF69_MODE_STANDBY);
+    interrupts(); // explicitly re-enable interrupts
     return true;
   }
   else if (_mode == RF69_MODE_RX) // already in RX no payload yet
@@ -412,6 +413,7 @@ bool RFM69::receiveDone() {
     return false;
   }
   receiveBegin();
+  interrupts(); // explicitly re-enable interrupts
   return false;
 //}
 }

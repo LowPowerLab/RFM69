@@ -207,9 +207,9 @@ class RFM69 {
 
   protected:
     static void isr0();
-    void virtual interruptHandler();
+    void interruptHandler();
     virtual void interruptHook(uint8_t CTLbyte) {};
-    static volatile bool _inISR;
+    static volatile bool _haveData;
     virtual void sendFrame(uint8_t toAddress, const void* buffer, uint8_t size, bool requestACK=false, bool sendACK=false);
 
     static RFM69* selfPointer;
@@ -230,7 +230,6 @@ class RFM69 {
     virtual void setHighPowerRegs(bool onOff);
     virtual void select();
     virtual void unselect();
-    inline void maybeInterrupts();
 
 #if defined(RF69_LISTENMODE_ENABLE)
   //=============================================================================

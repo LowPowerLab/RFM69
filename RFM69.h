@@ -169,7 +169,7 @@ class RFM69 {
     static volatile uint8_t PAYLOADLEN;
     static volatile uint8_t ACK_REQUESTED;
     static volatile uint8_t ACK_RECEIVED; // should be polled immediately after sending a packet with ACK request
-    static volatile int16_t RSSI; // most accurate RSSI during reception (closest to the reception)
+    static volatile int16_t RSSI; // most accurate RSSI during reception (closest to the reception). RSSI of last packet.
     static volatile uint8_t _mode; // should be protected?
 
     RFM69(uint8_t slaveSelectPin, uint8_t interruptPin, bool isRFM69HW, uint8_t interruptNum) //interruptNum is now deprecated
@@ -191,7 +191,7 @@ class RFM69 {
     void setFrequency(uint32_t freqHz);
     void encrypt(const char* key);
     void setCS(uint8_t newSPISlaveSelect);
-    int16_t readRSSI(bool forceTrigger=false);
+    int16_t readRSSI(bool forceTrigger=false); // *current* signal strength indicator; e.g. < -90dBm says the frequency channel is free + ready to transmit
     void promiscuous(bool onOff=true);
     virtual void setHighPower(bool onOFF=true); // has to be called after initialize() for RFM69HW
     virtual void setPowerLevel(uint8_t level); // reduce/increase transmit power level

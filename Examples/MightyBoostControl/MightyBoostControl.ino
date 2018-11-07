@@ -1,7 +1,7 @@
 // *************************************************************************************************************
 //                                          MightyBoost control sample sketch
 // *************************************************************************************************************
-// Copyright (2015) Felix Rusu of http://lowpowerlab.com
+// Copyright (2015) Felix Rusu, http://lowpowerlab.com
 // http://lowpowerlab.com/mightyboost
 // MightyBoost is a smart backup PSU controllable by Moteino, and this sketch is a sample control sketch to run
 // MightyBoost in this mode.
@@ -39,6 +39,7 @@
 // Please maintain this license information along with authorship
 // and copyright notices in any redistribution of this code
 // *************************************************************************************************************
+#include <LowPower.h> //get library from: https://github.com/lowpowerlab/lowpower
 #define LED                 5     // LED pin, should be analog for fading effect (PWM)
 #define BUTTON              3     // Power button pin
 #define SIG_SHUTOFF         6     // Signal to Pi to ask for a shutdown
@@ -89,6 +90,9 @@ void setup() {
 }
 
 void loop() {
+  //reduce MCU ON current  by ~10mA
+  LowPower.idle(SLEEP_30MS, ADC_OFF, TIMER2_OFF, TIMER1_OFF, TIMER0_ON, SPI_OFF, USART0_OFF, TWI_OFF);
+
   int reading = digitalRead(BUTTON);
   NOW = millis();
   digitalWrite(SIG_SHUTOFF, LOW);//added after sudden shutdown quirks, DO NOT REMOVE!

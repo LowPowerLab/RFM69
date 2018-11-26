@@ -1,3 +1,18 @@
+// **********************************************************************************
+//
+//            !!!!     ATTENTION:    !!!!
+//
+// This is just a simple receiving sketch that will work with most examples
+// in the RFM69 library.
+//
+// If you're looking for the Gateway sketch to use with your RaspberryPi,
+// as part of the PiGateway software interface (lowpowerlab.com/gateway),
+// this is the wrong sketch.
+//
+// Use this sketch instead: PiGateway:
+// https://github.com/LowPowerLab/RFM69/blob/master/Examples/PiGateway/PiGateway.ino
+// **********************************************************************************
+
 // Sample RFM69 receiver/gateway sketch, with ACK and optional encryption, and Automatic Transmission Control
 // Passes through any wireless received messages to the serial port & responds to ACKs
 // It also looks for an onboard FLASH chip, if present

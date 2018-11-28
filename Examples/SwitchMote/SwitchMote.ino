@@ -153,6 +153,7 @@ void setup(void)
   #ifdef SERIAL_EN
     Serial.begin(SERIAL_BAUD);
   #endif
+  EEPROM.setMaxAllowedWrites(10000);
   EEPROM.readBlock(0, CONFIG);
   if (CONFIG.frequency!=RF69_433MHZ && CONFIG.frequency!=RF69_868MHZ && CONFIG.frequency!=RF69_915MHZ) // virgin CONFIG, expected [4,8,9]
   {

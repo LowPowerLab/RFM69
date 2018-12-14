@@ -108,6 +108,11 @@ bool RFM69::initialize(uint8_t freqBand, uint8_t nodeID, uint8_t networkID)
   digitalWrite(_slaveSelectPin, HIGH);
   pinMode(_slaveSelectPin, OUTPUT);
   SPI.begin();
+  
+#ifdef SPI_HAS_TRANSACTION
+  _settings = SPISettings(4000000, MSBFIRST, SPI_MODE0);
+#endif
+
   unsigned long start = millis();
   uint8_t timeout = 50;
   do writeReg(REG_SYNCVALUE1, 0xAA); while (readReg(REG_SYNCVALUE1) != 0xaa && millis()-start < timeout);
@@ -477,6 +482,11 @@ void RFM69::select() {
   _SPCR = SPCR;
   _SPSR = SPSR;
 #endif
+
+#ifdef SPI_HAS_TRANSACTION
+  SPI.beginTransaction(_settings);
+#endif
+
   // set RFM69 SPI settings
   SPI.setDataMode(SPI_MODE0);
   SPI.setBitOrder(MSBFIRST);
@@ -491,6 +501,9 @@ void RFM69::select() {
 // unselect the RFM69 transceiver (set CS high, restore SPI settings)
 void RFM69::unselect() {
   digitalWrite(_slaveSelectPin, HIGH);
+#ifdef SPI_HAS_TRANSACTION
+  SPI.endTransaction();
+#endif  
   // restore SPI settings to what they were before talking to RFM69
 #if defined (SPCR) && defined (SPSR)
   SPCR = _SPCR;

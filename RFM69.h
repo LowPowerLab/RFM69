@@ -224,6 +224,9 @@ class RFM69 {
     uint8_t _SPCR;
     uint8_t _SPSR;
 #endif
+#ifdef SPI_HAS_TRANSACTION
+  SPISettings _settings;
+#endif
 
     virtual void receiveBegin();
     virtual void setMode(uint8_t mode);

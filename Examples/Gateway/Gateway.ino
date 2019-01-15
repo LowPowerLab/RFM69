@@ -50,9 +50,9 @@
 #define NODEID        1    //unique for each node on same network
 #define NETWORKID     100  //the same on all nodes that talk to each other
 //Match frequency to the hardware version of the radio on your Moteino (uncomment one):
-#define FREQUENCY     RF69_433MHZ
+//#define FREQUENCY     RF69_433MHZ
 //#define FREQUENCY     RF69_868MHZ
-//#define FREQUENCY     RF69_915MHZ
+#define FREQUENCY     RF69_915MHZ
 #define ENCRYPTKEY    "sampleEncryptKey" //exactly the same 16 characters/bytes on all nodes!
 #define IS_RFM69HW_HCW  //uncomment only for RFM69HW/HCW! Leave out if you have RFM69W/CW!
 //*********************************************************************************************
@@ -65,21 +65,13 @@
 //*********************************************************************************************
 #define SERIAL_BAUD   115200
 
-#ifdef __AVR_ATmega1284P__
-  #define LED           15 // Moteino MEGAs have LEDs on D15
-  #define FLASH_SS      23 // and FLASH SS on D23
-#else
-  #define LED           9 // Moteinos have LEDs on D9
-  #define FLASH_SS      8 // and FLASH SS on D8
-#endif
-
 #ifdef ENABLE_ATC
   RFM69_ATC radio;
 #else
   RFM69 radio;
 #endif
 
-SPIFlash flash(FLASH_SS, 0xEF30); //EF30 for 4mbit  Windbond chip (W25X40CL)
+SPIFlash flash(SS_FLASHMEM, 0xEF30); //EF30 for 4mbit  Windbond chip (W25X40CL)
 bool promiscuousMode = false; //set to 'true' to sniff all packets on the same network
 
 void setup() {
@@ -214,7 +206,7 @@ void loop() {
       }
     }
     Serial.println();
-    Blink(LED,3);
+    Blink(LED_BUILTIN,3);
   }
 }
 

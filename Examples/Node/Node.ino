@@ -2,7 +2,7 @@
 // Sends periodic messages of increasing length to gateway (id=1)
 // It also looks for an onboard FLASH chip, if present
 // **********************************************************************************
-// Copyright Felix Rusu 2016, http://www.LowPowerLab.com/contact
+// Copyright Felix Rusu 2018, http://www.LowPowerLab.com/contact
 // **********************************************************************************
 // License
 // **********************************************************************************
@@ -36,9 +36,9 @@
 #define NETWORKID     100  //the same on all nodes that talk to each other (range up to 255)
 #define GATEWAYID     1
 //Match frequency to the hardware version of the radio on your Moteino (uncomment one):
-#define FREQUENCY   RF69_433MHZ
+//#define FREQUENCY   RF69_433MHZ
 //#define FREQUENCY   RF69_868MHZ
-//#define FREQUENCY     RF69_915MHZ
+#define FREQUENCY     RF69_915MHZ
 #define ENCRYPTKEY    "sampleEncryptKey" //exactly the same 16 characters/bytes on all nodes!
 #define IS_RFM69HW_HCW  //uncomment only for RFM69HW/HCW! Leave out if you have RFM69W/CW!
 //*********************************************************************************************
@@ -51,14 +51,6 @@
 #define ATC_RSSI      -80
 //*********************************************************************************************
 
-#ifdef __AVR_ATmega1284P__
-  #define LED           15 // Moteino MEGAs have LEDs on D15
-  #define FLASH_SS      23 // and FLASH SS on D23
-#else
-  #define LED           9 // Moteinos have LEDs on D9
-  #define FLASH_SS      8 // and FLASH SS on D8
-#endif
-
 #define SERIAL_BAUD   115200
 
 int TRANSMITPERIOD = 200; //transmit a packet to gateway so often (in ms)
@@ -66,7 +58,7 @@ char payload[] = "123 ABCDEFGHIJKLMNOPQRSTUVWXYZ";
 char buff[20];
 byte sendSize=0;
 boolean requestACK = false;
-SPIFlash flash(FLASH_SS, 0xEF30); //EF30 for 4mbit  Windbond chip (W25X40CL)
+SPIFlash flash(SS_FLASHMEM, 0xEF30); //EF30 for 4mbit  Windbond chip (W25X40CL)
 
 #ifdef ENABLE_ATC
   RFM69_ATC radio;
@@ -185,7 +177,7 @@ void loop() {
       radio.sendACK();
       Serial.print(" - ACK sent");
     }
-    Blink(LED,3);
+    Blink(LED_BUILTIN,3);
     Serial.println();
   }
 
@@ -218,6 +210,6 @@ void loop() {
     }
     sendSize = (sendSize + 1) % 31;
     Serial.println();
-    Blink(LED,3);
+    Blink(LED_BUILTIN,3);
   }
 }

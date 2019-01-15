@@ -50,8 +50,11 @@
 #define ENABLE_ATC    //comment out this line to disable AUTO TRANSMISSION CONTROL
 #define ATC_RSSI      -80
 //*********************************************************************************************
-
 #define SERIAL_BAUD   115200
+
+#if defined (MOTEINO_M0) && defined(SERIAL_PORT_USBVIRTUAL)
+  #define Serial SERIAL_PORT_USBVIRTUAL // Required for Serial on Zero based boards
+#endif
 
 int TRANSMITPERIOD = 200; //transmit a packet to gateway so often (in ms)
 char payload[] = "123 ABCDEFGHIJKLMNOPQRSTUVWXYZ";

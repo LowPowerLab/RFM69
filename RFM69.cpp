@@ -27,15 +27,15 @@
 #include <RFM69registers.h>
 #include <SPI.h>
 
-volatile uint8_t RFM69::DATA[RF69_MAX_DATA_LEN];
-volatile uint8_t RFM69::_mode;        // current transceiver state
-volatile uint8_t RFM69::DATALEN;
-volatile uint8_t RFM69::SENDERID;
-volatile uint8_t RFM69::TARGETID;     // should match _address
-volatile uint8_t RFM69::PAYLOADLEN;
-volatile uint8_t RFM69::ACK_REQUESTED;
-volatile uint8_t RFM69::ACK_RECEIVED; // should be polled immediately after sending a packet with ACK request
-volatile int16_t RFM69::RSSI;          // most accurate RSSI during reception (closest to the reception)
+uint8_t RFM69::DATA[RF69_MAX_DATA_LEN];
+uint8_t RFM69::_mode;        // current transceiver state
+uint8_t RFM69::DATALEN;
+uint8_t RFM69::SENDERID;
+uint8_t RFM69::TARGETID;     // should match _address
+uint8_t RFM69::PAYLOADLEN;
+uint8_t RFM69::ACK_REQUESTED;
+uint8_t RFM69::ACK_RECEIVED; // should be polled immediately after sending a packet with ACK request
+int16_t RFM69::RSSI;          // most accurate RSSI during reception (closest to the reception)
 volatile bool RFM69::_haveData;
 RFM69* RFM69::selfPointer;
 

@@ -162,15 +162,15 @@
 
 class RFM69 {
   public:
-    static volatile uint8_t DATA[RF69_MAX_DATA_LEN]; // recv/xmit buf, including header & crc bytes
-    static volatile uint8_t DATALEN;
-    static volatile uint8_t SENDERID;
-    static volatile uint8_t TARGETID; // should match _address
-    static volatile uint8_t PAYLOADLEN;
-    static volatile uint8_t ACK_REQUESTED;
-    static volatile uint8_t ACK_RECEIVED; // should be polled immediately after sending a packet with ACK request
-    static volatile int16_t RSSI; // most accurate RSSI during reception (closest to the reception). RSSI of last packet.
-    static volatile uint8_t _mode; // should be protected?
+    static uint8_t DATA[RF69_MAX_DATA_LEN]; // recv/xmit buf, including header & crc bytes
+    static uint8_t DATALEN;
+    static uint8_t SENDERID;
+    static uint8_t TARGETID; // should match _address
+    static uint8_t PAYLOADLEN;
+    static uint8_t ACK_REQUESTED;
+    static uint8_t ACK_RECEIVED; // should be polled immediately after sending a packet with ACK request
+    static int16_t RSSI; // most accurate RSSI during reception (closest to the reception). RSSI of last packet.
+    static uint8_t _mode; // should be protected?
 
     RFM69(uint8_t slaveSelectPin, uint8_t interruptPin, bool isRFM69HW, uint8_t interruptNum) //interruptNum is now deprecated
                 : RFM69(slaveSelectPin, interruptPin, isRFM69HW){};

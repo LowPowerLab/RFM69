@@ -67,6 +67,7 @@ RF69_315MHZ	LITERAL1
 RF69_433MHZ	LITERAL1
 RF69_868MHZ	LITERAL1
 RF69_915MHZ	LITERAL1
+RF69_SPI_CS	LITERAL1
 #######################################
 # Variables/Volatiles (LITERAL2)
 #######################################

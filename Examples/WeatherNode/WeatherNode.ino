@@ -50,7 +50,7 @@
 #define IS_RFM69HW_HCW  //uncomment only for RFM69HW/HCW! Leave out if you have RFM69W/CW!
 //*********************************************************************************************
 #define ENABLE_ATC    //comment out this line to disable AUTO TRANSMISSION CONTROL
-#define ATC_RSSI      -75
+#define ATC_RSSI      -80
 //*********************************************************************************************
 #define SEND_LOOPS   15 //send data this many sleep loops (15 loops of 8sec cycles = 120sec ~ 2 minutes)
 #define SLEEP_FASTEST SLEEP_15MS
@@ -68,17 +68,12 @@ period_t sleepTime = SLEEP_LONGEST; //period_t is an enum type defined in the Lo
 #define BATT_LOW      3.6  //(volts)
 #define BATT_READ_LOOPS  SEND_LOOPS*10  // read and report battery voltage every this many sleep cycles (ex 30cycles * 8sec sleep = 240sec/4min). For 450 cycles you would get ~1 hour intervals between readings
 //*****************************************************************************************************************************
-
-#ifdef __AVR_ATmega1284P__
-  #define LED           15 // Moteino MEGAs have LEDs on D15
-  #define FLASH_SS      23 // and FLASH SS on D23
-#else
-  #define LED           9 // Moteinos have LEDs on D9
-  #define FLASH_SS      8 // and FLASH SS on D8
-#endif
-
 //#define BLINK_EN                 //uncomment to blink LED on every send
 //#define SERIAL_EN                //comment out if you don't want any serial output
+//*****************************************************************************************************************************
+#if defined (MOTEINO_M0) && defined(SERIAL_PORT_USBVIRTUAL)
+  #define Serial SERIAL_PORT_USBVIRTUAL // Required for Serial on Zero based boards
+#endif
 
 #ifdef SERIAL_EN
   #define SERIAL_BAUD   115200
@@ -91,15 +86,14 @@ period_t sleepTime = SLEEP_LONGEST; //period_t is an enum type defined in the Lo
   #define SERIALFLUSH();
 #endif
 //*****************************************************************************************************************************
-
 #ifdef ENABLE_ATC
   RFM69_ATC radio;
 #else
   RFM69 radio;
 #endif
+//*****************************************************************************************************************************
 
-SPIFlash flash(FLASH_SS, 0xEF30); //WINDBOND 4MBIT flash chip on CS pin D8 (default for Moteino)
-
+SPIFlash flash(SS_FLASHMEM, 0xEF30); //WINDBOND 4MBIT flash chip on CS pin D8 (default for Moteino)
 BME280 bme280;
 char Pstr[10];
 char Fstr[10];
@@ -112,7 +106,7 @@ void setup(void)
 #ifdef SERIAL_EN
   Serial.begin(SERIAL_BAUD);
 #endif
-  pinMode(LED, OUTPUT);
+  pinMode(LED_BUILTIN, OUTPUT);
   
   radio.initialize(FREQUENCY,NODEID,NETWORKID);
 #ifdef IS_RFM69HW_HCW
@@ -149,14 +143,14 @@ void setup(void)
   bme280.setMode(MODE_SLEEP);
 
   radio.sendWithRetry(GATEWAYID, "START", 6);
-  Blink(LED, 100);Blink(LED, 100);Blink(LED, 100);
+  Blink(LED_BUILTIN, 100);Blink(LED_BUILTIN, 100);Blink(LED_BUILTIN, 100);
 
   if (flash.initialize()) flash.sleep();
 
   for (uint8_t i=0; i<=A5; i++)
   {
     if (i == RF69_SPI_CS) continue;
-    if (i == FLASH_SS) continue;
+    if (i == SS_FLASHMEM) continue;
     pinMode(i, OUTPUT);
     digitalWrite(i, LOW);
   }
@@ -203,7 +197,7 @@ void loop()
     DEBUG(buffer); DEBUG(" (packet length:"); DEBUG(sendLen); DEBUGln(")");
 
     #ifdef BLINK_EN
-      Blink(LED, 5);
+      Blink(LED_BUILTIN, 5);
     #endif
   }
   
@@ -242,9 +236,9 @@ void readBattery()
 {
   unsigned int readings=0;
   
-  //enable battery monitor on WeatherShield (via mosfet controlled by A3)
-  pinMode(BATT_MONITOR_EN, OUTPUT);
-  digitalWrite(BATT_MONITOR_EN, LOW);
+  //enable battery monitor on WeatherShield R1 (via mosfet controlled by A3)
+  //pinMode(BATT_MONITOR_EN, OUTPUT);
+  //digitalWrite(BATT_MONITOR_EN, LOW);
 
   for (byte i=0; i<5; i++) //take several samples, and average
     readings+=analogRead(BATT_MONITOR);

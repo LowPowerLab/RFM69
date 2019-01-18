@@ -1,5 +1,5 @@
 // **********************************************************************************************************
-// WeatherShield R2 (BME280 sensor) sameple sketch that works with Moteinos equipped with RFM69W/RFM69HW
+// WeatherShield R2 (BME280 sensor) sample sketch that works with Moteinos equipped with RFM69 modules
 // It sends periodic weather readings (temp, hum, atm pressure) from WeatherShield to the base node Moteino
 // For use with MoteinoMEGA you will have to revisit the pin definitions defined below
 // https://lowpowerlab.com/guide/weathershield/
@@ -61,19 +61,25 @@
 #define SLEEP_LONGEST SLEEP_8S
 period_t sleepTime = SLEEP_LONGEST; //period_t is an enum type defined in the LowPower library (LowPower.h)
 //*********************************************************************************************
-#define BATT_MONITOR_EN A3 //enables battery voltage divider to get a reading from a battery, disable it to save power
-#define BATT_MONITOR  A7   //through 1Meg+470Kohm and 0.1uF cap from battery VCC - this ratio divides the voltage to bring it below 3.3V where it is scaled to a readable range
-#define BATT_CYCLES   2    //read and report battery voltage every this many sleep cycles (ex 30cycles * 8sec sleep = 240sec/4min). For 450 cyclesyou would get ~1 hour intervals
-#define BATT_FORMULA(reading) reading * 0.00322 * 1.475  // >>> fine tune this parameter to match your voltage when fully charged
+#if defined (MOTEINO_M0)
+  #if defined(SERIAL_PORT_USBVIRTUAL)
+    #define Serial SERIAL_PORT_USBVIRTUAL // Required for Serial on Zero based boards
+  #endif
+  #include <avr/dtostrf.h>
+  #define BATT_MONITOR  A5   //through 1Meg+1Megohm and 0.1uF cap from battery VCC - this ratio divides the voltage to bring it below 3.3V where it is scaled to a readable range
+  #define BATT_FORMULA(reading) reading * 0.00322 * 2  // >>> fine tune this parameter to match your voltage when fully charged
+#else
+  //#define BATT_MONITOR_EN A3 //enables battery voltage divider to get a reading from a battery, disable it to save power
+  #define BATT_MONITOR  A7   //through 1Meg+470Kohm and 0.1uF cap from battery VCC - this ratio divides the voltage to bring it below 3.3V where it is scaled to a readable range
+  #define BATT_FORMULA(reading) reading * 0.00322 * 1.475  // >>> fine tune this parameter to match your voltage when fully charged
+#endif
 #define BATT_LOW      3.6  //(volts)
+#define BATT_CYCLES   2    //read and report battery voltage every this many sleep cycles (ex 30cycles * 8sec sleep = 240sec/4min). For 450 cyclesyou would get ~1 hour intervals
 #define BATT_READ_LOOPS  SEND_LOOPS*10  // read and report battery voltage every this many sleep cycles (ex 30cycles * 8sec sleep = 240sec/4min). For 450 cycles you would get ~1 hour intervals between readings
 //*****************************************************************************************************************************
 //#define BLINK_EN                 //uncomment to blink LED on every send
 //#define SERIAL_EN                //comment out if you don't want any serial output
 //*****************************************************************************************************************************
-#if defined (MOTEINO_M0) && defined(SERIAL_PORT_USBVIRTUAL)
-  #define Serial SERIAL_PORT_USBVIRTUAL // Required for Serial on Zero based boards
-#endif
 
 #ifdef SERIAL_EN
   #define SERIAL_BAUD   115200
@@ -228,14 +234,19 @@ void loop()
   SERIALFLUSH();
   flash.sleep();
   radio.sleep(); //you can comment out this line if you want this node to listen for wireless programming requests
+
+#if defined(MOTEINO_M0)
+  LowPower.standby();
+#else
   LowPower.powerDown(sleepTime, ADC_OFF, BOD_OFF);
+#endif
   DEBUGln("WAKEUP");
 }
 
 void readBattery()
 {
   unsigned int readings=0;
-  
+
   //enable battery monitor on WeatherShield R1 (via mosfet controlled by A3)
   //pinMode(BATT_MONITOR_EN, OUTPUT);
   //digitalWrite(BATT_MONITOR_EN, LOW);
@@ -244,8 +255,8 @@ void readBattery()
     readings+=analogRead(BATT_MONITOR);
   
   //disable battery monitor
-  pinMode(BATT_MONITOR_EN, INPUT); //highZ mode will allow p-mosfet to be pulled high and disconnect the voltage divider on the weather shield
-    
+  //pinMode(BATT_MONITOR_EN, INPUT); //highZ mode will allow p-mosfet to be pulled high and disconnect the voltage divider on the weather shield
+
   batteryVolts = BATT_FORMULA(readings / 5.0);
   dtostrf(batteryVolts,3,2, BATstr); //update the BATStr which gets sent every BATT_CYCLES or along with the MOTION message
   if (batteryVolts <= BATT_LOW) BATstr = "LOW";

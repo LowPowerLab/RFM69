@@ -17,7 +17,7 @@
 // This sketch may be extended to include integration with other LowPowerLab automation products, for instance to
 //    control the GarageMote from a button on the SwitchMote, etc.
 // *************************************************************************************************************
-// Copyright Felix Rusu 2019, http://www.LowPowerLab.com/contact
+// Copyright Felix Rusu 2016, http://www.LowPowerLab.com/contact
 // **********************************************************************************
 // License
 // **********************************************************************************
@@ -54,14 +54,12 @@
 #define ATC_RSSI          -75
 // **********************************************************************************
 #define GATEWAYID           1  //assumed 1 in general
-#define LED_RM             18  //digital pin for MIDDLE RED LED
-#define LED_GM             15  //digital pin for MIDDLE GREEN LED
-
-#define LED_RT             17  //digital pin for TOP RED LED
-#define LED_GT             14  //digital pin for TOP GREEN LED
-
-#define LED_RB             19  //digital pin for BOTTOM RED LED
-#define LED_GB             16  //digital pin for BOTTOM GREEN LED
+#define LED_RM             15  //digital pin for MIDDLE RED LED
+#define LED_GM             18  //digital pin for MIDDLE GREEN LED
+#define LED_RT             16  //digital pin for TOP RED LED
+#define LED_GT             19  //digital pin for TOP GREEN LED
+#define LED_RB             14  //digital pin for BOTTOM RED LED
+#define LED_GB             17  //digital pin for BOTTOM GREEN LE
 
 #define RELAY1              7  //digital pin connected to MAIN relay
 #define RELAY2              3  //digital pin connected to secondary relay (SwitchMote 2x10A only)

@@ -17,7 +17,7 @@ GPL 3.0, please see the [License.txt](https://github.com/LowPowerLab/RFM69/blob/
 
 ## Features
 - easy to use API with a few simple functions for basic usage
-- 255 possible nodes on 256 possible networks
+- 1023 possible nodes on 256 possible networks
 - 61 bytes max message length (limited to 61 to support AES hardware encryption)
 - customizable transmit power (32 levels) for low-power transmission control
 - sleep function for power saving

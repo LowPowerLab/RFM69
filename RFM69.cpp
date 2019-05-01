@@ -1075,7 +1075,7 @@ void RFM69::listenModeApplyHighSpeedSettings()
 //=============================================================================
 // sendBurst() - send a burst of packets to a sleeping listening node (or all)
 //=============================================================================
-void RFM69::listenModeSendBurst( uint8_t targetNode, void* buffer, uint8_t size )
+void RFM69::listenModeSendBurst( uint8_t targetNode, const void* buffer, uint8_t size )
 {
   detachInterrupt(_interruptNum);
   setMode(RF69_MODE_STANDBY);

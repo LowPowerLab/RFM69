@@ -259,7 +259,7 @@ class RFM69 {
     // is transmitted to the receiver, and it is expected that the receiver
     // wait for the burst to end before attempting a reply.
     // See RF69_LISTEN_BURST_REMAINING_MS above.
-    void listenModeSendBurst(uint8_t targetNode, void* buffer, uint8_t size);
+    void listenModeSendBurst(uint8_t targetNode, const void* buffer, uint8_t size);
 
   protected:
     void listenModeInterruptHandler(void);

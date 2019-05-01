@@ -36,7 +36,7 @@ volatile uint8_t RFM69_ATC::ACK_RSSI_REQUESTED;  // new type of flag on ACK_REQU
 //=============================================================================
 // initialize() - some extra initialization before calling base class
 //=============================================================================
-bool RFM69_ATC::initialize(uint8_t freqBand, uint8_t nodeID, uint8_t networkID) {
+bool RFM69_ATC::initialize(uint8_t freqBand, uint16_t nodeID, uint8_t networkID) {
   _targetRSSI = 0;        // TomWS1: default to disabled
   _ackRSSI = 0;           // TomWS1: no existing response at init time
   ACK_RSSI_REQUESTED = 0; // TomWS1: init to none
@@ -66,7 +66,7 @@ void RFM69_ATC::setMode(uint8_t newMode) {
 // should be called immediately after reception in case sender wants ACK
 void RFM69_ATC::sendACK(const void* buffer, uint8_t bufferSize) {
   ACK_REQUESTED = 0;   // TomWS1 added to make sure we don't end up in a timing race and infinite loop sending Acks
-  uint8_t sender = SENDERID;
+  uint16_t sender = SENDERID;
   int16_t _RSSI = RSSI; // save payload received RSSI value
   bool sendRSSI = ACK_RSSI_REQUESTED;  
   writeReg(REG_PACKETCONFIG2, (readReg(REG_PACKETCONFIG2) & 0xFB) | RF_PACKET2_RXRESTART); // avoid RX deadlocks
@@ -81,14 +81,14 @@ void RFM69_ATC::sendACK(const void* buffer, uint8_t bufferSize) {
 // sendFrame() - the basic version is used to match the RFM69 prototype so we can extend it
 //=============================================================================
 // this sendFrame is generally called by the internal RFM69 functions.  Simply transfer to our modified version.
-void RFM69_ATC::sendFrame(uint8_t toAddress, const void* buffer, uint8_t bufferSize, bool requestACK, bool sendACK) {
+void RFM69_ATC::sendFrame(uint16_t toAddress, const void* buffer, uint8_t bufferSize, bool requestACK, bool sendACK) {
   sendFrame(toAddress, buffer, bufferSize, requestACK, sendACK, false, 0);  // default sendFrame
 }
 
 //=============================================================================
 // sendFrame() - the new one with additional parameters.  This packages recv'd RSSI with the packet, if required.
 //=============================================================================
-void RFM69_ATC::sendFrame(uint8_t toAddress, const void* buffer, uint8_t bufferSize, bool requestACK, bool sendACK, bool sendRSSI, int16_t lastRSSI) {
+void RFM69_ATC::sendFrame(uint16_t toAddress, const void* buffer, uint8_t bufferSize, bool requestACK, bool sendACK, bool sendRSSI, int16_t lastRSSI) {
   setMode(RF69_MODE_STANDBY); // turn off receiver to prevent reception while filling fifo
   while ((readReg(REG_IRQFLAGS1) & RF_IRQFLAGS1_MODEREADY) == 0x00); // wait for ModeReady
   writeReg(REG_DIOMAPPING1, RF_DIOMAPPING1_DIO0_00); // DIO0 is "Packet Sent"
@@ -100,21 +100,24 @@ void RFM69_ATC::sendFrame(uint8_t toAddress, const void* buffer, uint8_t bufferS
   select();
   SPI.transfer(REG_FIFO | 0x80);
   SPI.transfer(bufferSize + 3);
-  SPI.transfer(toAddress);
-  SPI.transfer(_address);
+  SPI.transfer(toAddress); //lower 8bits
+  SPI.transfer(_address);  //lower 8bits
 
-  // control byte
+  // CTL (control byte)
+  uint8_t CTLbyte=0x0;
+  if (toAddress > 0xFF) CTLbyte |= (toAddress & 0x300) >> 6; //assign last 2 bits of address if > 255
+  if (_address > 0xFF) CTLbyte |= (_address & 0x300) >> 8;   //assign last 2 bits of address if > 255
   if (sendACK) {                   // TomWS1: adding logic to return ACK_RSSI if requested
-    SPI.transfer(RFM69_CTL_SENDACK | (sendRSSI?RFM69_CTL_RESERVE1:0));  // TomWS1  TODO: Replace with EXT1
+    SPI.transfer(CTLbyte | RFM69_CTL_SENDACK | (sendRSSI?RFM69_CTL_RESERVE1:0));  // TomWS1  TODO: Replace with EXT1
     if (sendRSSI) {
       SPI.transfer(abs(lastRSSI)); //RSSI dBm is negative expected between [-100 .. -20], convert to positive and pass along as single extra header byte
       bufferSize -=1;              // account for the extra ACK-RSSI 'data' byte
     }
   }
   else if (requestACK) {  // TODO: add logic to request ackRSSI with ACK - this is when both ends of a transmission would dial power down. May not work well for gateways in multi node networks
-    SPI.transfer(_targetRSSI ? RFM69_CTL_REQACK | RFM69_CTL_RESERVE1 : RFM69_CTL_REQACK);
+    SPI.transfer(CTLbyte | (_targetRSSI ? RFM69_CTL_REQACK | RFM69_CTL_RESERVE1 : RFM69_CTL_REQACK));
   }
-  else SPI.transfer(0x00);
+  else SPI.transfer(CTLbyte);
 
   for (uint8_t i = 0; i < bufferSize; i++)
     SPI.transfer(((uint8_t*) buffer)[i]);
@@ -156,7 +159,7 @@ void RFM69_ATC::interruptHook(uint8_t CTLbyte) {
 //=============================================================================
 //  sendWithRetry() - overrides the base to allow increasing power when repeated ACK requests fail
 //=============================================================================
-bool RFM69_ATC::sendWithRetry(uint8_t toAddress, const void* buffer, uint8_t bufferSize, uint8_t retries, uint8_t retryWaitTime) {
+bool RFM69_ATC::sendWithRetry(uint16_t toAddress, const void* buffer, uint8_t bufferSize, uint8_t retries, uint8_t retryWaitTime) {
   uint32_t sentTime;
   for (uint8_t i = 0; i <= retries; i++)
   {

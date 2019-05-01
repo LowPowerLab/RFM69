@@ -40,11 +40,11 @@ class RFM69_ATC: public RFM69 {
       RFM69(slaveSelectPin, interruptPin, isRFM69HW) {
     }
 
-    bool initialize(uint8_t freqBand, uint8_t ID, uint8_t networkID=1);
+    bool initialize(uint8_t freqBand, uint16_t ID, uint8_t networkID=1);
     void sendACK(const void* buffer = "", uint8_t bufferSize=0);
     //void setHighPower(bool onOFF=true, uint8_t PA_ctl=0x60); //have to call it after initialize for RFM69HW
     //void setPowerLevel(uint8_t level); // reduce/increase transmit power level
-    bool sendWithRetry(uint8_t toAddress, const void* buffer, uint8_t bufferSize, uint8_t retries=2, uint8_t retryWaitTime=40); // 40ms roundtrip req for 61byte packets
+    bool sendWithRetry(uint16_t toAddress, const void* buffer, uint8_t bufferSize, uint8_t retries=2, uint8_t retryWaitTime=40); // 40ms roundtrip req for 61byte packets
     void  enableAutoPower(int16_t targetRSSI=-90);  // TWS: New method to enable/disable auto Power control
     void setMode(uint8_t mode);  // TWS: moved from protected to try to build block()/unblock() wrapper
     
@@ -55,8 +55,8 @@ class RFM69_ATC: public RFM69 {
 
   protected:
     void interruptHook(uint8_t CTLbyte);
-    void sendFrame(uint8_t toAddress, const void* buffer, uint8_t size, bool requestACK=false, bool sendACK=false);  // Need this one to match the RFM69 prototype.
-    void sendFrame(uint8_t toAddress, const void* buffer, uint8_t size, bool requestACK, bool sendACK, bool sendRSSI, int16_t lastRSSI);
+    void sendFrame(uint16_t toAddress, const void* buffer, uint8_t size, bool requestACK=false, bool sendACK=false);  // Need this one to match the RFM69 prototype.
+    void sendFrame(uint16_t toAddress, const void* buffer, uint8_t size, bool requestACK, bool sendACK, bool sendRSSI, int16_t lastRSSI);
     void receiveBegin();
     //void setHighPowerRegs(bool onOff);
 

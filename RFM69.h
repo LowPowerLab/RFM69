@@ -143,7 +143,7 @@
 
 #define null                  0
 #define COURSE_TEMP_COEF    -90 // puts the temperature reading in the ballpark, user can fine tune the returned value
-#define RF69_BROADCAST_ADDR 255
+#define RF69_BROADCAST_ADDR   0
 #define RF69_CSMA_LIMIT_MS 1000
 #define RF69_TX_LIMIT_MS   1000
 #define RF69_FSTEP  61.03515625 // == FXOSC / 2^19 = 32MHz / 2^19 (p13 in datasheet)
@@ -152,7 +152,11 @@
 #define RFM69_CTL_SENDACK   0x80
 #define RFM69_CTL_REQACK    0x40
 
-//#define RF69_LISTENMODE_ENABLE  //comment this line out to compile sketches without the ListenMode (saves ~2k)
+//Native hardware ListenMode is experimental
+//It was determined to be buggy and unreliable, see https://lowpowerlab.com/forum/low-power-techniques/ultra-low-power-listening-mode-for-battery-nodes/msg20261/#msg20261
+//uncomment to try ListenMode, adds ~1K to compiled size
+//FYI - 10bit addressing is not supported in ListenMode
+//#define RF69_LISTENMODE_ENABLE
 
 #if defined(RF69_LISTENMODE_ENABLE)
   // By default, receive for 256uS in listen mode and idle for ~1s
@@ -164,8 +168,8 @@ class RFM69 {
   public:
     static uint8_t DATA[RF69_MAX_DATA_LEN]; // recv/xmit buf, including header & crc bytes
     static uint8_t DATALEN;
-    static uint8_t SENDERID;
-    static uint8_t TARGETID; // should match _address
+    static uint16_t SENDERID;
+    static uint16_t TARGETID; // should match _address
     static uint8_t PAYLOADLEN;
     static uint8_t ACK_REQUESTED;
     static uint8_t ACK_RECEIVED; // should be polled immediately after sending a packet with ACK request
@@ -177,14 +181,14 @@ class RFM69 {
 
     RFM69(uint8_t slaveSelectPin=RF69_SPI_CS, uint8_t interruptPin=RF69_IRQ_PIN, bool isRFM69HW=false);
 
-    bool initialize(uint8_t freqBand, uint8_t ID, uint8_t networkID=1);
-    void setAddress(uint8_t addr);
+    bool initialize(uint8_t freqBand, uint16_t ID, uint8_t networkID=1);
+    void setAddress(uint16_t addr);
     void setNetwork(uint8_t networkID);
     bool canSend();
-    virtual void send(uint8_t toAddress, const void* buffer, uint8_t bufferSize, bool requestACK=false);
-    virtual bool sendWithRetry(uint8_t toAddress, const void* buffer, uint8_t bufferSize, uint8_t retries=2, uint8_t retryWaitTime=40); // 40ms roundtrip req for 61byte packets
+    virtual void send(uint16_t toAddress, const void* buffer, uint8_t bufferSize, bool requestACK=false);
+    virtual bool sendWithRetry(uint16_t toAddress, const void* buffer, uint8_t bufferSize, uint8_t retries=2, uint8_t retryWaitTime=40); // 40ms roundtrip req for 61byte packets
     virtual bool receiveDone();
-    bool ACKReceived(uint8_t fromNodeID);
+    bool ACKReceived(uint16_t fromNodeID);
     bool ACKRequested();
     virtual void sendACK(const void* buffer = "", uint8_t bufferSize=0);
     uint32_t getFrequency();
@@ -210,13 +214,13 @@ class RFM69 {
     void interruptHandler();
     virtual void interruptHook(uint8_t CTLbyte) {};
     static volatile bool _haveData;
-    virtual void sendFrame(uint8_t toAddress, const void* buffer, uint8_t size, bool requestACK=false, bool sendACK=false);
+    virtual void sendFrame(uint16_t toAddress, const void* buffer, uint8_t size, bool requestACK=false, bool sendACK=false);
 
     static RFM69* selfPointer;
     uint8_t _slaveSelectPin;
     uint8_t _interruptPin;
     uint8_t _interruptNum;
-    uint8_t _address;
+    uint16_t _address;
     bool _promiscuousMode;
     uint8_t _powerLevel;
     bool _isRFM69HW;

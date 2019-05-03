@@ -100,8 +100,8 @@ void RFM69_ATC::sendFrame(uint16_t toAddress, const void* buffer, uint8_t buffer
   select();
   SPI.transfer(REG_FIFO | 0x80);
   SPI.transfer(bufferSize + 3);
-  SPI.transfer(toAddress); //lower 8bits
-  SPI.transfer(_address);  //lower 8bits
+  SPI.transfer((uint8_t)toAddress); //lower 8bits
+  SPI.transfer((uint8_t)_address);  //lower 8bits
 
   // CTL (control byte)
   uint8_t CTLbyte=0x0;

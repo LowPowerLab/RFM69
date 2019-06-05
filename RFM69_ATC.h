@@ -52,6 +52,7 @@ class RFM69_ATC: public RFM69 {
     uint8_t setLNA(uint8_t newReg); // TWS: function to control LNA reg for power testing purposes
     int16_t _targetRSSI;     // if non-zero then this is the desired end point RSSI for our transmission
     uint8_t _transmitLevel;  // saved powerLevel in case we do auto power adjustment, this value gets dithered
+    uint8_t _transmitLevelStep;  // saved powerLevel in case we do auto power adjustment, this value gets dithered
 
   protected:
     void interruptHook(uint8_t CTLbyte);

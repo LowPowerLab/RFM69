@@ -42,6 +42,7 @@ bool RFM69_ATC::initialize(uint8_t freqBand, uint16_t nodeID, uint8_t networkID)
   ACK_RSSI_REQUESTED = 0; // TomWS1: init to none
   //_powerBoost = false;    // TomWS1: require someone to explicitly turn boost on!
   _transmitLevel = 31;    // TomWS1: match default value in PA Level register
+  _transmitLevelStep = 1; //increment 1 step at a time by default
   return RFM69::initialize(freqBand, nodeID, networkID);  // use base class to initialize most everything
 }
 
@@ -92,7 +93,7 @@ void RFM69_ATC::sendFrame(uint16_t toAddress, const void* buffer, uint8_t buffer
   setMode(RF69_MODE_STANDBY); // turn off receiver to prevent reception while filling fifo
   while ((readReg(REG_IRQFLAGS1) & RF_IRQFLAGS1_MODEREADY) == 0x00); // wait for ModeReady
   writeReg(REG_DIOMAPPING1, RF_DIOMAPPING1_DIO0_00); // DIO0 is "Packet Sent"
-  
+
   bufferSize += (sendACK && sendRSSI)?1:0;  // if sending ACK_RSSI then increase data size by 1
   if (bufferSize > RF69_MAX_DATA_LEN) bufferSize = RF69_MAX_DATA_LEN;
 
@@ -148,8 +149,14 @@ void RFM69_ATC::interruptHook(uint8_t CTLbyte) {
           // if (_ackRSSI < _targetRSSI && _transmitLevel < 51) _transmitLevel++;
           // else if (_ackRSSI > _targetRSSI && _transmitLevel > 32) _transmitLevel--;
         // } else {
-        if (_ackRSSI < _targetRSSI && _transmitLevel < 31) { _transmitLevel++; /*Serial.println("\n ======= _transmitLevel ++   ======");*/ }
-        else if (_ackRSSI > _targetRSSI && _transmitLevel > 0) { _transmitLevel--; /*Serial.println("\n ======= _transmitLevel --   ======");*/ }
+        if (_ackRSSI < _targetRSSI && _transmitLevel < 31)
+        {
+          //_transmitLevel++;
+          _transmitLevel += _transmitLevelStep;
+          if (_transmitLevel > 31) _transmitLevel = 31;
+        }
+        else if (_ackRSSI > _targetRSSI && _transmitLevel > 0)
+          _transmitLevel--;
         //}
       }
     }
@@ -166,14 +173,14 @@ bool RFM69_ATC::sendWithRetry(uint16_t toAddress, const void* buffer, uint8_t bu
     send(toAddress, buffer, bufferSize, true);
     sentTime = millis();
     while (millis() - sentTime < retryWaitTime)
-    {
-      if (ACKReceived(toAddress))
-      {
-        return true;
-      }
+      if (ACKReceived(toAddress)) return true;
+    if (_transmitLevel < 31) {
+      //_transmitLevel++;
+      _transmitLevel += _transmitLevelStep;
+      if (_transmitLevel > 31) _transmitLevel = 31;
     }
   }
-  if (_transmitLevel < 31) _transmitLevel++;
+
   return false;
 }
 

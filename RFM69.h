@@ -152,6 +152,8 @@
 #define RFM69_CTL_SENDACK   0x80
 #define RFM69_CTL_REQACK    0x40
 
+#define RFM69_ACK_TIMEOUT   30  // 30ms roundtrip req for 61byte packets
+
 //Native hardware ListenMode is experimental
 //It was determined to be buggy and unreliable, see https://lowpowerlab.com/forum/low-power-techniques/ultra-low-power-listening-mode-for-battery-nodes/msg20261/#msg20261
 //uncomment to try ListenMode, adds ~1K to compiled size
@@ -186,7 +188,7 @@ class RFM69 {
     void setNetwork(uint8_t networkID);
     bool canSend();
     virtual void send(uint16_t toAddress, const void* buffer, uint8_t bufferSize, bool requestACK=false);
-    virtual bool sendWithRetry(uint16_t toAddress, const void* buffer, uint8_t bufferSize, uint8_t retries=2, uint8_t retryWaitTime=40); // 40ms roundtrip req for 61byte packets
+    virtual bool sendWithRetry(uint16_t toAddress, const void* buffer, uint8_t bufferSize, uint8_t retries=2, uint8_t retryWaitTime=RFM69_ACK_TIMEOUT);
     virtual bool receiveDone();
     bool ACKReceived(uint16_t fromNodeID);
     bool ACKRequested();

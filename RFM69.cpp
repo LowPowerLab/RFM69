@@ -27,7 +27,7 @@
 #include <RFM69registers.h>
 #include <SPI.h>
 
-uint8_t RFM69::DATA[RF69_MAX_DATA_LEN];
+uint8_t RFM69::DATA[RF69_MAX_DATA_LEN+1];
 uint8_t RFM69::_mode;        // current transceiver state
 uint8_t RFM69::DATALEN;
 uint16_t RFM69::SENDERID;
@@ -361,9 +361,9 @@ void RFM69::interruptHandler() {
     ACK_REQUESTED = CTLbyte & RFM69_CTL_REQACK; // extract ACK-requested flag
     interruptHook(CTLbyte);     // TWS: hook to derived class interrupt function
 
-    for (uint8_t i = 0; i < DATALEN; i++)
-      DATA[i] = SPI.transfer(0);
-    if (DATALEN < RF69_MAX_DATA_LEN) DATA[DATALEN] = 0; // add null at end of string
+    for (uint8_t i = 0; i < DATALEN; i++) DATA[i] = SPI.transfer(0);
+
+    DATA[DATALEN] = 0; // add null at end of string // add null at end of string
     unselect();
     setMode(RF69_MODE_RX);
   }
@@ -393,8 +393,6 @@ void RFM69::receiveBegin() {
 
 // checks if a packet was received and/or puts transceiver in receive (ie RX or listen) mode
 bool RFM69::receiveDone() {
-//ATOMIC_BLOCK(ATOMIC_FORCEON)
-//{
   if (_haveData) {
   	_haveData = false;
   	interruptHandler();
@@ -410,7 +408,6 @@ bool RFM69::receiveDone() {
   }
   receiveBegin();
   return false;
-//}
 }
 
 // To enable encryption: radio.encrypt("ABCDEFGHIJKLMNOP");

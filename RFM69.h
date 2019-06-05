@@ -168,7 +168,7 @@
 
 class RFM69 {
   public:
-    static uint8_t DATA[RF69_MAX_DATA_LEN]; // recv/xmit buf, including header & crc bytes
+    static uint8_t DATA[RF69_MAX_DATA_LEN+1]; // RX/TX payload buffer, including end of string NULL char
     static uint8_t DATALEN;
     static uint16_t SENDERID;
     static uint16_t TARGETID; // should match _address

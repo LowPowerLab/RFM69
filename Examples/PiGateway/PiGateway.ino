@@ -161,7 +161,6 @@ void loop() {
 
     if (radio.ACKRequested())
     {
-      byte theNodeID = radio.SENDERID;
       radio.sendACK();
       DEBUG("[ACK-sent]");
     }

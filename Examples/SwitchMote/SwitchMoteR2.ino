@@ -106,8 +106,8 @@
 struct configuration {
   byte frequency;
   byte isHW;
-  byte nodeID;
-  byte networkID;
+  byte nodeID;    // 8bit address (up to 255)
+  byte networkID; // 8bit address (up to 255)
   char encryptionKey[16];
   byte separator1;
   char description[10];

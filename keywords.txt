@@ -11,6 +11,7 @@
 #######################################
 RFM69	KEYWORD2
 RFM69_ATC	KEYWORD2
+RFM69Registers	KEYWORD2
 RFM69_OTA	KEYWORD2
 
 #######################################

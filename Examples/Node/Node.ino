@@ -27,18 +27,30 @@
 #include <RFM69.h>         //get it here: https://www.github.com/lowpowerlab/rfm69
 #include <RFM69_ATC.h>     //get it here: https://www.github.com/lowpowerlab/rfm69
 #include <SPIFlash.h>      //get it here: https://www.github.com/lowpowerlab/spiflash
-#include <SPI.h>           //included with Arduino IDE install (www.arduino.cc)
 
 //*********************************************************************************************
 //************ IMPORTANT SETTINGS - YOU MUST CHANGE/CONFIGURE TO FIT YOUR HARDWARE ************
 //*********************************************************************************************
-#define NODEID        2    //must be unique for each node on same network (range up to 254, 255 is used for broadcast)
-#define NETWORKID     100  //the same on all nodes that talk to each other (range up to 255)
-#define GATEWAYID     1
-//Match frequency to the hardware version of the radio on your Moteino (uncomment one):
+// Address IDs are 10bit, meaning usable ID range is 1..1023
+// Address 0 is special (broadcast), messages to address 0 are received by all *listening* nodes (ie. active RX mode)
+// Gateway ID should be kept at ID=1 for simplicity, although this is not a hard constraint
+//*********************************************************************************************
+#define NODEID        2    // keep UNIQUE for each node on same network
+#define NETWORKID     100  // keep IDENTICAL on all nodes that talk to each other
+#define GATEWAYID     1    // "central" node
+
+//*********************************************************************************************
+// Frequency should be set to match the radio module hardware tuned frequency,
+// otherwise if say a "433mhz" module is set to work at 915, it will work but very badly.
+// Moteinos and RF modules from LowPowerLab are marked with a colored dot to help identify their tuned frequency band,
+// see this link for details: https://lowpowerlab.com/guide/moteino/transceivers/
+// The below examples are predefined "center" frequencies for the radio's tuned "ISM frequency band".
+// You can always set the frequency anywhere in the "frequency band", ex. the 915mhz ISM band is 902..928mhz.
+//*********************************************************************************************
 //#define FREQUENCY   RF69_433MHZ
 //#define FREQUENCY   RF69_868MHZ
 #define FREQUENCY     RF69_915MHZ
+//#define FREQUENCY_EXACT 916000000 // you may define an exact frequency/channel in Hz
 #define ENCRYPTKEY    "sampleEncryptKey" //exactly the same 16 characters/bytes on all nodes!
 #define IS_RFM69HW_HCW  //uncomment only for RFM69HW/HCW! Leave out if you have RFM69W/CW!
 //*********************************************************************************************
@@ -75,9 +87,15 @@ void setup() {
 #ifdef IS_RFM69HW_HCW
   radio.setHighPower(); //must include this only for RFM69HW/HCW!
 #endif
-  radio.encrypt(ENCRYPTKEY);
-  //radio.setFrequency(919000000); //set frequency to some custom frequency
 
+#ifdef ENCRYPTKEY
+  radio.encrypt(ENCRYPTKEY);
+#endif
+
+#ifdef FREQUENCY_EXACT
+  radio.setFrequency(FREQUENCY_EXACT); //set frequency to some custom frequency
+#endif
+  
 //Auto Transmission Control - dials down transmit power to save battery (-100 is the noise floor, -90 is still pretty good)
 //For indoor nodes that are pretty static and at pretty stable temperatures (like a MotionMote) -90dBm is quite safe
 //For more variable nodes that can expect to move or experience larger temp drifts a lower margin like -70 to -80 would probably be better

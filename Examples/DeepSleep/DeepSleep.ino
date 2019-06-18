@@ -5,43 +5,24 @@
 #define WITH_RFM69              //comment this line out if you don't have a RFM69 on your Moteino
 #define WITH_SPIFLASH           //comment this line out if you don't have the FLASH-MEM chip on your Moteino
 //***********************************************************************************************************
-
-#include <Arduino.h>            // assumes Arduino IDE v1.0 or greater
-#include <avr/sleep.h>
-#include <avr/wdt.h>
-#include <avr/power.h>
-
-#ifdef __AVR_ATmega1284P__
-  #define LED           15 // Moteino MEGAs have LEDs on D15
-  #define FLASH_SS      23 // and FLASH SS on D23
-#else
-  #define LED           9 // Moteinos have LEDs on D9
-  #define FLASH_SS      8 // and FLASH SS on D8
-#endif
+#include <LowPower.h> //get library from: https://github.com/lowpowerlab/lowpower
+                      //writeup here: http://www.rocketscream.com/blog/2011/07/04/lightweight-low-power-arduino-library/
 
 #if defined(WITH_RFM69) || defined(WITH_SPIFLASH)
   #include <SPI.h>                //comes with Arduino IDE (www.arduino.cc)
   #if defined(WITH_RFM69)
     #include <RFM69.h>            //get it here: https://www.github.com/lowpowerlab/rfm69
     RFM69 radio;
-    #define NETWORKID 100
-    #define NODEID 123
-    #define FREQUENCY RF69_915MHZ
   #endif
   #if defined(WITH_SPIFLASH)
     #include <SPIFlash.h>         //get it here: https://www.github.com/lowpowerlab/spiflash
-    SPIFlash flash(FLASH_SS, 0xEF30); //EF30 for 4mbit  Windbond chip (W25X40CL)
+    SPIFlash flash(SS_FLASHMEM, 0xEF30); //EF30 for 4mbit  Windbond chip (W25X40CL)
   #endif
 #endif
 
-//watchdog interrupt
-ISR (WDT_vect) {
-  wdt_disable();
-}
-
 void setup () {
 #ifdef WITH_RFM69
-  radio.initialize(FREQUENCY,NODEID,NETWORKID);
+  radio.initialize(RF69_915MHZ,2,100);
   radio.sleep();
 #endif
 
@@ -50,57 +31,118 @@ void setup () {
     flash.sleep();
 #endif
 
-//  //optional blink to know radio/flash sleeping went OK
-//  pinMode(LED, OUTPUT);
-//  digitalWrite(LED, HIGH);
-//  delay(30);
-//  digitalWrite(LED, LOW);
-//  delay(50);
-//  digitalWrite(LED, HIGH);
-//  delay(50);
-//  digitalWrite(LED, LOW);
-
   for (uint8_t i=0; i<=A5; i++)
   {
 #ifdef WITH_RFM69
     if (i == RF69_SPI_CS) continue;
 #endif
 #ifdef WITH_SPIFLASH
-    if (i == FLASH_SS) continue;
+    if (i == SS_FLASHMEM) continue;
 #endif
     pinMode(i, OUTPUT);
     digitalWrite(i, LOW);
   }
 
-  power_timer1_disable();
-  power_timer2_disable();
-  power_twi_disable();
+  pinMode(0, OUTPUT);
+  digitalWrite(0,HIGH);
+  pinMode(1, OUTPUT);
+  digitalWrite(1,HIGH);
+
+  pinMode(LED_BUILTIN, OUTPUT);
+
+  digitalWrite(LED_BUILTIN, HIGH);
+  delay(20);
+  digitalWrite(LED_BUILTIN, LOW);
+  delay(20);
+  digitalWrite(LED_BUILTIN, HIGH);
+  delay(20);
+  digitalWrite(LED_BUILTIN, LOW);
+  delay(20);
+  digitalWrite(LED_BUILTIN, HIGH);
+  delay(20);
+  digitalWrite(LED_BUILTIN, LOW);
+  delay(20);
+  Serial.begin(115200);
 }
 
+void longSleep(uint32_t sleepTime) {
+  do {
+    if (sleepTime > 8000)
+    {
+      LowPower.powerDown(SLEEP_8S, ADC_OFF, BOD_OFF);
+      sleepTime-=8000;
+    }
+    else if (sleepTime > 4000)
+    {
+      LowPower.powerDown(SLEEP_4S, ADC_OFF, BOD_OFF);
+      sleepTime-=4000;
+    }
+    else if (sleepTime > 2000)
+    {
+      LowPower.powerDown(SLEEP_2S, ADC_OFF, BOD_OFF);
+      sleepTime-=2000;
+    }
+    else if (sleepTime > 1000)
+    {
+      LowPower.powerDown(SLEEP_1S, ADC_OFF, BOD_OFF);
+      sleepTime-=1000;
+    }
+    else if (sleepTime > 512)
+    {
+      LowPower.powerDown(SLEEP_500MS, ADC_OFF, BOD_OFF);
+      sleepTime-=512;
+    }
+    else if (sleepTime > 256)
+    {
+      LowPower.powerDown(SLEEP_250MS, ADC_OFF, BOD_OFF);
+      sleepTime-=256;
+    }
+    else if (sleepTime > 128)
+    {
+      LowPower.powerDown(SLEEP_120MS, ADC_OFF, BOD_OFF);
+      sleepTime-=128;
+    }
+    else if (sleepTime > 64)
+    {
+      LowPower.powerDown(SLEEP_60MS, ADC_OFF, BOD_OFF);
+      sleepTime-=64;
+    }
+    else if (sleepTime > 32)
+    {
+      LowPower.powerDown(SLEEP_30MS, ADC_OFF, BOD_OFF);
+      sleepTime-=32;
+    }
+    else if (sleepTime > 16)
+    {
+      LowPower.powerDown(SLEEP_15MS, ADC_OFF, BOD_OFF);
+      sleepTime-=16;
+    }
+    else
+    {
+      sleepTime=0;
+    }
+  } while(sleepTime);
+}
+
+byte counter=0;
 void loop () 
 {
-  // disable ADC
-  ADCSRA = 0;  
-  // clear various "reset" flags
-  MCUSR = 0;
-  // allow changes, disable reset
-  WDTCSR = bit (WDCE) | bit (WDE);
-  //set interrupt mode and an interval
-  WDTCSR = bit (WDIE) | bit (WDP3) | bit (WDP0); //set WDIE, and 8 seconds delay
-  wdt_reset(); //pat the dog...
-  
-  set_sleep_mode (SLEEP_MODE_PWR_DOWN);
-  noInterrupts(); // timed sequence follows  
-  sleep_enable();
-
-  // turn off brown-out enable in software
-  // BODS must be set to one and BODSE must be set to zero within four clock cycles
-  MCUCR = bit (BODS) | bit (BODSE);
-  // The BODS bit is automatically cleared after three clock cycles
-  MCUCR = bit (BODS); 
-  interrupts();
-  sleep_cpu();
-
-  //cancel sleep as a precaution
-  sleep_disable();
+/*
+  //optional blink to know radio/flash sleeping went OK
+  digitalWrite(LED_BUILTIN, HIGH);
+  //LowPower.powerDown(SLEEP_30MS, ADC_OFF, BOD_OFF);
+  Serial.print("LOOP");
+  Serial.println(counter++);
+  Serial.flush();
+  digitalWrite(LED_BUILTIN, LOW);
+*/
+  //sleep MCU for 2seconds
+  digitalWrite(LED_BUILTIN, LOW);
+  LowPower.powerDown(SLEEP_2S, ADC_OFF, BOD_OFF);
+  //delay(1000);
+  digitalWrite(LED_BUILTIN, HIGH);
+  //LowPower.powerDown(SLEEP_FOREVER, ADC_OFF, BOD_OFF);
+  delay(100);
+  //sleep MCU for a custom # of millis
+  //longSleep(3000);
 }

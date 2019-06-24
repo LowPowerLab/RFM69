@@ -28,6 +28,13 @@
 #include <SPI.h>
 
 uint8_t RFM69::DATA[RF69_MAX_DATA_LEN+1];
+#ifdef ESP8266 || ESP32
+    #define ISR_PREFIX ICACHE_RAM_ATTR
+#else
+    #define ISR_PREFIX
+#endif
+
+
 uint8_t RFM69::_mode;        // current transceiver state
 uint8_t RFM69::DATALEN;
 uint16_t RFM69::SENDERID;
@@ -371,7 +378,7 @@ void RFM69::interruptHandler() {
 }
 
 // internal function
-void RFM69::isr0() { _haveData = true; }
+ISR_PREFIX void RFM69::isr0() { _haveData = true; }
 
 // internal function
 void RFM69::receiveBegin() {
@@ -951,7 +958,7 @@ void RFM69::listenModeReset(void)
 //=============================================================================
 // irq handler, simply calls listenModeInterruptHandler method so internal methods can be accessed easily
 //=============================================================================
-void RFM69::listenModeIrq() { selfPointer->listenModeInterruptHandler(); }
+ISR_PREFIX void RFM69::listenModeIrq() { selfPointer->listenModeInterruptHandler(); }
 
 //=============================================================================
 // listenModeInterruptHandler() - only called by listen irq handler

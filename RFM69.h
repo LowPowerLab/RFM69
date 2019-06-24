@@ -123,6 +123,11 @@
   #define RF69_IRQ_PIN          9
 #elif defined(ARDUINO_SAMD_ZERO) //includes Feather SAMD
   #define RF69_IRQ_PIN          3
+#elif defined(ESP8266)
+  #define RF69_IRQ_PIN          D8  // needed for esp8266
+  // #define RF69_IRQ_NUM          D8  // needed for esp8266
+  #define RF69_SPI_CS			D0  // needed for esp8266
+  #define LED 				2   // LED on ESP12F is on GPIO2
 #else
   #define RF69_IRQ_PIN          2
 #endif

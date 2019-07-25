@@ -371,7 +371,7 @@ void RFM69::interruptHandler() {
 }
 
 // internal function
-void RFM69::isr0() { _haveData = true; }
+ISR_PREFIX void RFM69::isr0() { _haveData = true; }
 
 // internal function
 void RFM69::receiveBegin() {

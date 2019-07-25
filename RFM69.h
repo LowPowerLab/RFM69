@@ -68,6 +68,12 @@
  #endif
 #endif
 
+#if defined(ESP8266) || defined(ESP32)
+  #define ISR_PREFIX ICACHE_RAM_ATTR
+#else
+  #define ISR_PREFIX
+#endif
+
 // digitalPinToInterrupt is not available prior to Arduino 1.5.6 and 1.0.6
 // See http://arduino.cc/en/Reference/attachInterrupt
 #ifndef NOT_AN_INTERRUPT

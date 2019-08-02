@@ -224,7 +224,6 @@ class RFM69 {
     static volatile bool _haveData;
     virtual void sendFrame(uint16_t toAddress, const void* buffer, uint8_t size, bool requestACK=false, bool sendACK=false);
 
-    static RFM69* selfPointer;
     uint8_t _slaveSelectPin;
     uint8_t _interruptPin;
     uint8_t _interruptNum;
@@ -247,6 +246,7 @@ class RFM69 {
     virtual void unselect();
 
 #if defined(RF69_LISTENMODE_ENABLE)
+  static RFM69* selfPointer;
   //=============================================================================
   //                     ListenMode specific declarations  
   //=============================================================================

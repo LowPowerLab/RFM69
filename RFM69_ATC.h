@@ -45,9 +45,9 @@ class RFM69_ATC: public RFM69 {
     //void setHighPower(bool onOFF=true, uint8_t PA_ctl=0x60); //have to call it after initialize for RFM69HW
     //void setPowerLevel(uint8_t level); // reduce/increase transmit power level
     bool sendWithRetry(uint16_t toAddress, const void* buffer, uint8_t bufferSize, uint8_t retries=2, uint8_t retryWaitTime=RFM69_ACK_TIMEOUT);
-    void  enableAutoPower(int16_t targetRSSI=-90);  // TWS: New method to enable/disable auto Power control
+    void enableAutoPower(int16_t targetRSSI=-90);  // TWS: New method to enable/disable auto Power control
     void setMode(uint8_t mode);  // TWS: moved from protected to try to build block()/unblock() wrapper
-    
+
     int16_t getAckRSSI(void);       // TWS: New method to retrieve the ack'd RSSI (if any)
     uint8_t setLNA(uint8_t newReg); // TWS: function to control LNA reg for power testing purposes
     int16_t _targetRSSI;     // if non-zero then this is the desired end point RSSI for our transmission

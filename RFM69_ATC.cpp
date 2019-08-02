@@ -92,7 +92,7 @@ void RFM69_ATC::sendFrame(uint16_t toAddress, const void* buffer, uint8_t buffer
 void RFM69_ATC::sendFrame(uint16_t toAddress, const void* buffer, uint8_t bufferSize, bool requestACK, bool sendACK, bool sendRSSI, int16_t lastRSSI) {
   setMode(RF69_MODE_STANDBY); // turn off receiver to prevent reception while filling fifo
   while ((readReg(REG_IRQFLAGS1) & RF_IRQFLAGS1_MODEREADY) == 0x00); // wait for ModeReady
-  writeReg(REG_DIOMAPPING1, RF_DIOMAPPING1_DIO0_00); // DIO0 is "Packet Sent"
+  //writeReg(REG_DIOMAPPING1, RF_DIOMAPPING1_DIO0_00); // DIO0 is "Packet Sent"
 
   bufferSize += (sendACK && sendRSSI)?1:0;  // if sending ACK_RSSI then increase data size by 1
   if (bufferSize > RF69_MAX_DATA_LEN) bufferSize = RF69_MAX_DATA_LEN;
@@ -127,8 +127,8 @@ void RFM69_ATC::sendFrame(uint16_t toAddress, const void* buffer, uint8_t buffer
   // no need to wait for transmit mode to be ready since its handled by the radio
   setMode(RF69_MODE_TX);
   uint32_t txStart = millis();
-  while (digitalRead(_interruptPin) == 0 && millis() - txStart < RF69_TX_LIMIT_MS); // wait for DIO0 to turn HIGH signalling transmission finish
-  //while (readReg(REG_IRQFLAGS2) & RF_IRQFLAGS2_PACKETSENT == 0x00); // wait for ModeReady
+  //while (digitalRead(_interruptPin) == 0 && millis() - txStart < RF69_TX_LIMIT_MS); // wait for DIO0 to turn HIGH signalling transmission finish
+  while ((readReg(REG_IRQFLAGS2) & RF_IRQFLAGS2_PACKETSENT) == 0x00); // wait for PacketSent
   setMode(RF69_MODE_STANDBY);
 }
 
@@ -151,7 +151,6 @@ void RFM69_ATC::interruptHook(uint8_t CTLbyte) {
         // } else {
         if (_ackRSSI < _targetRSSI && _transmitLevel < 31)
         {
-          //_transmitLevel++;
           _transmitLevel += _transmitLevelStep;
           if (_transmitLevel > 31) _transmitLevel = 31;
         }
@@ -175,7 +174,6 @@ bool RFM69_ATC::sendWithRetry(uint16_t toAddress, const void* buffer, uint8_t bu
     while (millis() - sentTime < retryWaitTime)
       if (ACKReceived(toAddress)) return true;
     if (_transmitLevel < 31) {
-      //_transmitLevel++;
       _transmitLevel += _transmitLevelStep;
       if (_transmitLevel > 31) _transmitLevel = 31;
     }

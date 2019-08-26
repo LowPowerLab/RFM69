@@ -40,31 +40,27 @@
 //****************************************************************************************************************
 //**** IMPORTANT RADIO SETTINGS - YOU MUST CHANGE/CONFIGURE TO MATCH YOUR HARDWARE TRANSCEIVER CONFIGURATION! ****
 //****************************************************************************************************************
-#define NODEID      123       // node ID used for this unit
-#define NETWORKID   100
+#define NODEID       123  // node ID used for this unit
+#define NETWORKID    100
 //Match frequency to the hardware version of the radio on your Moteino (uncomment one):
 //#define FREQUENCY   RF69_433MHZ
 //#define FREQUENCY   RF69_868MHZ
 #define FREQUENCY     RF69_915MHZ
-#define FREQUENCY_EXACT 916000000
+#define FREQUENCY_EXACT 917000000
+#define ENCRYPTKEY  "sampleEncryptKey" //(16 bytes of your choice - keep the same on all encrypted nodes)
 #define IS_RFM69HW_HCW  //uncomment only for RFM69HW/HCW! Leave out if you have RFM69W/CW!
 //*****************************************************************************************************************************
 #define ENABLE_ATC    //comment out this line to disable AUTO TRANSMISSION CONTROL
-#define ATC_RSSI      -75
+#define ATC_RSSI      -80
 //*****************************************************************************************************************************
 //#define BR_300KBPS             //run radio at max rate of 300kbps!
 //*****************************************************************************************************************************
 #define SERIAL_BAUD 115200
 #define ACK_TIME    30  // # of ms to wait for an ack
-#define ENCRYPTKEY "sampleEncryptKey" //(16 bytes of your choice - keep the same on all encrypted nodes)
-#define BLINKPERIOD 500
+#define BLINKPERIOD 200
 
-#ifdef __AVR_ATmega1284P__
-  #define LED           15 // Moteino MEGAs have LEDs on D15
-  #define FLASH_SS      23 // and FLASH SS on D23
-#else
-  #define LED           9 // Moteinos hsave LEDs on D9
-  #define FLASH_SS      8 // and FLASH SS on D8
+#if defined(MOTEINO_M0) && defined(SERIAL_PORT_USBVIRTUAL)
+  #define Serial SERIAL_PORT_USBVIRTUAL // Required for Serial on Zero based boards
 #endif
 
 #ifdef ENABLE_ATC
@@ -82,12 +78,14 @@ long lastPeriod = -1;
 // MANUFACTURER_ID - OPTIONAL, 0x1F44 for adesto(ex atmel) 4mbit flash
 //                             0xEF30 for windbond 4mbit flash
 //                             0xEF40 for windbond 16/64mbit flash
+//                             0x1F84 for adesto 4mbit AT25SF041 4MBIT flash
 //*****************************************************************************************************************************
-SPIFlash flash(FLASH_SS, 0xEF30); //EF30 for windbond 4mbit flash
+SPIFlash flash(SS_FLASHMEM, 0xEF30); //EF30 for windbond 4mbit flash
 
 void setup() {
-  pinMode(LED, OUTPUT);
+  pinMode(LED_BUILTIN, OUTPUT);
   Serial.begin(SERIAL_BAUD);
+  delay(1000);
   radio.initialize(FREQUENCY,NODEID,NETWORKID);
   radio.encrypt(ENCRYPTKEY); //OPTIONAL
 
@@ -102,7 +100,7 @@ void setup() {
 #ifdef IS_RFM69HW_HCW
   radio.setHighPower(); //must include this only for RFM69HW/HCW!
 #endif
-  Serial.print("Start node...");
+  Serial.println("Start node...");
   Serial.print("Node ID = ");
   Serial.println(NODEID);
 
@@ -134,6 +132,18 @@ void loop(){
       int counter = 0;
 
       while(counter<=256){
+        Serial.print(flash.readByte(counter++), HEX);
+        Serial.print('.');
+      }
+      
+      Serial.println();
+    }
+    else if (input == 'D') //d=dump higher memory
+    {
+      Serial.println("Flash content:");
+      uint16_t counter = 4090; //dump the memory between the first 4K and second 4K sectors
+
+      while(counter<=4200){
         Serial.print(flash.readByte(counter++), HEX);
         Serial.print('.');
       }
@@ -193,6 +203,7 @@ void loop(){
   {
     lastPeriod++;
     digitalWrite(LED, lastPeriod%2);
+    Serial.print("BLINKPERIOD ");Serial.println(BLINKPERIOD);
   }
   //*****************************************************************************************************************************
 }

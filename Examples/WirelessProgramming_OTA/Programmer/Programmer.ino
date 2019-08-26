@@ -35,7 +35,6 @@
 #include <RFM69.h>          //get it here: https://github.com/lowpowerlab/RFM69
 #include <RFM69_ATC.h>      //get it here: https://github.com/lowpowerlab/RFM69
 #include <RFM69_OTA.h>      //get it here: https://github.com/lowpowerlab/RFM69
-#include <SPIFlash.h>       //get it here: https://www.github.com/lowpowerlab/spiflash
 #include <SPI.h>            //included with Arduino IDE (www.arduino.cc)
 
 //****************************************************************************************************************
@@ -47,7 +46,7 @@
 //#define FREQUENCY   RF69_433MHZ
 //#define FREQUENCY   RF69_868MHZ
 #define FREQUENCY     RF69_915MHZ
-#define FREQUENCY_EXACT 916000000
+#define FREQUENCY_EXACT 917000000
 #define ENCRYPTKEY "sampleEncryptKey" //(16 bytes of your choice - keep the same on all encrypted nodes)
 #define IS_RFM69HW_HCW  //uncomment only for RFM69HW/HCW! Leave out if you have RFM69W/CW!
 //*********************************************************************************************
@@ -60,12 +59,6 @@
 #define SERIAL_BAUD 115200
 #define ACK_TIME    50  // # of ms to wait for an ack
 #define TIMEOUT     3000
-
-#ifdef __AVR_ATmega1284P__
-  #define LED           15 // MoteinoMEGA has LED on D15
-#else
-  #define LED            9 // Moteino has LED on D9
-#endif
 
 #ifdef ENABLE_ATC
   RFM69_ATC radio;
@@ -152,7 +145,7 @@ void loop(){
     
     Serial.println();
   }
-  Blink(LED,5); //heartbeat
+  Blink(LED_BUILTIN,1); //heartbeat
 }
 
 void Blink(byte PIN, int DELAY_MS)

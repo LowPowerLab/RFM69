@@ -37,7 +37,7 @@
   #include <avr/wdt.h>
 #endif
 
-#ifdef MOTEINO_ZERO
+#ifdef MOTEINO_M0
   #if defined(SERIAL_PORT_USBVIRTUAL)
     #define Serial SERIAL_PORT_USBVIRTUAL // output on SerialUSB instead of Serial
   #endif
@@ -130,7 +130,7 @@ uint8_t HandleWirelessHEXData(RFM69& radio, uint8_t remoteID, SPIFlash& flash, u
   //first clear the fist 32k block (dedicated to a new FLASH image)
   flash.blockErase32K(0);
   flash.writeBytes(0,"FLXIMG:", 7);
-#if defined (MOTEINO_ZERO)
+#if defined (MOTEINO_M0)
   flash.writeByte(10,':');
   uint32_t bytesFlashed=11;
 #else
@@ -211,7 +211,7 @@ uint8_t HandleWirelessHEXData(RFM69& radio, uint8_t remoteID, SPIFlash& flash, u
           if (dataLen==7 && radio.DATA[4]=='E' && radio.DATA[5]=='O' && radio.DATA[6]=='F') //Expected EOF
           {
           
-#if defined (MOTEINO_ZERO)
+#if defined (MOTEINO_M0)
             if ((bytesFlashed-10)>253952) { //max 65536 - 10 bytes (signature)
               if (DEBUG) Serial.println(F("IMG > 64k, too big"));
               radio.sendACK("FLX?NOK:HEX>64k",15);
@@ -233,7 +233,7 @@ uint8_t HandleWirelessHEXData(RFM69& radio, uint8_t remoteID, SPIFlash& flash, u
             HandleHandshakeACK(radio, flash, false);
             if (DEBUG) Serial.println(F("FLX?OK"));
             //save # of bytes written
-#ifdef MOTEINO_ZERO
+#ifdef MOTEINO_M0
             flash.writeByte(7,(bytesFlashed-11)>>16);
             flash.writeByte(8,(bytesFlashed-11)>>8);
             flash.writeByte(9,(bytesFlashed-11));
@@ -545,7 +545,7 @@ void resetUsingWatchdog(uint8_t DEBUG)
   if (DEBUG) Serial.print(F("REBOOTING"));
   wdt_enable(WDTO_15MS);
   while(1) if (DEBUG) Serial.print(F("."));
-#elif defined(MOTEINO_ZERO)
+#elif defined(MOTEINO_M0)
   WDT->CTRL.reg = 0; // disable watchdog
   while (WDT->STATUS.bit.SYNCBUSY == 1); // sync is required
   WDT->CONFIG.reg = 0; // see Table 18.8.2 Timeout Period (valid values 0-11)

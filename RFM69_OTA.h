@@ -37,7 +37,7 @@
 #include <RFM69.h>
 #include <SPIFlash.h>
 
-#if defined(MOTEINO_ZERO)
+#if defined(MOTEINO_M0)
   #define LED           13 // Moteino M0
 #elif defined(__AVR_ATmega1284P__)
   #define LED           15 // Moteino MEGAs have LEDs on D15

@@ -129,6 +129,9 @@
   #define RF69_IRQ_PIN          9
 #elif defined(ARDUINO_SAMD_ZERO) //includes Feather SAMD
   #define RF69_IRQ_PIN          3
+#elif defined(ESP8266)
+  #define RF69_IRQ_PIN          4
+  #define RF69_SPI_CS           15
 #else
   #define RF69_IRQ_PIN          2
 #endif

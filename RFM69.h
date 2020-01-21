@@ -106,6 +106,8 @@
   // Everything else (including Due and Teensy) interrupt number the same as the interrupt pin number
   #define digitalPinToInterrupt(p) (p)
  #endif
+#elif defined(__SAMD21__) || defined (__SAMD51__) //Arduino.h in most/all cores wrongly "#define digitalPinToInterrupt(P) (P)" after calling variant.h
+  #define digitalPinToInterrupt(P)   (g_APinDescription[P].ulExtInt)
 #endif
 
 // On some platforms, attachInterrupt() takes a pin number, not an interrupt number

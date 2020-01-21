@@ -30,7 +30,7 @@ getFrequency	KEYWORD2
 encrypt	KEYWORD2
 setCS	KEYWORD2
 readRSSI	KEYWORD2
-promiscuous	KEYWORD2
+spyMode	KEYWORD2
 setHighPower	KEYWORD2
 sleep	KEYWORD2
 readReg	KEYWORD2

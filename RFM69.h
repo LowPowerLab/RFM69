@@ -204,7 +204,8 @@ class RFM69 {
     void encrypt(const char* key);
     void setCS(uint8_t newSPISlaveSelect);
     int16_t readRSSI(bool forceTrigger=false); // *current* signal strength indicator; e.g. < -90dBm says the frequency channel is free + ready to transmit
-    void promiscuous(bool onOff=true);
+    void spyMode(bool onOff=true);
+    void promiscuous(bool onOff=true); //deprecated, replaced with spyMode()
     virtual void setHighPower(bool onOFF=true); // has to be called after initialize() for RFM69HW
     virtual void setPowerLevel(uint8_t level); // reduce/increase transmit power level
     void sleep();
@@ -228,7 +229,7 @@ class RFM69 {
     uint8_t _interruptPin;
     uint8_t _interruptNum;
     uint16_t _address;
-    bool _promiscuousMode;
+    bool _spyMode;
     uint8_t _powerLevel;
     bool _isRFM69HW;
 #if defined (SPCR) && defined (SPSR)

@@ -43,7 +43,7 @@ RFM69::RFM69(uint8_t slaveSelectPin, uint8_t interruptPin, bool isRFM69HW)
   _slaveSelectPin = slaveSelectPin;
   _interruptPin = interruptPin;
   _mode = RF69_MODE_STANDBY;
-  _promiscuousMode = false;
+  _spyMode = false;
   _powerLevel = 31;
   _isRFM69HW = isRFM69HW;
 #if defined(RF69_LISTENMODE_ENABLE)
@@ -349,7 +349,7 @@ void RFM69::interruptHandler() {
     TARGETID |= (uint16_t(CTLbyte) & 0x0C) << 6; //10 bit address (most significant 2 bits stored in bits(2,3) of CTL byte
     SENDERID |= (uint16_t(CTLbyte) & 0x03) << 8; //10 bit address (most sifnigicant 2 bits stored in bits(0,1) of CTL byte
 
-    if(!(_promiscuousMode || TARGETID == _address || TARGETID == RF69_BROADCAST_ADDR) // match this node's address, or broadcast address or anything in promiscuous mode
+    if(!(_spyMode || TARGETID == _address || TARGETID == RF69_BROADCAST_ADDR) // match this node's address, or broadcast address or anything in spy mode
        || PAYLOADLEN < 3) // address situation could receive packets that are malformed and don't fit this libraries extra fields
     {
       PAYLOADLEN = 0;
@@ -501,11 +501,16 @@ void RFM69::unselect() {
 #endif
 }
 
-// true  = disable filtering to capture all frames on network
-// false = enable node/broadcast filtering to capture only frames sent to this/broadcast address
-void RFM69::promiscuous(bool onOff) {
-  _promiscuousMode = onOff;
+// true = disable ID filtering to capture all packets on network, regardless of TARGETID
+// false (default) = enable node/broadcast ID filtering to capture only frames sent to this/broadcast address
+void RFM69::spyMode(bool onOff) {
+  _spyMode = onOff;
   //writeReg(REG_PACKETCONFIG1, (readReg(REG_PACKETCONFIG1) & 0xF9) | (onOff ? RF_PACKET1_ADRSFILTERING_OFF : RF_PACKET1_ADRSFILTERING_NODEBROADCAST));
+}
+
+void RFM69::promiscuous(bool onOff) {
+  Serial.println("\nRFM69::promiscuous(bool): DEPRECATED, use spyMode(bool) instead!\n");
+  spyMode(onOff);
 }
 
 // for RFM69HW only: you must call setHighPower(true) after initialize() or else transmission won't work
@@ -979,7 +984,7 @@ void RFM69::listenModeInterruptHandler(void)
   PAYLOADLEN = SPI.transfer(0);
   PAYLOADLEN = PAYLOADLEN > 64 ? 64 : PAYLOADLEN; // precaution
   TARGETID = SPI.transfer(0);
-  if(!(_promiscuousMode || TARGETID == _address || TARGETID == RF69_BROADCAST_ADDR) // match this node's address, or broadcast address or anything in promiscuous mode
+  if(!(_spyMode || TARGETID == _address || TARGETID == RF69_BROADCAST_ADDR) // match this node's address, or broadcast address or anything in spy mode
      || PAYLOADLEN < 3) // address situation could receive packets that are malformed and don't fit this library's extra fields
   {
     listenModeReset();

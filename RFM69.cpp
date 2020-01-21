@@ -475,15 +475,15 @@ void RFM69::select() {
 
 #ifdef SPI_HAS_TRANSACTION
   SPI.beginTransaction(_settings);
-#endif
-
-  // set RFM69 SPI settings
+#else
+  // set RFM69 SPI settings explicitly
   SPI.setDataMode(SPI_MODE0);
   SPI.setBitOrder(MSBFIRST);
 #ifdef __arm__
 	SPI.setClockDivider(SPI_CLOCK_DIV16);
 #else
   SPI.setClockDivider(SPI_CLOCK_DIV4); // decided to slow down from DIV2 after SPI stalling in some instances, especially visible on mega1284p when RFM69 and FLASH chip both present
+#endif
 #endif
   digitalWrite(_slaveSelectPin, LOW);
 }

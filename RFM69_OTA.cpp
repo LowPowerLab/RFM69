@@ -30,8 +30,8 @@
 // Please maintain this license information along with authorship
 // and copyright notices in any redistribution of this code
 // **********************************************************************************
-#include <RFM69_OTA.h>
-#include <RFM69registers.h>
+#include "RFM69_OTA.h"
+#include "RFM69registers.h"
 
 #ifdef __AVR__
   #include <avr/wdt.h>

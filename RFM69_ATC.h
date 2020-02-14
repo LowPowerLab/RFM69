@@ -28,7 +28,7 @@
 // **********************************************************************************
 #ifndef RFM69_ATC_h
 #define RFM69_ATC_h
-#include <RFM69.h>
+#include "RFM69.h"
 
 #define RFM69_CTL_RESERVE1  0x20
 

@@ -62,9 +62,6 @@
 period_t sleepTime = SLEEP_LONGEST; //period_t is an enum type defined in the LowPower library (LowPower.h)
 //*********************************************************************************************
 #if defined (MOTEINO_M0)
-  #if defined(SERIAL_PORT_USBVIRTUAL)
-    #define Serial SERIAL_PORT_USBVIRTUAL // Required for Serial on Zero based boards
-  #endif
   #include <avr/dtostrf.h>
   #define BATT_MONITOR  A5   //through 1Meg+1Megohm and 0.1uF cap from battery VCC - this ratio divides the voltage to bring it below 3.3V where it is scaled to a readable range
   #define BATT_FORMULA(reading) reading * 0.00322 * 2  // >>> fine tune this parameter to match your voltage when fully charged

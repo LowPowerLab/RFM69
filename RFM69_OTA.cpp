@@ -37,11 +37,6 @@
   #include <avr/wdt.h>
 #endif
 
-#ifdef MOTEINO_M0
-  #if defined(SERIAL_PORT_USBVIRTUAL)
-    #define Serial SERIAL_PORT_USBVIRTUAL // output on SerialUSB instead of Serial
-  #endif
-#endif
 //===================================================================================================================
 // CheckForWirelessHEX() - Checks whether the last message received was a wireless programming request handshake
 // If so it will start the handshake protocol, receive the new HEX image and 
@@ -546,12 +541,14 @@ void resetUsingWatchdog(uint8_t DEBUG)
   wdt_enable(WDTO_15MS);
   while(1) if (DEBUG) Serial.print(F("."));
 #elif defined(MOTEINO_M0)
-  WDT->CTRL.reg = 0; // disable watchdog
-  while (WDT->STATUS.bit.SYNCBUSY == 1); // sync is required
-  WDT->CONFIG.reg = 0; // see Table 18.8.2 Timeout Period (valid values 0-11)
-  WDT->CTRL.reg = WDT_CTRL_ENABLE; //enable WDT
-  while (WDT->STATUS.bit.SYNCBUSY == 1);
-  WDT->CLEAR.reg= 0x00; // system reset via WDT
-  while (WDT->STATUS.bit.SYNCBUSY == 1);
+  //WDT->CTRL.reg = 0; // disable watchdog
+  //while (WDT->STATUS.bit.SYNCBUSY == 1); // sync is required
+  //WDT->CONFIG.reg = 0; // see Table 18.8.2 Timeout Period (valid values 0-11)
+  //WDT->CTRL.reg = WDT_CTRL_ENABLE; //enable WDT
+  //while (WDT->STATUS.bit.SYNCBUSY == 1);
+  //WDT->CLEAR.reg= 0x00; // system reset via WDT
+  //while (WDT->STATUS.bit.SYNCBUSY == 1);
+  *((volatile uint32_t *)(HMCRAMC0_ADDR + HMCRAMC0_SIZE - 4)) = 0xF1A507AF;
+  NVIC_SystemReset();
 #endif
 }

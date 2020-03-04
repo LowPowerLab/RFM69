@@ -29,7 +29,6 @@
 #include "RFM69_ATC.h"
 #include "RFM69.h"   // include the RFM69 library files as well
 #include "RFM69registers.h"
-
 #include <SPI.h>
 
 volatile uint8_t RFM69_ATC::ACK_RSSI_REQUESTED;  // new type of flag on ACK_REQUEST
@@ -127,7 +126,7 @@ void RFM69_ATC::sendFrame(uint16_t toAddress, const void* buffer, uint8_t buffer
 
   // no need to wait for transmit mode to be ready since its handled by the radio
   setMode(RF69_MODE_TX);
-  uint32_t txStart = millis();
+  //uint32_t txStart = millis();
   //while (digitalRead(_interruptPin) == 0 && millis() - txStart < RF69_TX_LIMIT_MS); // wait for DIO0 to turn HIGH signalling transmission finish
   while ((readReg(REG_IRQFLAGS2) & RF_IRQFLAGS2_PACKETSENT) == 0x00); // wait for PacketSent
   setMode(RF69_MODE_STANDBY);

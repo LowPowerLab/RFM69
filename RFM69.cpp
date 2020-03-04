@@ -25,7 +25,6 @@
 // **********************************************************************************
 #include "RFM69.h"
 #include "RFM69registers.h"
-
 #include <SPI.h>
 
 uint8_t RFM69::DATA[RF69_MAX_DATA_LEN+1];
@@ -329,7 +328,7 @@ void RFM69::sendFrame(uint16_t toAddress, const void* buffer, uint8_t bufferSize
 
   // no need to wait for transmit mode to be ready since its handled by the radio
   setMode(RF69_MODE_TX);
-  uint32_t txStart = millis();
+  //uint32_t txStart = millis();
   //while (digitalRead(_interruptPin) == 0 && millis() - txStart < RF69_TX_LIMIT_MS); // wait for DIO0 to turn HIGH signalling transmission finish
   while ((readReg(REG_IRQFLAGS2) & RF_IRQFLAGS2_PACKETSENT) == 0x00); // wait for PacketSent
   setMode(RF69_MODE_STANDBY);
@@ -960,7 +959,7 @@ void RFM69::listenModeReset(void)
 //=============================================================================
 // irq handler, simply calls listenModeInterruptHandler method so internal methods can be accessed easily
 //=============================================================================
-void RFM69::listenModeIrq() { selfPointer->listenModeInterruptHandler(); }
+ISR_PREFIX void RFM69::listenModeIrq() { selfPointer->listenModeInterruptHandler(); }
 
 //=============================================================================
 // listenModeInterruptHandler() - only called by listen irq handler

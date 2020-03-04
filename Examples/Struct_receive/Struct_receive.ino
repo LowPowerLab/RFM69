@@ -48,10 +48,6 @@
 //*********************************************************************************************
 #define SERIAL_BAUD 115200
 
-#if defined (MOTEINO_M0) && defined(SERIAL_PORT_USBVIRTUAL)
-  #define Serial SERIAL_PORT_USBVIRTUAL // Required for Serial on Zero based boards
-#endif
-
 #ifdef ENABLE_ATC
   RFM69_ATC radio;
 #else

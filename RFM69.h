@@ -129,6 +129,8 @@
   #define RF69_IRQ_PIN          PA3
 #elif defined(MOTEINO_M0)
   #define RF69_IRQ_PIN          9
+#elif defined(__SAMD51__)
+  #define RF69_IRQ_PIN          18
 #elif defined(ARDUINO_SAMD_ZERO) //includes Feather SAMD
   #define RF69_IRQ_PIN          3
 #elif defined(ESP8266)

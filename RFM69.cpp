@@ -108,7 +108,12 @@ bool RFM69::initialize(uint8_t freqBand, uint16_t nodeID, uint8_t networkID)
 
   digitalWrite(_slaveSelectPin, HIGH);
   pinMode(_slaveSelectPin, OUTPUT);
-  SPI.begin();
+#if defined(ESP32)
+    SPI.begin(18,19,23,5); //SPI3  (SCK,MISO,MOSI,CS)
+    //SPI.begin(14,12,13,15); //SPI2   (SCK,MISO,MOSI,CS) 
+#else
+    SPI.begin();
+#endif
   
 #ifdef SPI_HAS_TRANSACTION
   _settings = SPISettings(4000000, MSBFIRST, SPI_MODE0);

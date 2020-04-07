@@ -528,6 +528,7 @@ void PrintHex83(uint8_t* data, uint8_t length)
     tmp = (data[i] & 0x0F) | 48;
     Serial.print((char)((tmp > 57) ? tmp+7 : tmp));
   }
+  Serial.println();
 }
 
 //===================================================================================================================

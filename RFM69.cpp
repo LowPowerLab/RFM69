@@ -516,7 +516,7 @@ void RFM69::spyMode(bool onOff) {
 }
 
 void RFM69::promiscuous(bool onOff) {
-  Serial.println("\nRFM69::promiscuous(bool): DEPRECATED, use spyMode(bool) instead!\n");
+  #pragma message ("\nRFM69::promiscuous(bool): DEPRECATED, use spyMode(bool) instead!\n")
   spyMode(onOff);
 }
 

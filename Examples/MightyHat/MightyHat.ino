@@ -1,58 +1,38 @@
 // **********************************************************************************************************
 // MightyHat gateway base unit sketch that works with MightyHat equipped with RFM69W/RFM69HW/RFM69CW/RFM69HCW
-// This will relay all RF data over serial to the host computer (RaspberryPi, PC etc) and vice versa
+// This will relay all RF data over serial to the host computer (RaspberryPi) and vice versa.
+// It will buffer the serial data to ensure host serial requests are not missed.
 // http://LowPowerLab.com/MightyHat
-// Also see http://LowPowerLab.com/gateway
+// PiGateway project: http://LowPowerLab.com/gateway
 // **********************************************************************************
-// Copyright Felix Rusu 2016, http://www.LowPowerLab.com/contact
+// Copyright Felix Rusu 2020, http://www.LowPowerLab.com/contact
 // **********************************************************************************
-// License
-// **********************************************************************************
-// This program is free software; you can redistribute it 
-// and/or modify it under the terms of the GNU General    
-// Public License as published by the Free Software       
-// Foundation; either version 3 of the License, or        
-// (at your option) any later version.                    
-//                                                        
-// This program is distributed in the hope that it will   
-// be useful, but WITHOUT ANY WARRANTY; without even the  
-// implied warranty of MERCHANTABILITY or FITNESS FOR A   
-// PARTICULAR PURPOSE. See the GNU General Public        
-// License for more details.                              
-//                                                   
-// Licence can be viewed at                               
-// http://www.gnu.org/licenses/gpl-3.0.txt
-//
-// Please maintain this license information along with authorship
-// and copyright notices in any redistribution of this code
-// **********************************************************************************
-#define MHAT_VERSION    3  //latest version is R3, change to "2" if you have a MightyHat R2
+#define MHAT_VERSION     3  //latest is R4, only change to "2" if you have a MightyHat R2
 // ****************************************************************************************
-#include <RFM69.h>         //get it here: https://github.com/lowpowerlab/rfm69
-#include <RFM69_ATC.h>     //get it here: https://github.com/lowpowerlab/RFM69
-#include <RFM69_OTA.h>     //get it here: https://github.com/lowpowerlab/RFM69
-#include <SPIFlash.h>      //get it here: https://github.com/lowpowerlab/spiflash
-#include <SPI.h>           //included with Arduino IDE (www.arduino.cc)
-#include "U8glib.h"        //https://bintray.com/olikraus/u8glib/Arduino
-                           //u8g compared to adafruit lib: https://www.youtube.com/watch?v=lkWZuAnHa2Y
-                           //draing bitmaps: https://www.coconauts.net/blog/2015/01/19/easy-draw-bitmaps-arduino/
-//****************************************************************************************************************
-//**** IMPORTANT RADIO SETTINGS - YOU MUST CHANGE/CONFIGURE TO MATCH YOUR HARDWARE TRANSCEIVER CONFIGURATION! ****
-//****************************************************************************************************************
+#include <RFM69.h>       //get it here: https://github.com/lowpowerlab/rfm69
+#include <RFM69_ATC.h>   //get it here: https://github.com/lowpowerlab/RFM69
+#include <RFM69_OTA.h>   //get it here: https://github.com/lowpowerlab/RFM69
+#include <SPIFlash.h>    //get it here: https://github.com/lowpowerlab/spiflash
+#include <PString.h>     //easy string manipulator: http://arduiniana.org/libraries/pstring/
+#include <Streaming.h>   //easy C++ style output operators: http://arduiniana.org/libraries/streaming/
+#include "U8glib.h"      //https://bintray.com/olikraus/u8glib/Arduino
+                         //u8g compared to adafruit lib: https://www.youtube.com/watch?v=lkWZuAnHa2Y
+                         //drawing bitmaps: https://www.coconauts.net/blog/2015/01/19/easy-draw-bitmaps-arduino/
+//*****************************************************************************************************************************
+// ADJUST THE SETTINGS BELOW DEPENDING ON YOUR HARDWARE/SCENARIO !
+//*****************************************************************************************************************************
 #define NODEID          1  //the gateway has ID=1
-#define NETWORKID     100  //all nodes on the same network can talk to each other
-//#define FREQUENCY     RF69_433MHZ //Match this with the version of your Moteino! (others: RF69_433MHZ, RF69_868MHZ)
+#define NETWORKID     200  //all nodes on the same network can talk to each other
 #define FREQUENCY     RF69_915MHZ //Match this with the version of your Moteino! (others: RF69_433MHZ, RF69_868MHZ)
-//#define FREQUENCY_EXACT 917000000 //uncomment and set to a specific frequency in Hz, if commented the center frequency is used
+//#define FREQUENCY_EXACT 916000000 //uncomment and set to a specific frequency in Hz, if commented the center frequency is used
 #define ENCRYPTKEY    "sampleEncryptKey" //has to be same 16 characters/bytes on all nodes, not more not less!
-#define IS_RFM69HW_HCW  //uncomment only for RFM69HW/HCW! Leave out if you have RFM69W/CW!
+#define IS_RFM69HW    //uncomment only for RFM69HCW
 #define ENABLE_ATC    //comment out this line to disable AUTO TRANSMISSION CONTROL //more here: http://lowpowerlab.com/blog/2015/11/11/rfm69_atc-automatic-transmission-control/
-//#define ENABLE_WIRELESS_PROGRAMMING    //comment out this line to disable Wireless Programming of this gateway node
+#define ENABLE_WIRELESS_PROGRAMMING    //comment out this line to disable Wireless Programming of this gateway node
 #define ENABLE_LCD    //comment this out if you don't have or don't want to use the LCD
 //*****************************************************************************************************************************
-#define ACK_TIME       30  // # of ms to wait for an ack
-#define SERIAL_BAUD 19200
-#define DEBUG_EN     //comment out if you don't want any serial verbose output (keep out in real use)
+#define SERIAL_BAUD   115200 //use 115200 with PiGateway v9.1 or later, 19200 with v9.0 or prior
+//#define DEBUG_EN       //comment out if you don't want any serial verbose output (keep out in real use)
 
 #define BTN_LED_RED     9
 #define BTN_LED_GRN     6  // This will indicate when Pi has power
@@ -62,8 +42,6 @@
 #define POWER_LED_OFF()    { digitalWrite(BTN_LED_RED, LOW);  digitalWrite(BTN_LED_GRN, LOW); }
 #define ON              1
 #define OFF             0
-
-#define FLASH_CS        8
 
 #define BUZZER              5     // Buzzer attached to D5 (PWM pin required for tones)
 #define BUTTON             A2     // Power button pin
@@ -107,13 +85,26 @@
   #define DEBUGln(input)
 #endif
 
-//general variables
-byte ackCount=0;
-String inputstr;
-byte inputLen=0;
-char RSSIstr[] = "-100dBm";
-char temp[64];
+#define LED_HIGH digitalWrite(LED_BUILTIN, HIGH)
+#define LED_LOW digitalWrite(LED_BUILTIN, LOW)
 
+//******************************************** BEGIN ADVANCED variables ********************************************************************************
+extern char *__brkval;
+#define RAMSIZE 2048
+#define MAX_BUFFER_LENGTH   25 //limit parameter update requests to 20 chars. ex: Parameter:LongRequest
+#define MAX_ACK_REQUEST_LENGTH  30 //60 is max for ACK (with ATC enabled), but need to allow appending :OK and :INV to confirmations from node
+
+typedef struct req {
+  uint16_t nodeId;
+  char data[MAX_BUFFER_LENGTH]; //+1 for the null terminator
+  struct req *next;
+}REQUEST;
+
+//dynamically allocated queue (FIFO) data structure
+REQUEST* queue = NULL;
+byte size_of_queue = 0;
+//******************************************** END ADVANCED variables ********************************************************************************
+//******************************************** BEGIN GENERAL variables ********************************************************************************
 byte lastValidReading = 1;
 unsigned long lastValidReadingTime = 0;
 unsigned long NOW=0;
@@ -125,18 +116,19 @@ float systemVoltagePrevious = 5;
 boolean batteryLow=false;
 boolean batteryLowShutdown=false;
 
-SPIFlash flash(FLASH_CS, 0xEF30); //EF30 for 4mbit Windbond FLASH MEM 
+SPIFlash flash(SS_FLASHMEM, 0xEF30); //EF30 for 4mbit Windbond FLASH MEM 
 #ifdef ENABLE_ATC
   RFM69_ATC radio;
 #else
   RFM69 radio;
 #endif
-
+//******************************************** END GENERAL variables ********************************************************************************
 //******************************************** BEGIN LCD STUFF ********************************************************************************
-char lcdbuff[80];
-#ifdef ENABLE_LCD
+char buff[80];
+PString Pbuff(buff, sizeof(buff)); //easy string manipulator
 
-#if defined(MHAT_VERSION) && (MHAT_VERSION == 3)
+#ifdef ENABLE_LCD
+#if defined(MHAT_VERSION) && (MHAT_VERSION >= 3)
   #define PIN_LCD_CS    A1 //Pin 2 on LCD, lcd CS is shared with Latch value pin since they are both outputs and never HIGH at the same time
   #define PIN_LCD_RST   U8G_PIN_NONE //this is tied directly to the atmega RST
 #else
@@ -196,6 +188,35 @@ void drawLogo() {
 
 void clearDisplay() { lcd.firstPage(); do{}while(lcd.nextPage()); }
 
+//******************************************** MESSAGE HISTORY ******************************************************************************
+#define MSG_MAX_LEN   32    //truncate message at 32 chars since most are shorter than that anyway
+#define HISTORY_LEN   10    //hold this many past messages (IMPORTANT: 10 records needs about 330 bytes of RAM so be careful about making this too large)
+typedef struct {
+  char data[MSG_MAX_LEN];
+  int rssi;
+} Message;
+Message * messageHistory = new Message[HISTORY_LEN];
+byte lastMessageIndex = HISTORY_LEN;
+byte currMessageIndex = HISTORY_LEN;
+byte historyLength = 0;
+
+void saveToHistory(char * msg, int rssi)
+{
+  byte length = strlen(msg);
+  byte i = 0;
+  if (lastMessageIndex >= HISTORY_LEN-1) lastMessageIndex = 0;
+  else lastMessageIndex++;
+  if (historyLength < HISTORY_LEN) historyLength++;
+  currMessageIndex = historyLength-1; //reset history pointer back to latest message
+
+  for (; i<(MSG_MAX_LEN-1) && (i < length); i++)
+    messageHistory[lastMessageIndex].data[i] = msg[i];
+
+  messageHistory[lastMessageIndex].data[i] = '\0'; //terminate string
+  messageHistory[lastMessageIndex].rssi = rssi;
+}
+//******************************************** END MESSAGE HISTORY **************************************************************************
+
 void refreshLCD() {
   noInterrupts(); //while messing with LCD need to pause interrups from radio to avoid SPI conflicts!
   byte lcdwidth = lcd.getWidth();
@@ -211,7 +232,11 @@ void refreshLCD() {
     lcd.setFontRefHeightText();
     lcd.setFontPosTop();
     byte fontheight = lcd.getFontAscent()-lcd.getFontDescent();
-    char * textp = lcdbuff;
+
+    char * textp = buff;
+    if (historyLength > 0)
+      textp = messageHistory[currMessageIndex].data;
+
     byte textLength = strlen(textp);
     byte line=0;
     byte done = false;
@@ -259,19 +284,21 @@ void refreshLCD() {
     if (systemVoltage >= CHARGINGTHRESHOLD)
       lcd.print("CHRG"); 
     else
-      lcd.print(systemVoltage);  //sprintf(BATvstr, "%sv", BATstr);
-  
+      lcd.print(systemVoltage);
+
     lcd.setPrintPos(0, 40);
     uint16_t uptimeSeconds = millis()/1000;
+    Pbuff="";
     if (uptimeSeconds<60)
-      sprintf(temp, "up:%us", uptimeSeconds);
+      Pbuff << "up" << uptimeSeconds << 's';
     else
-      sprintf(temp, "up:%um", uptimeSeconds/60);
-    lcd.print(temp);
+      Pbuff << "up:" << (uptimeSeconds/60) << 'm';
+    lcd.print(buff);
 
     lcd.setPrintPos(45, 40);
-    sprintf(temp, "RAM:%u", checkFreeRAM());
-    lcd.print(temp);
+    Pbuff="";
+    Pbuff << "RAM:" << freeRAM();
+    lcd.print(buff);
 
     //print rssi and icon
     if (rssi > -70) bmpPtr = (byte*)xbmp_rssi_3;
@@ -279,79 +306,17 @@ void refreshLCD() {
     else if (rssi > -90) bmpPtr = (byte*)xbmp_rssi_1;
     else if (rssi > -95) bmpPtr = (byte*)xbmp_rssi_0;
     lcd.drawXBMP(0, lcdheight-xbmp_rssi_height, xbmp_rssi_width, xbmp_rssi_height, bmpPtr);
-    lcd.drawStr(xbmp_rssi_width+1, 48, RSSIstr);
+    if (rssi !=0) {
+      Pbuff="";
+      Pbuff << rssi << "dBm";
+      lcd.drawStr(xbmp_rssi_width+1, 48, buff);
+    }
   } while(lcd.nextPage());
   digitalWrite(PIN_LCD_CS, HIGH);
   interrupts(); //re-enable interrupts
 }
-#endif
+#endif //ENABLE_LCD
 //******************************************** END LCD STUFF ********************************************************************************
-
-//******************************************** MESSAGE HISTORY ******************************************************************************
-#define MSG_MAX_LEN   32    //truncate message at 32 chars since most are shorter than that anyway
-#define HISTORY_LEN   10    //hold this many past messages (IMPORTANT: 10 records needs about 330 bytes of RAM so be careful about making this too large)
-typedef struct {
-  char data[MSG_MAX_LEN];
-  int rssi;
-} Message;
-Message * messageHistory = new Message[HISTORY_LEN];
-byte lastMessageIndex = HISTORY_LEN;
-byte currMessageIndex = HISTORY_LEN;
-byte historyLength = 0;
-
-void saveToHistory(char * msg, int rssi)
-{
-  byte length = strlen(msg);
-  byte i = 0;
-  if (lastMessageIndex >= HISTORY_LEN-1) lastMessageIndex = 0;
-  else lastMessageIndex++;
-  if (historyLength < HISTORY_LEN) historyLength++;
-  currMessageIndex = historyLength-1; //reset history pointer back to latest message
-
-  for (; i<(MSG_MAX_LEN-1) && (i < length); i++)
-    messageHistory[lastMessageIndex].data[i] = msg[i];
-
-  messageHistory[lastMessageIndex].data[i] = '\0'; //terminate string
-  messageHistory[lastMessageIndex].rssi = rssi;
-}
-//******************************************** END MESSAGE HISTORY **************************************************************************
-
-//parse through any serial commands from the host (Pi)
-void handleSerialInput() {
-  inputLen = readSerialLine(temp, 10, 64, 10); //readSerialLine(char* input, char endOfLineChar=10, byte maxLength=64, uint16_t timeout=10);
-  
-  if (inputLen > 0)
-  {
-    DEBUG("GTWCMD:");DEBUGln(temp);
-    inputstr = String(temp);
-    inputstr.toUpperCase();
-
-    if (inputstr.equals("BEEP")) Beep(5, false);
-    if (inputstr.equals("BEEP2")) Beep(10, true);
-    if (inputstr.equals("RAM")) { DEBUG(F("Free RAM bytes: "));DEBUGln(checkFreeRAM()); }
-    if (inputstr.equals("KEY?")) { Serial.print(F("ENCRYPTKEY:"));Serial.println(ENCRYPTKEY); }
-
-    byte targetId = inputstr.toInt(); //extract ID if any
-    byte colonIndex = inputstr.indexOf(":"); //find position of first colon
-    if (targetId > 0) inputstr = inputstr.substring(colonIndex+1); //trim "ID:" if any
-    if (targetId > 0 && targetId != NODEID && targetId != RF69_BROADCAST_ADDR && colonIndex>0 && colonIndex<4 && inputstr.length()>0)
-    {
-      inputstr.getBytes((byte*)temp, 61);
-      if (radio.sendWithRetry(targetId, (byte*)temp, inputstr.length()))
-        DEBUGln(F("ACK:OK"));
-      else
-        DEBUGln(F("ACK:NOK"));
-    }
-  }
-}
-
-void Blink(byte PIN, int DELAY_MS)
-{
-  pinMode(PIN, OUTPUT);
-  digitalWrite(PIN,HIGH);
-  delay(DELAY_MS);
-  digitalWrite(PIN,LOW);
-}
 
 void setupPowerControl(){
   pinMode(BUTTON, INPUT_PULLUP);
@@ -400,9 +365,11 @@ void handlePowerControl() {
           if (BOOTOK())       //SIG_BOOTOK is HIGH so Pi is running the shutdowncheck.sh script, ready to intercept the RESET PULSE
           {
 #ifdef ENABLE_LCD
-            sprintf(lcdbuff, "Rebooting Pi..");
+            Pbuff="";
+            Pbuff << "Rebooting Pi..";
+            saveToHistory(buff, 0);
             refreshLCD();
-#endif        
+#endif
             digitalWrite(SIG_SHUTOFF, HIGH);
             delay(RESETPULSETIME);
             digitalWrite(SIG_SHUTOFF, LOW);
@@ -429,7 +396,9 @@ void handlePowerControl() {
               else if (BOOTOK() && recycleDetected)
               {
 #ifdef ENABLE_LCD
-                sprintf(lcdbuff, "Reboot OK!");
+                Pbuff="";
+                Pbuff << "Reboot OK!";
+                saveToHistory(buff, 0);
                 refreshLCD();
 #endif
                 return;
@@ -447,19 +416,23 @@ void handlePowerControl() {
       {
         if (batteryLow) {
 #ifdef ENABLE_LCD
-          sprintf(lcdbuff, "Battery low! Shutting down Pi..");
+          Pbuff="";
+          Pbuff << "Battery low! Shutting down Pi..";
+          saveToHistory(buff, 0);
 #endif
           batteryLowShutdown = true;
         }
 #ifdef ENABLE_LCD
-        else
-          sprintf(lcdbuff, "Shutting down Pi..");
+        else {
+          Pbuff="";
+          Pbuff << "Shutting down Pi..";
+          saveToHistory(buff, 0);
+        }
         refreshLCD();
 #endif
 
         // signal Pi to shutdown
         digitalWrite(SIG_SHUTOFF, HIGH);
-        //DEBUGln("SIG_SHUTOFF - HIGH - if(batteryLow || (PowerState == 1 && BOOTOK())");
 
         //now wait for the Pi to signal back
         NOW = millis();
@@ -520,21 +493,23 @@ void handlePowerControl() {
 #ifdef ENABLE_LCD
         if (PowerState == OFF)
         {
-          sprintf(lcdbuff, "Pi is now OFF");
+          Pbuff="";
+          Pbuff << "Pi is now OFF";
+          saveToHistory(buff, 0);
           refreshLCD();
         }
 #endif
 
         digitalWrite(SIG_SHUTOFF, LOW);
-        //DEBUGln("SIG_SHUTOFF - LOW");
       }
       else if (PowerState == ON && !BOOTOK())
       {
 #ifdef ENABLE_LCD
-        sprintf(lcdbuff, "Forced shutdown..");
+        Pbuff="";
+        Pbuff << "Forced shutdown..";
+        saveToHistory(buff, 0);
         refreshLCD();
 #endif
-        
         NOW = millis();
         unsigned long NOW2 = millis();
         int analogstep = 255 / ((ForcedShutoffDelay-SHUTDOWNHOLDTIME)/100); //every 500ms decrease LED intensity
@@ -551,7 +526,9 @@ void handlePowerControl() {
             PowerState = OFF;
             POWER(PowerState);
 #ifdef ENABLE_LCD
-            sprintf(lcdbuff, "Pi is now OFF");
+            Pbuff="";
+            Pbuff << "Pi is now OFF";
+            saveToHistory(buff, 0);
             refreshLCD();
 #endif
             break;
@@ -564,7 +541,9 @@ void handlePowerControl() {
         batteryLowShutdown=false;
         POWER(PowerState);
 #ifdef ENABLE_LCD
-        sprintf(lcdbuff, "Pi is now ON");
+        Pbuff="";
+        Pbuff << "Pi is now ON";
+        saveToHistory(buff, 0);
         refreshLCD();
 #endif
       }
@@ -588,7 +567,9 @@ void handle2Buttons()
     if (backlightLevel==BACKLIGHTLEVELS) backlightLevel=0;
     else backlightLevel++;
     LCD_BACKLIGHT(backlightLevel);
-    sprintf(lcdbuff, "LCDlight:%d/100", 100*backlightLevel/BACKLIGHTLEVELS);
+    Pbuff="";
+    Pbuff << "LCDlight:" << (100*backlightLevel/BACKLIGHTLEVELS) << "/100";
+    saveToHistory(buff, 0);
     refreshLCD();
 #endif
   }
@@ -601,10 +582,10 @@ void handle2Buttons()
     
     if (historyLength > 0) //if at least 1 data packet was received and saved to history...
     {
-      sprintf(RSSIstr, "%ddBm", messageHistory[currMessageIndex].rssi); //paint the history rssi string for the LCDRefresh
       rssi = messageHistory[currMessageIndex].rssi;                     //save the history rssi for the LCDRefresh signal icon
 #ifdef ENABLE_LCD
-      sprintf(lcdbuff, "<HISTORY[%d/%d]>\n%s", currMessageIndex+1, historyLength, messageHistory[currMessageIndex].data); //fill the LCD string buffer with the history data string
+      Pbuff="";
+      Pbuff << "<HIST[" << currMessageIndex+1 << '/' << historyLength << "]>" << endl << messageHistory[currMessageIndex].data;
       refreshLCD(); //paint the screen
 #endif
       if (currMessageIndex==0) currMessageIndex=historyLength-1; else currMessageIndex--; //this makes it cycle from the latest message towards oldest as you press BTN2
@@ -642,13 +623,6 @@ void Beep(byte theDelay, boolean twoSounds)
   }
 }
 
-int checkFreeRAM()
-{
-  extern int __heap_start, *__brkval; 
-  int v; 
-  return (int) &v - (__brkval == 0 ? (int) &__heap_start : (int) __brkval); 
-}
-
 boolean readBattery() {
   //periodically read the battery voltage
   int currPeriod = millis()/BATTERYREADINTERVAL;
@@ -669,14 +643,16 @@ void setup() {
   Serial.begin(SERIAL_BAUD);
 
   radio.initialize(FREQUENCY,NODEID,NETWORKID);
+#ifdef ENCRYPTKEY
   radio.encrypt(ENCRYPTKEY);
-
-#ifdef IS_RFM69HW_HCW
-  radio.setHighPower(); //must include this only for RFM69HW/HCW!
 #endif
 
-  sprintf(lcdbuff, "Listening @ %dmhz...", FREQUENCY==RF69_433MHZ ? 433 : FREQUENCY==RF69_868MHZ ? 868 : 915);
-  DEBUGln(lcdbuff);
+#ifdef IS_RFM69HCW
+  radio.setHighPower();
+#endif
+  Pbuff="";
+  Pbuff << "Listening @ " << radio.getFrequency() << "Hz";
+  DEBUGln(buff);
   if (flash.initialize()) DEBUGln("SPI Flash Init OK!");
   else DEBUGln(F("SPI Flash MEM FAIL!"));
 
@@ -689,7 +665,7 @@ void setup() {
 #endif
 
   readBattery();
-  DEBUG(F("Free RAM bytes: "));DEBUG(checkFreeRAM());
+  DEBUG(F("Free RAM bytes: "));DEBUG(freeRAM());
 
 #ifdef ENABLE_LCD
   pinMode(PIN_LCD_LIGHT, OUTPUT);  //LCD backlight, LOW = backlight ON
@@ -707,23 +683,28 @@ boolean newPacketReceived;
 void loop() {
   handlePowerControl(); //checks any button presses and takes action
   handle2Buttons();     //checks the general purpose buttons next to the LCD (R2+)
-  handleSerialInput();  //checks for any serial input from the Pi computer
+  handleSerialData();   //checks for any serial input from the Pi computer
 
   //process any received radio packets
   if (radio.receiveDone())
   {
-    rssi = radio.RSSI;
+    LED_HIGH;
+    rssi = radio.RSSI; //get this asap from transceiver
     if (radio.DATALEN > 0) //data packets have a payload
     {
-      sprintf(lcdbuff, "[%d] %s", radio.SENDERID, radio.DATA);
-      sprintf(RSSIstr, "%ddBm", rssi);
-      Serial.print(lcdbuff); //this passes data to MightyHat / RaspberryPi
-      Serial.print(F("   [RSSI:"));Serial.print(rssi);Serial.print(']');
-      saveToHistory(lcdbuff, rssi);
+      for (byte i=9;i<radio.DATALEN;i++) {
+        if (radio.DATA[i]=='\n' || radio.DATA[i]=='\r')
+          radio.DATA[i]=' '; //remove any newlines in the payload - this should only ever happen with noise data that actually made it through
+      }
+      Pbuff="";
+      Pbuff << '[' << radio.SENDERID << "] " << (char*)radio.DATA;
+      Serial << buff << F(" SS:") << rssi << endl; //this passes data to MightyHat / RaspberryPi
+#ifdef ENABLE_LCD
+      saveToHistory(buff, rssi);
+#endif
     }
 
     //check if the packet is a wireless programming request
-    //removing this line will save 3kb+ of flash space
 #ifdef ENABLE_WIRELESS_PROGRAMMING
     CheckForWirelessHEX(radio, flash, false); //non verbose DEBUG
 #endif
@@ -731,14 +712,27 @@ void loop() {
     //respond to any ACK if requested
     if (radio.ACKRequested())
     {
-      radio.sendACK();
-      DEBUG(F("[ACK-sent]"));
+      REQUEST* aux=queue;
+      Pbuff="";
+      //walk queue and add pending commands to ACK payload (as many it can fit)
+      while (aux!=NULL) {
+        if (aux->nodeId==radio.SENDERID)
+        {
+          //check if payload has room to add this queued command
+          if (Pbuff.length() + 1 + strlen(aux->data) <= MAX_ACK_REQUEST_LENGTH)
+          {
+            if (Pbuff.length()) Pbuff.print(' '); //prefix with a space any previous command in buffer
+            Pbuff.print(aux->data); //append command
+          }
+        }
+        aux=aux->next;
+      }
+      if (Pbuff.length())
+        radio.sendACK(buff, Pbuff.length());
+      else
+        radio.sendACK();
     }
-    
-    //DEBUG(F("Free RAM bytes: "));DEBUG(checkFreeRAM());
-    
-    Serial.println();
-    Blink(LED,2);
+    LED_LOW;
     newPacketReceived = true;
   }
 
@@ -753,4 +747,244 @@ void loop() {
   }
   LCD_BACKLIGHT(batteryLow ? 0 : backlightLevel);
 #endif
+}
+
+boolean insert(uint16_t new_id, char new_data[]) { 
+  REQUEST* aux;
+  REQUEST* new_node = (REQUEST*)malloc(sizeof(REQUEST));
+  if (new_node == NULL) return false;
+  new_node->nodeId = new_id; 
+  strcpy(new_node->data, new_data);
+  new_node->next = NULL;
+  if (queue == NULL) queue = new_node;
+  else {
+      aux = queue;
+      while(aux->next != NULL) aux=aux->next;
+      aux->next=new_node;
+  }
+  return true;
+}
+
+//processCommand - parse the command and send it to target
+//if target is non-responsive it(sleeppy node?) then queue command to send when target wakes and asks for an ACK
+//SPECIAL COMMANDS FROM HOST:
+// - 123:VOID - removes all queued commands for node 123
+// - 123:VOID:command - removes 'command' from queue (if found)
+// - REQUESTQUEUE - prints the queued list of nodes on serial port, to host (Pi?)
+// - FREERAM - returns # of unallocated bytes at end of heap
+// - SYSFREQ - returns operating frequency in Hz
+// - UPTIME - returns millis()
+void processCommand(char data[], boolean allowDuplicate=false) {
+  char *ptr;
+  char dataPart[MAX_BUFFER_LENGTH];
+  uint16_t targetId;
+  byte sendLen = 0;
+  ptr = strtok(data, ":");
+
+  if (strcmp(data, "FREERAM")==0)
+    Serial << F("FREERAM:") << freeRAM() << ':' << RAMSIZE << endl;
+  if (strcmp(data, "REQUESTQUEUE")==0)
+    printQueue(queue);
+  if (strcmp(data, "SYSFREQ")==0)
+    Serial << F("SYSFREQ:") << radio.getFrequency() << endl;
+  if (strcmp(data, "UPTIME")==0)
+    Serial << F("UPTIME:") << millis() << endl;
+  if (strcmp(data, "BEEP")==0) Beep(5, false);
+  if (strcmp(data, "BEEP2")==0) Beep(10, false);
+  if (strcmp(data, "ENCRYPTKEY")==0)
+#ifdef ENCRYPTKEY
+    Serial << F("ENCRYPTKEY:") << ENCRYPTKEY << endl;
+#else
+    Serial << F("ENCRYPTKEY:NONE") << endl;
+#endif
+
+  if(ptr != NULL) {                  // delimiter found, valid command
+    sprintf(dataPart, "%s", ptr);
+    targetId = atoi(dataPart);       // get nodeID part
+    ptr = strtok(NULL, "");          // get command part
+    sprintf(dataPart, "%s", ptr);
+
+    //check for empty command
+    if (strlen(dataPart) == 0) return;
+
+    //check target nodeID is valid
+    if (targetId > 0 && targetId != NODEID && targetId<=1023)      
+    {
+      REQUEST* aux;
+      byte removed=0;
+
+      //check if VOID command - if YES then remove command(s) to that target nodeID
+      if (strstr(dataPart, "VOID")==dataPart) //string starts with VOID
+      {
+        //if 'nodeId:VOID' then remove all commands to that node
+        //if 'nodeId:VOID:REQUEST' then remove just 'REQUEST' (if found & identical match)
+        boolean removeAll=true;
+        if (dataPart[4]==':' && strlen(dataPart)>5)
+          removeAll=false;
+
+        //iterate over queue
+        aux = queue;
+        while(aux != NULL)
+        {
+          if (aux->nodeId==targetId)
+          {
+            if (removeAll || (!removeAll && strcmp(aux->data, dataPart+5)==0))
+            {
+              if (aux == queue)
+              {
+                if (aux->next == NULL)
+                {
+                  free(queue);
+                  queue=NULL;
+                  removed++;
+                  break;
+                }
+                else
+                {
+                  queue = queue->next;
+                  free(aux);
+                  removed++;
+                  aux = queue;
+                  continue;
+                }
+              }
+              else
+              {
+                REQUEST* prev=queue;
+                while(prev->next != NULL && prev->next != aux) prev = prev->next; //find previous
+                if (prev->next == NULL) break;
+                prev->next=prev->next->next;
+                free(aux);
+                removed++;
+                aux=prev->next;
+              }
+            }
+            else aux=aux->next;
+          }
+          else aux=aux->next;
+        }
+        DEBUG("VOIDED commands: ");DEBUGln(removed);
+        size_of_queue = size_of_queue - removed;
+        return;
+      }
+
+      //try sending to node, if it fails, continue & add to pending commands queue
+      LED_HIGH;
+      if (radio.sendWithRetry(targetId, dataPart, strlen(dataPart)))
+      {
+        LED_LOW;
+        return;
+      }
+      LED_LOW;
+
+      //check for duplicate
+      if (!allowDuplicate) {
+        //walk queue and check for duplicates
+        aux = queue;
+        while(aux != NULL)
+        {
+          DEBUGln("While");
+          if (aux->nodeId==targetId)
+          {
+            if (strcmp(aux->data, dataPart)==0)
+            {
+              DEBUGln(F("processCommand() skip (duplicate)"));  
+              return;
+            }
+          }
+          aux = aux->next;
+        }
+      }
+
+      //all checks OK, attempt to add to queue
+      if (insert(targetId, dataPart))
+      {
+        DEBUG(F("-> inserted: ")); 
+        DEBUG(targetId);
+        DEBUG("_");
+        DEBUGln(dataPart);
+        size_of_queue++;
+      }
+      else 
+      {
+        DEBUGln(F("INSERT FAIL - MEM FULL!"));
+        Serial << F("[") << targetId << F("] ") << dataPart << F(":MEMFULL") << endl;
+      }
+    }
+  }
+}
+
+void printQueue(REQUEST* p) {
+  if (!size_of_queue) {
+    Serial << F("REQUESTQUEUE:VOID") << endl;
+    return;
+  }
+
+  REQUEST* aux=p;
+  while (aux!=NULL) {
+    Serial << F("REQUESTQUEUE:") << aux->nodeId << ':' << aux->data << endl;
+    aux=aux->next;
+  }
+}
+
+// here's the processing of single char/bytes as soon as they're coming from UART
+void handleSerialData() {
+  static char input_line[100]; //static = these get allocated ONCE!
+  static byte input_pos = 0;
+  if(Serial.available() > 0)
+  {
+    char inByte = Serial.read();
+    switch (inByte)
+    {
+      case '\r':   //ignore carriage return
+        break;
+
+      case '\n':
+        if (input_pos==0) break;       // ignore empty lines
+        input_line[input_pos] = 0;     // null terminate the string
+        DEBUG("Processing: [");
+        DEBUG(input_line);
+        DEBUGln("]");
+        processCommand(input_line);        // fill up queue
+        input_pos = 0; // reset buffer for next time
+        break;
+
+      default:
+        // keep adding if not full ... allow for terminating byte
+        if (input_pos < MAX_BUFFER_LENGTH-1) {
+          input_line[input_pos] = inByte;
+          input_pos++;
+        } else {
+          // if theres no EOL coming before MAX_BUFF_CHARS is exceeded we'll just terminate and send it, last char is then lost
+          input_line[input_pos] = 0;    // null terminate the string
+          DEBUG("Attempting to add (default): ");
+          DEBUGln(input_line);
+          processCommand(input_line);  //add to queue
+          input_pos = 0; //reset buffer for next line
+        }
+        break;
+    }
+  }
+}
+
+//returns # of unfragmented free RAM bytes (free end of heap)
+int freeRAM() {
+#ifdef __arm__
+  char top;
+  return &top - reinterpret_cast<char*>(sbrk(0));
+#else
+  extern int __heap_start, *__brkval; 
+  int v; 
+  return (int) &v - (__brkval == 0 ? (int) &__heap_start : (int) __brkval); 
+#endif
+}
+
+//returns total # of free RAM bytes (all free heap, including fragmented memory)
+int allFreeRAM() 
+{
+  int size = 1024;
+  byte *buf;
+  while ((buf = (byte *) malloc(--size)) == NULL);
+  free(buf);
+  return size;
 }

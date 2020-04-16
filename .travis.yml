@@ -22,7 +22,6 @@ env:
     - PLATFORMIO_CI_SRC=Examples/Node
     - PLATFORMIO_CI_SRC=Examples/OLEDMote
     - PLATFORMIO_CI_SRC=Examples/PiGateway/PiGateway.ino
-    # - PLATFORMIO_CI_SRC=Examples/PiGateway/PiGateway_withLCD.ino
     - PLATFORMIO_CI_SRC=Examples/PulseMeter
     - PLATFORMIO_CI_SRC=Examples/RandomNumbers
     - PLATFORMIO_CI_SRC=Examples/SonarMote/SonarMote_DistanceReader/SonarMote_DistanceReader.ino
@@ -53,12 +52,10 @@ install:
     # http://platformio.org/#!/lib/show/532/BMP180
     # http://platformio.org/#!/lib/show/536/Si7021
     # http://platformio.org/#!/lib/show/684/Sparkfun BME280
+    # https://platformio.org/lib/show/560/Streaming
+    # https://platformio.org/lib/show/6230/PString-Arduino-lib
 
-    - platformio lib install 7 38 125 131 136 176 531 532 536 684
-
-    #- wget https://bitbucket.org/fmalpartida/st7036-display-driver/downloads/LCD_%20ST7036_v1.2.0.zip -O /tmp/st7036_source.zip
-    #- unzip /tmp/st7036_source.zip -d /tmp/
+    - platformio lib install 7 38 125 131 136 176 531 532 536 684 560 6230
 
 script:
-    #- platformio ci --board=moteino --lib=. --lib="/tmp/LCD_C0220BIZ"
     - platformio ci --board=moteino --lib=.

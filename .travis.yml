@@ -21,7 +21,7 @@ env:
     - PLATFORMIO_CI_SRC=Examples/MotionMote/MotionMote.ino
     - PLATFORMIO_CI_SRC=Examples/Node
     - PLATFORMIO_CI_SRC=Examples/OLEDMote
-    - PLATFORMIO_CI_SRC=Examples/PiGateway/PiGateway_Basic.ino
+    - PLATFORMIO_CI_SRC=Examples/PiGateway_Basic/PiGateway_Basic.ino
     - PLATFORMIO_CI_SRC=Examples/PiGateway/PiGateway.ino
     - PLATFORMIO_CI_SRC=Examples/PulseMeter
     - PLATFORMIO_CI_SRC=Examples/RandomNumbers

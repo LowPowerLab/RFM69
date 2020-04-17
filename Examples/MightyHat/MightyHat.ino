@@ -26,7 +26,7 @@
 #define FREQUENCY     RF69_915MHZ //Match this with the version of your Moteino! (others: RF69_433MHZ, RF69_868MHZ)
 //#define FREQUENCY_EXACT 916000000 //uncomment and set to a specific frequency in Hz, if commented the center frequency is used
 #define ENCRYPTKEY    "sampleEncryptKey" //has to be same 16 characters/bytes on all nodes, not more not less!
-#define IS_RFM69HW    //uncomment only for RFM69HCW
+#define IS_RFM69HCW   //uncomment only for RFM69HW/HCW
 #define ENABLE_ATC    //comment out this line to disable AUTO TRANSMISSION CONTROL //more here: http://lowpowerlab.com/blog/2015/11/11/rfm69_atc-automatic-transmission-control/
 #define ENABLE_WIRELESS_PROGRAMMING    //comment out this line to disable Wireless Programming of this gateway node
 #define ENABLE_LCD    //comment this out if you don't have or don't want to use the LCD
@@ -89,7 +89,6 @@
 #define LED_LOW digitalWrite(LED_BUILTIN, LOW)
 
 //******************************************** BEGIN ADVANCED variables ********************************************************************************
-extern char *__brkval;
 #define RAMSIZE 2048
 #define MAX_BUFFER_LENGTH   25 //limit parameter update requests to 20 chars. ex: Parameter:LongRequest
 #define MAX_ACK_REQUEST_LENGTH  30 //60 is max for ACK (with ATC enabled), but need to allow appending :OK and :INV to confirmations from node
@@ -285,7 +284,7 @@ void refreshLCD() {
       lcd.print("CHRG"); 
     else
       lcd.print(systemVoltage);
-
+  
     lcd.setPrintPos(0, 40);
     uint16_t uptimeSeconds = millis()/1000;
     Pbuff="";
@@ -646,7 +645,6 @@ void setup() {
 #ifdef ENCRYPTKEY
   radio.encrypt(ENCRYPTKEY);
 #endif
-
 #ifdef IS_RFM69HCW
   radio.setHighPower();
 #endif

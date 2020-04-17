@@ -20,7 +20,7 @@
 #define NETWORKID     200 //the network ID of all nodes this node listens/talks to
 #define FREQUENCY     RF69_915MHZ //Match this with the version of your Moteino! (others: RF69_433MHZ, RF69_868MHZ)
 #define ENCRYPTKEY    "sampleEncryptKey" //identical 16 characters/bytes on all nodes, not more not less!
-#define IS_RFM69HW_HCW  //uncomment only for RFM69HW/HCW! Leave out if you have RFM69W/CW!
+#define IS_RFM69HW_HCW  //required for RFM69HW/HCW, comment out for RFM69W/CW!
 #define ACK_TIME       30  // # of ms to wait for an ack packet
 //*****************************************************************************************************************************
 #define ENABLE_ATC    //comment out this line to disable AUTO TRANSMISSION CONTROL
@@ -28,7 +28,7 @@
 //*****************************************************************************************************************************
 // Serial baud rate must match your Pi/host computer serial port baud rate!
 #define DEBUG_EN     //comment out if you don't want any serial verbose output
-#define SERIAL_BAUD   115200 //use 115200 with PiGateway v9.1 or later, 19200 with v9.0 or prior
+#define SERIAL_BAUD   19200
 //*****************************************************************************************************************************
 #ifdef DEBUG_EN
   #define DEBUG(input)   {Serial.print(input);}
@@ -62,16 +62,16 @@ void setup() {
 #endif
   
   char buff[50];
-  sprintf(buff, "\nTransmitting at %d Mhz...", radio.getFrequency()/1000000);
+  sprintf(buff, "\nDEBUG:Transmitting at %d Mhz...", radio.getFrequency()/1000000);
   DEBUGln(buff);
 
   if (flash.initialize())
   {
-    DEBUGln("SPI Flash Init OK!");
+    DEBUGln("DEBUG:SPI Flash Init OK!");
   }
   else
   {
-    DEBUGln("SPI FlashMEM not found (is chip onboard?)");
+    DEBUGln("DEBUG:SPI FlashMEM not found (is chip onboard?)");
   }
 }
 
@@ -111,22 +111,23 @@ void loop() {
   {
     LED_HIGH;
     int rssi = radio.RSSI;
-    DEBUG('[');DEBUG(radio.SENDERID);DEBUG("] ");
+    Serial.print('[');Serial.print(radio.SENDERID);Serial.print("] ");
     if (radio.DATALEN > 0)
     {
       for (byte i = 0; i < radio.DATALEN; i++)
-        DEBUG((char)radio.DATA[i]);
-      DEBUG("   [RSSI:");DEBUG(rssi);DEBUG("]");
+        Serial.print((char)radio.DATA[i]);
+      Serial.print("   [RSSI:");Serial.print(rssi);Serial.print(']');
     }
-
+    Serial.println();
+    
     CheckForWirelessHEX(radio, flash, false); //non verbose DEBUG
 
     if (radio.ACKRequested())
     {
       radio.sendACK();
-      DEBUG("[ACK-sent]");
+      DEBUGln("DEBUG:ACK-sent");
     }
-    DEBUGln();
+    
     LED_LOW;
   }
 }

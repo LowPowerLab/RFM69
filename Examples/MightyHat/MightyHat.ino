@@ -26,13 +26,13 @@
 #define FREQUENCY     RF69_915MHZ //Match this with the version of your Moteino! (others: RF69_433MHZ, RF69_868MHZ)
 //#define FREQUENCY_EXACT 916000000 //uncomment and set to a specific frequency in Hz, if commented the center frequency is used
 #define ENCRYPTKEY    "sampleEncryptKey" //has to be same 16 characters/bytes on all nodes, not more not less!
-#define IS_RFM69HCW   //uncomment only for RFM69HW/HCW
+#define IS_RFM69HW_HCW  //required for RFM69HW/HCW, comment out for RFM69W/CW!
 #define ENABLE_ATC    //comment out this line to disable AUTO TRANSMISSION CONTROL //more here: http://lowpowerlab.com/blog/2015/11/11/rfm69_atc-automatic-transmission-control/
 #define ENABLE_WIRELESS_PROGRAMMING    //comment out this line to disable Wireless Programming of this gateway node
 #define ENABLE_LCD    //comment this out if you don't have or don't want to use the LCD
 //*****************************************************************************************************************************
-#define SERIAL_BAUD   115200 //use 115200 with PiGateway v9.1 or later, 19200 with v9.0 or prior
-//#define DEBUG_EN       //comment out if you don't want any serial verbose output (keep out in real use)
+#define SERIAL_BAUD   19200
+#define DEBUG_EN      //comment out if you don't want any serial verbose output (keep out in real use)
 
 #define BTN_LED_RED     9
 #define BTN_LED_GRN     6  // This will indicate when Pi has power
@@ -566,10 +566,6 @@ void handle2Buttons()
     if (backlightLevel==BACKLIGHTLEVELS) backlightLevel=0;
     else backlightLevel++;
     LCD_BACKLIGHT(backlightLevel);
-    Pbuff="";
-    Pbuff << "LCDlight:" << (100*backlightLevel/BACKLIGHTLEVELS) << "/100";
-    saveToHistory(buff, 0);
-    refreshLCD();
 #endif
   }
   
@@ -645,25 +641,21 @@ void setup() {
 #ifdef ENCRYPTKEY
   radio.encrypt(ENCRYPTKEY);
 #endif
-#ifdef IS_RFM69HCW
+#ifdef IS_RFM69HW_HCW
   radio.setHighPower();
 #endif
   Pbuff="";
   Pbuff << "Listening @ " << radio.getFrequency() << "Hz";
   DEBUGln(buff);
-  if (flash.initialize()) DEBUGln("SPI Flash Init OK!");
-  else DEBUGln(F("SPI Flash MEM FAIL!"));
+  if (flash.initialize()) DEBUGln("SPI_Flash_Init_OK");
+  else DEBUGln(F("SPI_Flash_Init_FAIL"));
 
 #ifdef FREQUENCY_EXACT
   radio.setFrequency(FREQUENCY_EXACT); //set frequency to some custom frequency
 #endif
 
-#ifdef ENABLE_ATC
-  DEBUGln(F("RFM69_ATC Enabled (Auto Transmission Control)"));
-#endif
-
   readBattery();
-  DEBUG(F("Free RAM bytes: "));DEBUG(freeRAM());
+  DEBUG(F("DEBUG:freeRAM():"));DEBUGln(freeRAM());
 
 #ifdef ENABLE_LCD
   pinMode(PIN_LCD_LIGHT, OUTPUT);  //LCD backlight, LOW = backlight ON
@@ -861,7 +853,7 @@ void processCommand(char data[], boolean allowDuplicate=false) {
           }
           else aux=aux->next;
         }
-        DEBUG("VOIDED commands: ");DEBUGln(removed);
+        DEBUG("DEBUG:VOIDED_commands:");DEBUGln(removed);
         size_of_queue = size_of_queue - removed;
         return;
       }
@@ -881,12 +873,12 @@ void processCommand(char data[], boolean allowDuplicate=false) {
         aux = queue;
         while(aux != NULL)
         {
-          DEBUGln("While");
+          //DEBUGln("While");
           if (aux->nodeId==targetId)
           {
             if (strcmp(aux->data, dataPart)==0)
             {
-              DEBUGln(F("processCommand() skip (duplicate)"));  
+              //DEBUGln(F("processCommand() skip (duplicate)"));  
               return;
             }
           }
@@ -897,15 +889,15 @@ void processCommand(char data[], boolean allowDuplicate=false) {
       //all checks OK, attempt to add to queue
       if (insert(targetId, dataPart))
       {
-        DEBUG(F("-> inserted: ")); 
-        DEBUG(targetId);
-        DEBUG("_");
-        DEBUGln(dataPart);
+        //DEBUG(F("-> inserted: ")); 
+        //DEBUG(targetId);
+        //DEBUG("_");
+        //DEBUGln(dataPart);
         size_of_queue++;
       }
       else 
       {
-        DEBUGln(F("INSERT FAIL - MEM FULL!"));
+        DEBUGln(F("DEBUG:INSERT_FAIL:MEM_FULL"));
         Serial << F("[") << targetId << F("] ") << dataPart << F(":MEMFULL") << endl;
       }
     }
@@ -940,9 +932,8 @@ void handleSerialData() {
       case '\n':
         if (input_pos==0) break;       // ignore empty lines
         input_line[input_pos] = 0;     // null terminate the string
-        DEBUG("Processing: [");
-        DEBUG(input_line);
-        DEBUGln("]");
+        DEBUG("DEBUG:handleSerialData:");
+        DEBUGln(input_line);
         processCommand(input_line);        // fill up queue
         input_pos = 0; // reset buffer for next time
         break;
@@ -955,7 +946,7 @@ void handleSerialData() {
         } else {
           // if theres no EOL coming before MAX_BUFF_CHARS is exceeded we'll just terminate and send it, last char is then lost
           input_line[input_pos] = 0;    // null terminate the string
-          DEBUG("Attempting to add (default): ");
+          DEBUG("DEBUG:MAX_BUFF_CHARS is exceeded - attempting to add (default): ");
           DEBUGln(input_line);
           processCommand(input_line);  //add to queue
           input_pos = 0; //reset buffer for next line

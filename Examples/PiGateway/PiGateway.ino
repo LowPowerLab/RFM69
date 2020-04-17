@@ -23,14 +23,14 @@
 #define NETWORKID     200 //the network ID of all nodes this node listens/talks to
 #define FREQUENCY     RF69_915MHZ //Match this with the version of your Moteino! (others: RF69_433MHZ, RF69_868MHZ)
 #define ENCRYPTKEY    "sampleEncryptKey" //identical 16 characters/bytes on all nodes, not more not less!
-#define IS_RFM69HW_HCW  //uncomment only for RFM69HW/HCW! Leave out if you have RFM69W/CW!
+#define IS_RFM69HW_HCW  //required for RFM69HW/HCW, comment out for RFM69W/CW!
 //*****************************************************************************************************************************
 #define ENABLE_ATC    //comment out this line to disable AUTO TRANSMISSION CONTROL
 #define ATC_RSSI      -90  //target RSSI for RFM69_ATC (recommended > -80)
 //*****************************************************************************************************************************
 // Serial baud rate must match your Pi/host computer serial port baud rate!
 #define DEBUG_EN     //comment out if you don't want any serial verbose output
-#define SERIAL_BAUD   115200 //use 115200 with PiGateway v9.1 or later, 19200 with v9.0 or prior
+#define SERIAL_BAUD   19200
 //*****************************************************************************************************************************
 #ifdef DEBUG_EN
   #define DEBUG(input)   {Serial.print(input);}
@@ -268,7 +268,7 @@ void processCommand(char data[], boolean allowDuplicate=false) {
           }
           else aux=aux->next;
         }
-        DEBUG("VOIDED commands: ");DEBUGln(removed);
+        DEBUG("DEBUG:VOIDED commands: ");DEBUGln(removed);
         size_of_queue = size_of_queue - removed;
         return;
       }
@@ -288,12 +288,12 @@ void processCommand(char data[], boolean allowDuplicate=false) {
         aux = queue;
         while(aux != NULL)
         {
-          DEBUGln("While");
+          //DEBUGln("While");
           if (aux->nodeId==targetId)
           {
             if (strcmp(aux->data, dataPart)==0)
             {
-              DEBUGln(F("processCommand() skip (duplicate)"));  
+              DEBUGln(F("DEBUG:processCommand() skip (duplicate)"));  
               return;
             }
           }
@@ -304,15 +304,15 @@ void processCommand(char data[], boolean allowDuplicate=false) {
       //all checks OK, attempt to add to queue
       if (insert(targetId, dataPart))
       {
-        DEBUG(F("-> inserted: ")); 
-        DEBUG(targetId);
-        DEBUG("_");
-        DEBUGln(dataPart);
+        //DEBUG(F("-> inserted: ")); 
+        //DEBUG(targetId);
+        //DEBUG("_");
+        //DEBUGln(dataPart);
         size_of_queue++;
       }
       else 
       {
-        DEBUGln(F("INSERT FAIL - MEM FULL!"));
+        DEBUGln(F("DEBUG:INSERT FAIL - MEM FULL!"));
         Serial << F("[") << targetId << F("] ") << dataPart << F(":MEMFULL") << endl;
       }
     }
@@ -347,9 +347,8 @@ void handleSerialData() {
       case '\n':
         if (input_pos==0) break;       // ignore empty lines
         input_line[input_pos] = 0;     // null terminate the string
-        DEBUG("Processing: [");
-        DEBUG(input_line);
-        DEBUGln("]");
+        DEBUG("DEBUG:handleSerialData:");
+        DEBUGln(input_line);
         processCommand(input_line);        // fill up queue
         input_pos = 0; // reset buffer for next time
         break;
@@ -362,7 +361,7 @@ void handleSerialData() {
         } else {
           // if theres no EOL coming before MAX_BUFF_CHARS is exceeded we'll just terminate and send it, last char is then lost
           input_line[input_pos] = 0;    // null terminate the string
-          DEBUG("Attempting to add (default): ");
+          DEBUG("DEBUG:MAX_BUFF_CHARS is exceeded - attempting to add (default): ");
           DEBUGln(input_line);
           processCommand(input_line);  //add to queue
           input_pos = 0; //reset buffer for next line

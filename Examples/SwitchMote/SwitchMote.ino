@@ -88,9 +88,9 @@
 #define SYNC_DIGIT_SYNCMODE 3 //fourth digit indicates the mode that should be requested on the target
 #define SYNC_MIN_TIME_LIMIT 2000 //minimum time limit since last SYNC before a new sync can be propagated (used to stop circular SYNC loops)
 
-#define SERIAL_EN             //comment this out when deploying to an installed SM to save a few KB of sketch size
+#define DEBUG_EN              //comment this out when deploying to an installed SM to save a few KB of sketch size
 #define SERIAL_BAUD    115200
-#ifdef SERIAL_EN
+#ifdef DEBUG_EN
   #define DEBUG(input)   {Serial.print(input); delay(1);}
   #define DEBUGln(input) {Serial.println(input); delay(1);}
 #else
@@ -149,10 +149,11 @@ byte btnLEDRED[] = {LED_RT, LED_RM, LED_RB};
 byte btnLEDGRN[] = {LED_GT, LED_GM, LED_GB};
 uint32_t lastSYNC=0; //remember last status change - used to detect & stop loop conditions in circular SYNC scenarios
 char * buff="justAnEmptyString";
+byte len=0;
 
 void setup(void)
 {
-  #ifdef SERIAL_EN
+  #ifdef DEBUG_EN
     Serial.begin(SERIAL_BAUD);
   #endif
   EEPROM.setMaxAllowedWrites(10000);
@@ -281,7 +282,7 @@ void loop()
     else { DEBUGln(F("NO SYNC REPLY ..")); }
 
     isSyncMode = true;
-    DEBUGln(F("SYNC MODE ON"));
+    DEBUGln(F("SYNC MODE ENTER"));
     displaySYNC();
     syncStart = now;
   }
@@ -305,7 +306,7 @@ void loop()
     if (now-syncStart >= SYNC_TIME)
     {
       isSyncMode = false;
-      DEBUGln(F("SYNC MODE OFF"));
+      DEBUGln(F("\nSYNC MODE EXIT"));
       action(btnIndex, mode[btnIndex], false);
     }
   }
@@ -328,8 +329,8 @@ void loop()
     if (isSyncMode && radio.DATALEN == 5
         && radio.DATA[0]=='S' && radio.DATA[1]=='Y' && radio.DATA[2]=='N' && radio.DATA[3] == 'C' && radio.DATA[4]=='?')
     {
-      sprintf(buff,"SYNC%d:%d",btnIndex, mode[btnIndex]); //respond to SYNC request with this SM's button and mode information
-      radio.sendACK(buff, strlen(buff));
+      len = sprintf(buff,"SYNC%d:%d",btnIndex, mode[btnIndex]); //respond to SYNC request with this SM's button and mode information
+      radio.sendACK(buff, len);
       DEBUG(F(" - SYNC ACK sent : "));
       DEBUGln(buff);
       isSyncMode = false;
@@ -372,7 +373,7 @@ void loop()
       //delay(5);
     }
   }
-  
+
   //check if a motion command timer expired and the corresponding light can turn off    
   if ((offTimer > 0) && (millis() - offTimer > MOTION_TIME_ON))
   {
@@ -410,8 +411,8 @@ void action(byte whichButtonIndex, byte whatMode, boolean notifyGateway)
   //notify gateway
   if (notifyGateway)
   {
-    sprintf(buff, "BTN%d:%d", whichButtonIndex,whatMode);
-    if (radio.sendWithRetry(GATEWAYID, buff, strlen(buff), 5)) //up to 5 attempts
+    len = sprintf(buff, "BTN%d:%d", whichButtonIndex, whatMode);
+    if (radio.sendWithRetry(GATEWAYID, buff, len, 5)) //up to 5 attempts
       {DEBUGln(F("..OK"));}
     else {DEBUGln(F("..NOK"));}
   }
@@ -486,7 +487,7 @@ boolean checkSYNC(byte nodeIDToSkip)
       DEBUG(getDigit(SYNC_INFO[i],SYNC_DIGIT_SYNCMODE));
       DEBUG(F("]:"));
       sprintf(buff, "BTN%d:%d", getDigit(SYNC_INFO[i],SYNC_DIGIT_SYNCBTN), getDigit(SYNC_INFO[i],SYNC_DIGIT_SYNCMODE));
-      if (radio.sendWithRetry(SYNC_TO[i], buff,6))
+      if (radio.sendWithRetry(SYNC_TO[i], buff, 6))
       {DEBUG(F("OK"));}
       else {DEBUG(F("NOK"));}
     }

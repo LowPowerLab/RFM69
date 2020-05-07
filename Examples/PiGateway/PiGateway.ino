@@ -19,25 +19,24 @@
 //****************************************************************************************************************
 //**** IMPORTANT RADIO SETTINGS - YOU MUST CHANGE/CONFIGURE TO MATCH YOUR HARDWARE TRANSCEIVER CONFIGURATION! ****
 //****************************************************************************************************************
-#define NODEID          1 //the ID of this node
-#define NETWORKID     200 //the network ID of all nodes this node listens/talks to
+#define NODEID          1  //the gateway has ID=1
+#define NETWORKID     200  //the network ID of all nodes this node listens/talks to
 #define FREQUENCY     RF69_915MHZ //Match this with the version of your Moteino! (others: RF69_433MHZ, RF69_868MHZ)
+#define FREQUENCY_EXACT 916000000 //uncomment and set to a specific frequency in Hz, if commented the center frequency is used
 #define ENCRYPTKEY    "sampleEncryptKey" //identical 16 characters/bytes on all nodes, not more not less!
 #define IS_RFM69HW_HCW  //required for RFM69HW/HCW, comment out for RFM69W/CW!
-//*****************************************************************************************************************************
 #define ENABLE_ATC    //comment out this line to disable AUTO TRANSMISSION CONTROL
-#define ATC_RSSI      -90  //target RSSI for RFM69_ATC (recommended > -80)
+//#define ENABLE_WIRELESS_PROGRAMMING
 //*****************************************************************************************************************************
-// Serial baud rate must match your Pi/host computer serial port baud rate!
-#define DEBUG_EN     //comment out if you don't want any serial verbose output
-#define SERIAL_BAUD   19200
+#define DEBUG_EN            //comment out if you don't want any serial verbose output
+#define SERIAL_BAUD   19200 // Serial baud rate must match your Pi/host computer serial port baud rate!
 //*****************************************************************************************************************************
 #ifdef DEBUG_EN
-  #define DEBUG(input)   {Serial.print(input);}
-  #define DEBUGln(input) {Serial.println(input);}
+  #define DEBUG(input)   Serial.print(input)
+  #define DEBUGln(input) Serial.println(input)
 #else
-  #define DEBUG(input);
-  #define DEBUGln(input);
+  #define DEBUG(input)
+  #define DEBUGln(input)
 #endif
 
 #define LED_HIGH digitalWrite(LED_BUILTIN, HIGH)
@@ -80,34 +79,41 @@ SPIFlash flash(SS_FLASHMEM, 0xEF30); //EF30 for 4mbit Windbond FlashMEM chip
 //******************************************** END GENERAL variables ********************************************************************************
 
 void setup() {
+#if defined (MOTEINO_M0) && defined(SERIAL_PORT_USBVIRTUAL)
+  delay(2000);
+#endif
+
   Serial.begin(SERIAL_BAUD);
+  delay(100);
+
   radio.initialize(FREQUENCY,NODEID,NETWORKID);
 #ifdef IS_RFM69HW_HCW
   radio.setHighPower(); //must include this only for RFM69HW/HCW!
 #endif
   radio.encrypt(ENCRYPTKEY);
-  
-#ifdef ENABLE_ATC
-  radio.enableAutoPower(ATC_RSSI);
+
+  if (flash.initialize()) {
+    DEBUGln(F("DEBUG:SPI Flash Init OK!"));
+    flash.sleep();
+  }
+  else DEBUGln(F("DEBUG:SPI Flash MEM FAIL!"));
+
+#ifdef FREQUENCY_EXACT
+  radio.setFrequency(FREQUENCY_EXACT); //set frequency to some custom frequency
 #endif
-  
-  char buff[50];
-  sprintf(buff, "\nTransmitting at %d Mhz...", radio.getFrequency()/1000000);
+
+  Pbuff = F("DEBUG:Listening @ ");
+  Pbuff.print(radio.getFrequency());
+  Pbuff.print(F("Hz..."));
   DEBUGln(buff);
 
-  if (flash.initialize())
-  {
-    DEBUGln("SPI Flash Init OK!");
-  }
-  else
-  {
-    DEBUGln("SPI FlashMEM not found (is chip onboard?)");
-  }
+  pinMode(LED_BUILTIN, OUTPUT);
+  DEBUG(F("DEBUG:Size of REQUEST* struct = "));DEBUGln(sizeof(REQUEST));
+  Serial << endl << "GATEWAYSTART SYSFREQ:" << radio.getFrequency() << endl;
 }
 
-boolean newPacketReceived;
 void loop() {
-  handleSerialData();   //checks for any serial input from the Pi computer
+  handleSerialData();   //checks for any serial input from the host computer (Pi)
 
   //process any received radio packets
   if (radio.receiveDone())
@@ -120,12 +126,13 @@ void loop() {
         if (radio.DATA[i]=='\n' || radio.DATA[i]=='\r')
           radio.DATA[i]=' '; //remove any newlines in the payload - this should only ever happen with noise data that actually made it through
       }
-      Pbuff="";
-      Pbuff << '[' << radio.SENDERID << "] " << (char*)radio.DATA;
-      Serial << buff << F(" SS:") << rssi << endl; //this passes data to MightyHat / RaspberryPi
+      Serial << F("[") << radio.SENDERID << F("] ") << (char*)radio.DATA << " SS:" << rssi << endl; //this passes data to host computer (Pi)
     }
 
+    //check if the packet is a wireless programming request
+#ifdef ENABLE_WIRELESS_PROGRAMMING
     CheckForWirelessHEX(radio, flash, false); //non verbose DEBUG
+#endif
 
     //respond to any ACK if requested
     if (radio.ACKRequested())
@@ -151,10 +158,8 @@ void loop() {
         radio.sendACK();
     }
     LED_LOW;
-    newPacketReceived = true;
   }
 }
-
 
 boolean insert(uint16_t new_id, char new_data[]) { 
   REQUEST* aux;
@@ -196,6 +201,8 @@ void processCommand(char data[], boolean allowDuplicate=false) {
     Serial << F("SYSFREQ:") << radio.getFrequency() << endl;
   if (strcmp(data, "UPTIME")==0)
     Serial << F("UPTIME:") << millis() << endl;
+  if (strcmp(data, "NETWORKID")==0)
+    Serial << F("NETWORKID:") << NETWORKID << endl;
   if (strcmp(data, "ENCRYPTKEY")==0)
 #ifdef ENCRYPTKEY
     Serial << F("ENCRYPTKEY:") << ENCRYPTKEY << endl;
@@ -381,4 +388,14 @@ int freeRAM() {
   int v; 
   return (int) &v - (__brkval == 0 ? (int) &__heap_start : (int) __brkval); 
 #endif
+}
+
+//returns total # of free RAM bytes (all free heap, including fragmented memory)
+int allFreeRAM() 
+{
+  int size = 1024;
+  byte *buf;
+  while ((buf = (byte *) malloc(--size)) == NULL);
+  free(buf);
+  return size;
 }

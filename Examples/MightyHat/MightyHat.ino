@@ -29,7 +29,7 @@
 #define IS_RFM69HW_HCW  //required for RFM69HW/HCW, comment out for RFM69W/CW!
 #define ENABLE_ATC    //comment out this line to disable AUTO TRANSMISSION CONTROL //more here: http://lowpowerlab.com/blog/2015/11/11/rfm69_atc-automatic-transmission-control/
 #define ENABLE_WIRELESS_PROGRAMMING    //comment out this line to disable Wireless Programming of this gateway node
-#define ENABLE_LCD    //comment this out if you don't have or don't want to use the LCD
+//#define ENABLE_LCD    //comment this out if you don't have or don't want to use the LCD
 //*****************************************************************************************************************************
 #define SERIAL_BAUD   19200
 #define DEBUG_EN      //comment out if you don't want any serial verbose output (keep out in real use)
@@ -325,8 +325,10 @@ void setupPowerControl(){
   pinMode(BTN_LED_GRN, OUTPUT);
   pinMode(LATCH_EN, OUTPUT);
   digitalWrite(LATCH_EN, LOW);
+#ifdef ENABLE_LCD
   pinMode(PIN_LCD_CS, OUTPUT);
   digitalWrite(PIN_LCD_CS, HIGH);
+#endif
   pinMode(LATCH_VAL, OUTPUT);
   pinMode(BUTTON1, INPUT_PULLUP);
   pinMode(BUTTON2, INPUT_PULLUP);
@@ -574,7 +576,8 @@ void handle2Buttons()
   {
     buttonsLastChanged=millis();
     Beep(3, false);
-    
+
+#ifdef ENABLE_LCD
     if (historyLength > 0) //if at least 1 data packet was received and saved to history...
     {
       rssi = messageHistory[currMessageIndex].rssi;                     //save the history rssi for the LCDRefresh signal icon
@@ -585,6 +588,7 @@ void handle2Buttons()
 #endif
       if (currMessageIndex==0) currMessageIndex=historyLength-1; else currMessageIndex--; //this makes it cycle from the latest message towards oldest as you press BTN2
     }
+#endif
   }
 }
 

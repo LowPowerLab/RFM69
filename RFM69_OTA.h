@@ -61,24 +61,24 @@
 void CheckForWirelessHEX(RFM69& radio, SPIFlash& flash, uint8_t DEBUG=false, uint8_t LEDpin=LED);
 void HandleHandshakeACK(RFM69& radio, SPIFlash& flash, uint8_t flashCheck=true);
 void resetUsingWatchdog(uint8_t DEBUG=false);
-uint8_t HandleWirelessHEXData(RFM69& radio, uint8_t remoteID, SPIFlash& flash, uint8_t DEBUG=false, uint8_t LEDpin=LED);
+uint8_t HandleWirelessHEXData(RFM69& radio, uint16_t remoteID, SPIFlash& flash, uint8_t DEBUG=false, uint8_t LEDpin=LED);
 
 #ifdef SHIFTCHANNEL
-uint8_t HandleWirelessHEXDataWrapper(RFM69& radio, uint8_t remoteID, SPIFlash& flash, uint8_t DEBUG=false, uint8_t LEDpin=LED);
+uint8_t HandleWirelessHEXDataWrapper(RFM69& radio, uint16_t remoteID, SPIFlash& flash, uint8_t DEBUG=false, uint8_t LEDpin=LED);
 #endif
 
 //functions used in the MAIN node
-uint8_t CheckForSerialHEX(uint8_t* input, uint8_t inputLen, RFM69& radio, uint8_t targetID, uint16_t TIMEOUT=DEFAULT_TIMEOUT, uint16_t ACKTIMEOUT=ACK_TIMEOUT, uint8_t DEBUG=false);
-uint8_t HandleSerialHandshake(RFM69& radio, uint8_t targetID, uint8_t isEOF, uint16_t TIMEOUT=DEFAULT_TIMEOUT, uint16_t ACKTIMEOUT=ACK_TIMEOUT, uint8_t DEBUG=false);
-uint8_t HandleSerialHEXData(RFM69& radio, uint8_t targetID, uint16_t TIMEOUT=DEFAULT_TIMEOUT, uint16_t ACKTIMEOUT=ACK_TIMEOUT, uint8_t DEBUG=false);
+uint8_t CheckForSerialHEX(uint8_t* input, uint8_t inputLen, RFM69& radio, uint16_t targetID, uint16_t TIMEOUT=DEFAULT_TIMEOUT, uint16_t ACKTIMEOUT=ACK_TIMEOUT, uint8_t DEBUG=false);
+uint8_t HandleSerialHandshake(RFM69& radio, uint16_t targetID, uint8_t isEOF, uint16_t TIMEOUT=DEFAULT_TIMEOUT, uint16_t ACKTIMEOUT=ACK_TIMEOUT, uint8_t DEBUG=false);
+uint8_t HandleSerialHEXData(RFM69& radio, uint16_t targetID, uint16_t TIMEOUT=DEFAULT_TIMEOUT, uint16_t ACKTIMEOUT=ACK_TIMEOUT, uint8_t DEBUG=false);
 #ifdef SHIFTCHANNEL
-uint8_t HandleSerialHEXDataWrapper(RFM69& radio, uint8_t targetID, uint16_t TIMEOUT=DEFAULT_TIMEOUT, uint16_t ACKTIMEOUT=ACK_TIMEOUT, uint8_t DEBUG=false);
+uint8_t HandleSerialHEXDataWrapper(RFM69& radio, uint16_t targetID, uint16_t TIMEOUT=DEFAULT_TIMEOUT, uint16_t ACKTIMEOUT=ACK_TIMEOUT, uint8_t DEBUG=false);
 #endif
-uint8_t waitForAck(RFM69& radio, uint8_t fromNodeID, uint16_t ACKTIMEOUT=ACK_TIMEOUT);
+uint8_t waitForAck(RFM69& radio, uint16_t fromNodeID, uint16_t ACKTIMEOUT=ACK_TIMEOUT);
 
 uint8_t validateHEXData(void* data, uint8_t length);
 uint8_t prepareSendBuffer(char* hexdata, uint8_t*buf, uint8_t length, uint16_t seq);
-uint8_t sendHEXPacket(RFM69& radio, uint8_t remoteID, uint8_t* sendBuf, uint8_t hexDataLen, uint16_t seq, uint16_t TIMEOUT=DEFAULT_TIMEOUT, uint16_t ACKTIMEOUT=ACK_TIMEOUT, uint8_t DEBUG=false);
+uint8_t sendHEXPacket(RFM69& radio, uint16_t remoteID, uint8_t* sendBuf, uint8_t hexDataLen, uint16_t seq, uint16_t TIMEOUT=DEFAULT_TIMEOUT, uint16_t ACKTIMEOUT=ACK_TIMEOUT, uint8_t DEBUG=false);
 uint8_t BYTEfromHEX(char MSB, char LSB);
 uint8_t readSerialLine(char* input, char endOfLineChar=10, uint8_t maxLength=115, uint16_t timeout=1000);
 void PrintHex83(uint8_t* data, uint8_t length);

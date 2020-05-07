@@ -9,7 +9,7 @@
 // is handled by the SPIFLash/RFM69_OTA library, which also relies on the RFM69 library
 // These libraries and custom 1k Optiboot bootloader are at: http://github.com/lowpowerlab
 // **********************************************************************************
-// Copyright Felix Rusu 2016, http://www.LowPowerLab.com/contact
+// Copyright Felix Rusu 2020, http://www.LowPowerLab.com/contact
 // **********************************************************************************
 // License
 // **********************************************************************************
@@ -35,8 +35,6 @@
 #include <RFM69_ATC.h>     //get it here: https://github.com/lowpowerlab/RFM69
 #include <RFM69_OTA.h>     //get it here: https://github.com/lowpowerlab/RFM69
 #include <SPIFlash.h>      //get it here: https://github.com/lowpowerlab/spiflash
-#include <SPI.h>           //included with Arduino IDE install (www.arduino.cc)
-
 //****************************************************************************************************************
 //**** IMPORTANT RADIO SETTINGS - YOU MUST CHANGE/CONFIGURE TO MATCH YOUR HARDWARE TRANSCEIVER CONFIGURATION! ****
 //****************************************************************************************************************
@@ -52,16 +50,14 @@
 //*****************************************************************************************************************************
 #define ENABLE_ATC    //comment out this line to disable AUTO TRANSMISSION CONTROL
 #define ATC_RSSI      -80
+#define FLASH_ID      0xEF30  //ex. 0xEF30 for windbond 4mbit, 0xEF40 for windbond 16/64mbit
 //*****************************************************************************************************************************
-//#define BR_300KBPS             //run radio at max rate of 300kbps!
+//#define BR_300KBPS         //run radio at max rate of 300kbps!
 //*****************************************************************************************************************************
 #define SERIAL_BAUD 115200
-#define ACK_TIME    30  // # of ms to wait for an ack
-#define BLINKPERIOD 200
-
-#if defined(MOTEINO_M0) && defined(SERIAL_PORT_USBVIRTUAL)
-  #define Serial SERIAL_PORT_USBVIRTUAL // Required for Serial on Zero based boards
-#endif
+#define BLINKPERIOD 1000
+//*****************************************************************************************************************************
+SPIFlash flash(SS_FLASHMEM, FLASH_ID);
 
 #ifdef ENABLE_ATC
   RFM69_ATC radio;
@@ -71,16 +67,6 @@
 
 char input = 0;
 long lastPeriod = -1;
-
-//*****************************************************************************************************************************
-// flash(SPI_CS, MANUFACTURER_ID)
-// SPI_CS          - CS pin attached to SPI flash chip (8 in case of Moteino)
-// MANUFACTURER_ID - OPTIONAL, 0x1F44 for adesto(ex atmel) 4mbit flash
-//                             0xEF30 for windbond 4mbit flash
-//                             0xEF40 for windbond 16/64mbit flash
-//                             0x1F84 for adesto 4mbit AT25SF041 4MBIT flash
-//*****************************************************************************************************************************
-SPIFlash flash(SS_FLASHMEM, 0xEF30); //EF30 for windbond 4mbit flash
 
 void setup() {
   pinMode(LED_BUILTIN, OUTPUT);
@@ -202,7 +188,7 @@ void loop(){
   if ((int)(millis()/BLINKPERIOD) > lastPeriod)
   {
     lastPeriod++;
-    digitalWrite(LED, lastPeriod%2);
+    digitalWrite(LED_BUILTIN, lastPeriod%2);
     Serial.print("BLINKPERIOD ");Serial.println(BLINKPERIOD);
   }
   //*****************************************************************************************************************************

@@ -10,7 +10,7 @@
 // is handled by the SPIFLash/WirelessHEX69 library, which also relies on the RFM69 library
 // These libraries and custom 1k Optiboot bootloader for the target node are at: http://github.com/lowpowerlab
 // **********************************************************************************
-// Copyright Felix Rusu 2016, http://www.LowPowerLab.com/contact
+// Copyright Felix Rusu 2020, http://www.LowPowerLab.com/contact
 // **********************************************************************************
 // License
 // **********************************************************************************
@@ -35,8 +35,6 @@
 #include <RFM69.h>          //get it here: https://github.com/lowpowerlab/RFM69
 #include <RFM69_ATC.h>      //get it here: https://github.com/lowpowerlab/RFM69
 #include <RFM69_OTA.h>      //get it here: https://github.com/lowpowerlab/RFM69
-#include <SPI.h>            //included with Arduino IDE (www.arduino.cc)
-
 //****************************************************************************************************************
 //**** IMPORTANT RADIO SETTINGS - YOU MUST CHANGE/CONFIGURE TO MATCH YOUR HARDWARE TRANSCEIVER CONFIGURATION! ****
 //****************************************************************************************************************
@@ -68,10 +66,11 @@
 
 char c = 0;
 char input[64]; //serial input buffer
-byte targetID=0;
+uint16_t targetID=0;
 
 void setup(){
   Serial.begin(SERIAL_BAUD);
+  delay(1000);
   radio.initialize(FREQUENCY,NODEID,NETWORKID);
   radio.encrypt(ENCRYPTKEY); //OPTIONAL
 

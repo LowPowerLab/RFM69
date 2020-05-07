@@ -103,6 +103,14 @@ typedef struct req {
 REQUEST* queue = NULL;
 byte size_of_queue = 0;
 //******************************************** END ADVANCED variables ********************************************************************************
+//******************************************** BEGIN FUNCTION prototypes ********************************************************************************
+boolean BOOTOK();
+void POWER(uint8_t ON_OFF);
+void Beep(byte theDelay, boolean twoSounds);
+int freeRAM();
+void handleSerialData();
+void printQueue(REQUEST* p);
+//******************************************** END FUNCTION prototypes ********************************************************************************
 //******************************************** BEGIN GENERAL variables ********************************************************************************
 byte lastValidReading = 1;
 unsigned long lastValidReadingTime = 0;

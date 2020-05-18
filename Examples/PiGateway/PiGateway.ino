@@ -29,7 +29,7 @@
 //#define ENABLE_WIRELESS_PROGRAMMING
 //*****************************************************************************************************************************
 #define DEBUG_EN            //comment out if you don't want any serial verbose output
-#define SERIAL_BAUD   19200 // Serial baud rate must match your Pi/host computer serial port baud rate!
+#define SERIAL_BAUD   115200 // Serial baud rate must match your Pi/host computer serial port baud rate!
 //*****************************************************************************************************************************
 #ifdef DEBUG_EN
   #define DEBUG(input)   Serial.print(input)
@@ -180,9 +180,11 @@ boolean insert(uint16_t new_id, char new_data[]) {
 //processCommand - parse the command and send it to target
 //if target is non-responsive it(sleeppy node?) then queue command to send when target wakes and asks for an ACK
 //SPECIAL COMMANDS FROM HOST:
+// - REQUESTQUEUE:123:MESSAGE - send or (upon fail) queue message
 // - 123:VOID - removes all queued commands for node 123
 // - 123:VOID:command - removes 'command' from queue (if found)
 // - REQUESTQUEUE - prints the queued list of nodes on serial port, to host (Pi?)
+// - REQUESTQUEUE:VOID - flush entire queue
 // - FREERAM - returns # of unallocated bytes at end of heap
 // - SYSFREQ - returns operating frequency in Hz
 // - UPTIME - returns millis()
@@ -191,18 +193,25 @@ void processCommand(char data[], boolean allowDuplicate=false) {
   char dataPart[MAX_BUFFER_LENGTH];
   uint16_t targetId;
   byte sendLen = 0;
+  byte isQueueRequest = false;
   ptr = strtok(data, ":");
 
   if (strcmp(data, "FREERAM")==0)
     Serial << F("FREERAM:") << freeRAM() << ':' << RAMSIZE << endl;
   if (strcmp(data, "REQUESTQUEUE")==0)
-    printQueue(queue);
+  {
+    ptr = strtok(NULL, ":");  //move to next :
+    if (ptr == NULL) printQueue(queue);
+    else isQueueRequest = true;
+  }
   if (strcmp(data, "SYSFREQ")==0)
     Serial << F("SYSFREQ:") << radio.getFrequency() << endl;
   if (strcmp(data, "UPTIME")==0)
     Serial << F("UPTIME:") << millis() << endl;
   if (strcmp(data, "NETWORKID")==0)
     Serial << F("NETWORKID:") << NETWORKID << endl;
+  if (strcmp(data, "BEEP")==0) Beep(5, false);
+  if (strcmp(data, "BEEP2")==0) Beep(10, false);
   if (strcmp(data, "ENCRYPTKEY")==0)
 #ifdef ENCRYPTKEY
     Serial << F("ENCRYPTKEY:") << ENCRYPTKEY << endl;
@@ -212,8 +221,36 @@ void processCommand(char data[], boolean allowDuplicate=false) {
 
   if(ptr != NULL) {                  // delimiter found, valid command
     sprintf(dataPart, "%s", ptr);
-    targetId = atoi(dataPart);       // get nodeID part
-    ptr = strtok(NULL, "");          // get command part
+
+    //if "REQUESTQUEUE:VOID" then flush entire requst queue
+    if (isQueueRequest && strcmp(dataPart, "VOID")==0) {
+      REQUEST* aux = queue;
+      byte removed=0;
+  
+      while(aux != NULL) {
+        if (aux == queue) {
+          if (aux->next == NULL) {
+            free(queue);
+            queue=NULL;
+            removed++;
+            break;
+          }
+          else {
+            queue = queue->next;
+            free(aux);
+            removed++;
+            aux = queue;
+            continue;
+          }
+        }
+      }
+      DEBUG("DEBUG:VOIDED_commands:");DEBUGln(removed);
+      size_of_queue = size_of_queue - removed;
+      return;
+    }
+
+    targetId = atoi(dataPart);       // attempt to extract nodeID part
+    ptr = strtok(NULL, "");          // get command part to the end of the string
     sprintf(dataPart, "%s", ptr);
 
     //check for empty command
@@ -236,8 +273,7 @@ void processCommand(char data[], boolean allowDuplicate=false) {
 
         //iterate over queue
         aux = queue;
-        while(aux != NULL)
-        {
+        while(aux != NULL) {
           if (aux->nodeId==targetId)
           {
             if (removeAll || (!removeAll && strcmp(aux->data, dataPart+5)==0))
@@ -275,7 +311,7 @@ void processCommand(char data[], boolean allowDuplicate=false) {
           }
           else aux=aux->next;
         }
-        DEBUG("DEBUG:VOIDED commands: ");DEBUGln(removed);
+        DEBUG("DEBUG:VOIDED_commands:");DEBUGln(removed);
         size_of_queue = size_of_queue - removed;
         return;
       }
@@ -289,6 +325,8 @@ void processCommand(char data[], boolean allowDuplicate=false) {
       }
       LED_LOW;
 
+      if (!isQueueRequest) return; //just return at this time if not queued request
+
       //check for duplicate
       if (!allowDuplicate) {
         //walk queue and check for duplicates
@@ -300,7 +338,7 @@ void processCommand(char data[], boolean allowDuplicate=false) {
           {
             if (strcmp(aux->data, dataPart)==0)
             {
-              DEBUGln(F("DEBUG:processCommand() skip (duplicate)"));  
+              DEBUGln(F("DEBUG:processCommand_skip_duplicate"));  
               return;
             }
           }
@@ -319,7 +357,7 @@ void processCommand(char data[], boolean allowDuplicate=false) {
       }
       else 
       {
-        DEBUGln(F("DEBUG:INSERT FAIL - MEM FULL!"));
+        DEBUGln(F("DEBUG:INSERT_FAIL:MEM_FULL"));
         Serial << F("[") << targetId << F("] ") << dataPart << F(":MEMFULL") << endl;
       }
     }

@@ -22,11 +22,11 @@
 #define NODEID          1  //the gateway has ID=1
 #define NETWORKID     200  //the network ID of all nodes this node listens/talks to
 #define FREQUENCY     RF69_915MHZ //Match this with the version of your Moteino! (others: RF69_433MHZ, RF69_868MHZ)
-#define FREQUENCY_EXACT 916000000 //uncomment and set to a specific frequency in Hz, if commented the center frequency is used
+//#define FREQUENCY_EXACT 916000000 //uncomment and set to a specific frequency in Hz, if commented the center frequency is used
 #define ENCRYPTKEY    "sampleEncryptKey" //identical 16 characters/bytes on all nodes, not more not less!
 #define IS_RFM69HW_HCW  //required for RFM69HW/HCW, comment out for RFM69W/CW!
 #define ENABLE_ATC    //comment out this line to disable AUTO TRANSMISSION CONTROL
-//#define ENABLE_WIRELESS_PROGRAMMING
+#define ENABLE_WIRELESS_PROGRAMMING
 //*****************************************************************************************************************************
 #define DEBUG_EN            //comment out if you don't want any serial verbose output
 #define SERIAL_BAUD   115200 // Serial baud rate must match your Pi/host computer serial port baud rate!

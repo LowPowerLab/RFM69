@@ -26,6 +26,7 @@
 #include "RFM69.h"
 #include "RFM69registers.h"
 #include <SPI.h>
+#include <LowPower.h> //http://github.com/LowPowerLab/LowPower
 
 uint8_t RFM69::DATA[RF69_MAX_DATA_LEN+1];
 uint8_t RFM69::_mode;        // current transceiver state
@@ -863,6 +864,73 @@ void RFM69::rcCalibration()
   writeReg(REG_OSC1, RF_OSC1_RCCAL_START);
   while ((readReg(REG_OSC1) & RF_OSC1_RCCAL_DONE) == 0x00);
 }
+
+// ListenMode sleep/timer
+void RFM69::listenModeSleep(uint16_t millisInterval) 
+{
+  setMode( RF69_MODE_STANDBY );
+  while ((readReg(REG_IRQFLAGS1) & RF_IRQFLAGS1_MODEREADY) == 0x00); // wait for ModeReady
+
+  detachInterrupt( _interruptNum );
+  //attachInterrupt( _interruptNum, delayIrq, RISING);
+  writeReg( REG_DIOMAPPING1, RF_DIOMAPPING1_DIO0_11 );
+  writeReg( REG_BITRATEMSB, RF_BITRATEMSB_200000);
+  writeReg( REG_BITRATELSB, RF_BITRATELSB_200000);
+  writeReg( REG_FDEVMSB, RF_FDEVMSB_100000 );
+  writeReg( REG_FDEVLSB, RF_FDEVLSB_100000 );
+  writeReg( REG_RXBW, RF_RXBW_DCCFREQ_000 | RF_RXBW_MANT_16 | RF_RXBW_EXP_0 );
+
+  uint8_t idleResol;
+  uint32_t divisor;
+  uint32_t microInterval = millisInterval * 1000L;
+
+  if( microInterval > 255 * 4100L ) {
+    idleResol = RF_LISTEN1_RESOL_IDLE_262000;
+    divisor = 262000;
+  }
+  else if( microInterval > 255 * 64L ) {
+    idleResol = RF_LISTEN1_RESOL_IDLE_4100;
+    divisor = 4100;
+  }
+  else {
+    idleResol = RF_LISTEN1_RESOL_IDLE_64;
+    divisor = 64;
+  }
+
+  writeReg( REG_LISTEN1, RF_LISTEN1_RESOL_RX_64 | idleResol | RF_LISTEN1_CRITERIA_RSSI | RF_LISTEN1_END_10 );
+  writeReg( REG_LISTEN2, (microInterval + (divisor >> 1 ) ) / divisor );
+  writeReg( REG_LISTEN3, 4 );
+  writeReg( REG_RSSITHRESH, 255 );
+  writeReg( REG_RXTIMEOUT2, 1 );
+  writeReg( REG_OPMODE, RF_OPMODE_SEQUENCER_ON | RF_OPMODE_STANDBY  );
+  writeReg( REG_OPMODE, RF_OPMODE_SEQUENCER_ON | RF_OPMODE_STANDBY | RF_OPMODE_LISTEN_ON  );
+
+  attachInterrupt( _interruptNum, delayIrq, RISING);
+
+  LowPower.powerDown( SLEEP_FOREVER, ADC_OFF, BOD_OFF );
+  LowPower.powerDown( SLEEP_FOREVER, ADC_OFF, BOD_OFF );
+  LowPower.powerDown( SLEEP_FOREVER, ADC_OFF, BOD_OFF );
+
+  endListenModeSleep();
+}
+
+//=============================================================================
+// endListenModeSleep() - called by listenModeSleep()
+//=============================================================================
+void RFM69::endListenModeSleep()
+{
+  detachInterrupt( _interruptNum );
+  writeReg( REG_OPMODE, RF_OPMODE_SEQUENCER_ON | RF_OPMODE_LISTENABORT | RF_OPMODE_STANDBY );
+  writeReg( REG_OPMODE, RF_OPMODE_SEQUENCER_ON | RF_OPMODE_STANDBY );
+  writeReg( REG_RXTIMEOUT2, 0 );
+  setMode( RF69_MODE_STANDBY );
+  while ((readReg(REG_IRQFLAGS1) & RF_IRQFLAGS1_MODEREADY) == 0x00); // wait for ModeReady
+}
+
+//=============================================================================
+// delayIRQ() - called by listenModeSleep()
+//=============================================================================
+void RFM69::delayIrq() { return; }
 
 //=============================================================================
 //                     ListenMode specific functions  

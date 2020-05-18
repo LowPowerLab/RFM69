@@ -228,6 +228,9 @@ class RFM69 {
     void readAllRegs();
     void readAllRegsCompact();
 
+    // ListenMode sleep/timer
+    void listenModeSleep(uint16_t millisInterval);
+
   protected:
     static void isr0();
     void interruptHandler();
@@ -235,6 +238,10 @@ class RFM69 {
     static volatile bool _haveData;
     virtual void sendFrame(uint16_t toAddress, const void* buffer, uint8_t size, bool requestACK=false, bool sendACK=false);
 
+    // for ListenMode sleep/timer
+    static void delayIrq();
+    void endListenModeSleep();
+   
     uint8_t _slaveSelectPin;
     uint8_t _interruptPin;
     uint8_t _interruptNum;

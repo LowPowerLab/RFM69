@@ -116,7 +116,7 @@ bool RFM69::initialize(uint8_t freqBand, uint16_t nodeID, uint8_t networkID)
 #endif
   
 #ifdef SPI_HAS_TRANSACTION
-  _settings = SPISettings(4000000, MSBFIRST, SPI_MODE0);
+  _settings = SPISettings(8000000, MSBFIRST, SPI_MODE0);
 #endif
 
   uint32_t start = millis();
@@ -304,6 +304,7 @@ void RFM69::sendACK(const void* buffer, uint8_t bufferSize) {
 // internal function
 void RFM69::sendFrame(uint16_t toAddress, const void* buffer, uint8_t bufferSize, bool requestACK, bool sendACK)
 {
+  //NOTE: overridden in RFM69_ATC!
   setMode(RF69_MODE_STANDBY); // turn off receiver to prevent reception while filling fifo
   while ((readReg(REG_IRQFLAGS1) & RF_IRQFLAGS1_MODEREADY) == 0x00); // wait for ModeReady
   //writeReg(REG_DIOMAPPING1, RF_DIOMAPPING1_DIO0_00); // DIO0 is "Packet Sent"
@@ -484,13 +485,11 @@ void RFM69::select() {
   // set RFM69 SPI settings explicitly
   SPI.setDataMode(SPI_MODE0);
   SPI.setBitOrder(MSBFIRST);
-#ifdef defined(__SAMD21__)
-	SPI.setClockDivider(SPI_CLOCK_DIV2);
-#elif defined(__SAMD51__)
-  SPI.setClockDivider(SPI_CLOCK_DIV16);
-#else
-  SPI.setClockDivider(SPI_CLOCK_DIV4); // decided to slow down from DIV2 after SPI stalling in some instances, especially visible on mega1284p when RFM69 and FLASH chip both present
-#endif
+  #ifdef defined(__SAMD51__)
+    SPI.setClockDivider(SPI_CLOCK_DIV16);
+  #else
+    SPI.setClockDivider(SPI_CLOCK_DIV2);
+  #endif
 #endif
   digitalWrite(_slaveSelectPin, LOW);
 }

@@ -210,8 +210,6 @@ void processCommand(char data[], boolean allowDuplicate=false) {
     Serial << F("UPTIME:") << millis() << endl;
   if (strcmp(data, "NETWORKID")==0)
     Serial << F("NETWORKID:") << NETWORKID << endl;
-  if (strcmp(data, "BEEP")==0) Beep(5, false);
-  if (strcmp(data, "BEEP2")==0) Beep(10, false);
   if (strcmp(data, "ENCRYPTKEY")==0)
 #ifdef ENCRYPTKEY
     Serial << F("ENCRYPTKEY:") << ENCRYPTKEY << endl;

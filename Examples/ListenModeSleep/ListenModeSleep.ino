@@ -31,15 +31,15 @@
 //*********************************************************************************************
 //************ IMPORTANT SETTINGS - YOU MUST CHANGE/CONFIGURE TO FIT YOUR HARDWARE ************
 //*********************************************************************************************
-#define NODEID        123   //must be unique for each node on same network (range up to 254, 255 is used for broadcast)
-#define NETWORKID     100  //the same on all nodes that talk to each other (range up to 255)
-#define GATEWAYID     1
-#define FREQUENCY     RF69_915MHZ //match the RFM69 version! Others: RF69_433MHZ, RF69_868MHZ
+#define NODEID          123   //must be unique for each node on same network (range up to 254, 255 is used for broadcast)
+#define NETWORKID       100  //the same on all nodes that talk to each other (range up to 255)
+#define GATEWAYID       1
+#define FREQUENCY       RF69_915MHZ //match the RFM69 version! Others: RF69_433MHZ, RF69_868MHZ
 //#define FREQUENCY_EXACT 916000000
-#define IS_RFM69HW    //uncomment only for RFM69HW! Leave out if you have RFM69W!
-#define ENCRYPTKEY    "sampleEncryptKey" //exactly the same 16 characters/bytes on all nodes!
-#define ENABLE_ATC    //comment out this line to disable AUTO TRANSMISSION CONTROL
-#define ATC_RSSI      -90
+#define IS_RFM69HW_HCW  //uncomment only for RFM69HW/HCW! Leave out if you have RFM69W/CW!
+#define ENCRYPTKEY      "sampleEncryptKey" //exactly the same 16 characters/bytes on all nodes!
+#define ENABLE_ATC      //comment out this line to disable AUTO TRANSMISSION CONTROL
+#define ATC_RSSI        -90
 // **********************************************************************************
 //to avoid the buggy listen mode high resolution timer TRANSMITPERIOD should always be > 262ms
 #define TRANSMITPERIOD  3000 //sleep time in ms
@@ -78,7 +78,7 @@ void setup() {
   else
     DEBUG("radio.init() SUCCESS");
 
-#ifdef IS_RFM69HW
+#ifdef IS_RFM69HW_HCW
   radio.setHighPower(); //uncomment only for RFM69HW!
 #endif
 
@@ -91,17 +91,14 @@ void setup() {
 #endif
 
 #ifdef ENABLE_ATC
-    radio.enableAutoPower(ATC_RSSI);
+  radio.enableAutoPower(ATC_RSSI);
+  DEBUGln("RFM69_ATC Enabled (Auto Transmission Control)\n");
 #endif
 
   Pbuff = F("Transmitting at ");
-  Pbuff.print(FREQUENCY==RF69_433MHZ ? 433 : FREQUENCY==RF69_868MHZ ? 868 : 915);
-  Pbuff.print(F("Mhz..."));
+  Pbuff.print(radio.getFrequency());
+  Pbuff.print(F("Hz..."));
   DEBUGln(buff);
-
-#ifdef ENABLE_ATC
-  DEBUGln("RFM69_ATC Enabled (Auto Transmission Control)\n");
-#endif
 }
 
 uint32_t packetCounter=0;

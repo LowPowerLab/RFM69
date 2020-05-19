@@ -14,9 +14,8 @@
 //   If desired this value could be saved to EEPROM to persist if unit is turned off
 // Get the RFM69 at: https://github.com/LowPowerLab/
 // Make sure you adjust the settings in the configuration section below !!!
-
 // **********************************************************************************
-// Copyright Felix Rusu 2016, http://www.LowPowerLab.com/contact
+// Copyright Felix Rusu 2020, http://www.LowPowerLab.com/contact
 // **********************************************************************************
 // License
 // **********************************************************************************
@@ -38,11 +37,10 @@
 // Please maintain this license information along with authorship
 // and copyright notices in any redistribution of this code
 // **********************************************************************************
-#include <RFM69.h>    //get it here: https://www.github.com/lowpowerlab/rfm69
-#include <SPI.h>      //included with Arduino IDE (www.arduino.cc)
-#include <LowPower.h> //get library from: https://github.com/lowpowerlab/lowpower
-                      //writeup here: http://www.rocketscream.com/blog/2011/07/04/lightweight-low-power-arduino-library/
-
+#include <RFM69.h>     //https://www.github.com/lowpowerlab/rfm69
+#include <RFM69_ATC.h> //https://github.com/lowpowerlab/rfm69
+#include <LowPower.h>  //https://github.com/lowpowerlab/lowpower
+#include <SPIFlash.h>  //https://www.github.com/lowpowerlab/spiflash
 //*********************************************************************************************
 //************ IMPORTANT SETTINGS - YOU MUST CHANGE/CONFIGURE TO FIT YOUR HARDWARE *************
 //*********************************************************************************************
@@ -50,8 +48,11 @@
 #define GATEWAYID     1    //node Id of the receiver we are sending data to
 #define NETWORKID     100  //the same on all nodes that talk to each other including this node and the gateway
 #define FREQUENCY     RF69_915MHZ //others: RF69_433MHZ, RF69_868MHZ (this must match the RFM69 freq you have on your Moteino)
-#define IS_RFM69HW_HCW  //uncomment only for RFM69HW/HCW! Leave out if you have RFM69W/CW!
+//#define FREQUENCY_EXACT 916000000
+#define IS_RFM69HW_HCW  //uncomment only for RFM69HW/HCW! Remove/comment if you have RFM69W/CW!
 #define ENCRYPTKEY    "sampleEncryptKey" //exactly the same 16 characters/bytes on all nodes!
+#define ENABLE_ATC    //comment out this line to disable AUTO TRANSMISSION CONTROL
+//*********************************************************************************************
 #define SENDLOOPS    80 //default:80 //if no message was sent for this many sleep loops/cycles, then force a send
 #define READ_SAMPLES 3
 #define HISTERESIS   1.3  //(cm) only send a message when new reading is this many centimeters different
@@ -60,21 +61,6 @@
 #define BUZZER_ENABLE  //uncomment this line if you have the BUZZER soldered and want the sketch to make sounds
 //#define SERIAL_EN      //uncomment if you want serial debugging output
 //*********************************************************************************************
-#define SLEEP_FASTEST SLEEP_15MS
-#define SLEEP_FAST SLEEP_250MS
-#define SLEEP_SEC SLEEP_1S
-#define SLEEP_LONG SLEEP_2S
-#define SLEEP_LONGER SLEEP_4S
-#define SLEEP_LONGEST SLEEP_8S
-period_t sleepTime = SLEEP_LONGEST; //period_t is an enum type defined in the LowPower library (LowPower.h)
-//*********************************************************************************************
-#ifdef __AVR_ATmega1284P__
-  #define LED           15 // Moteino MEGAs have LEDs on D15
-  #define FLASH_SS      23
-#else
-  #define LED           9 // Moteinos have LEDs on D9
-  #define FLASH_SS      8
-#endif
 #define TRIG           6  // digital pin wired to TRIG pin of ultrasonic sensor
 #define ECHO           7  // digital pin wired to ECHO pin of ultrasonic sensor
 #define SENSOR_EN      5  // digital pin that enables power to ultrasonic sensor
@@ -82,23 +68,22 @@ period_t sleepTime = SLEEP_LONGEST; //period_t is an enum type defined in the Lo
 #define MAX_DISTANCE 150  // maximum valid distance
 #define MIN_DISTANCE   2  // minimum valid distance
 #define MAX_ADJUST_DISTANCE (MAX_DISTANCE-GRN_LIMIT_UPPER)   //this is the amount by which the RED_LIMIT_UPPER can by increased
-
+//*********************************************************************************************
 #ifdef SERIAL_EN
   #define SERIAL_BAUD   115200
-  #define DEBUG(input)   {Serial.print(input);}
-  #define DEBUGln(input) {Serial.println(input);}
-  #define SERIALFLUSH() {Serial.flush();}
+  #define DEBUG(input)   Serial.print(input)
+  #define DEBUGln(input) Serial.println(input)
+  #define DEBUGFlush() Serial.flush()
 #else
-  #define DEBUG(input);
-  #define DEBUGln(input);
-  #define SERIALFLUSH();
+  #define DEBUG(input)
+  #define DEBUGln(input)
+  #define DEBUGFlush()
 #endif
-
-#define BATT_MONITOR  A7  // Sense VBAT_COND signal (when powered externally should read ~3.25v/3.3v (1000-1023), when external power is cutoff it should start reading around 2.85v/3.3v * 1023 ~= 883 (ratio given by 10k+4.7K divider from VBAT_COND = 1.47 multiplier)
-#define BATT_READ_LOOPS  SENDLOOPS  // read and report battery voltage every this many sleep cycles (ex 30cycles * 8sec sleep = 240sec/4min). For 450 cycles you would get ~1 hour intervals between readings
+//*********************************************************************************************
+#define BATT_MONITOR      A7  // Sense VBAT_COND signal (when powered externally should read ~3.25v/3.3v (1000-1023), when external power is cutoff it should start reading around 2.85v/3.3v * 1023 ~= 883 (ratio given by 10k+4.7K divider from VBAT_COND = 1.47 multiplier)
+#define BATT_READ_LOOPS   SENDLOOPS  // read and report battery voltage every this many sleep cycles (ex 30cycles * 8sec sleep = 240sec/4min). For 450 cycles you would get ~1 hour intervals between readings
 #define BATT_FORMULA(reading) reading * 0.00322 * 1.475  // >>> fine tune this parameter to match your voltage when fully charged
-#define BATT_LOW      3.55
-
+//*********************************************************************************************
 byte sendLen;
 byte sendLoops=0;
 byte distReadLoops=0;
@@ -110,7 +95,12 @@ char buff[50]; //this is just an empty string used as a buffer to place the payl
 char* BATstr="BAT:5.00v"; //longest battery voltage reading message = 9chars
 char* DISTstr="99999.99cm"; //longest distance reading message = 5chars
 float readDistance(byte samples=1);  //take 1 samples by default
-RFM69 radio;
+SPIFlash flash(SS_FLASHMEM, 0xEF30); //EF30 for 4mbit  Windbond chip (W25X40CL)
+#ifdef ENABLE_ATC
+  RFM69_ATC radio;
+#else
+  RFM69 radio;
+#endif
 
 void setup() {
 #ifdef SERIAL_EN
@@ -121,9 +111,16 @@ void setup() {
 #ifdef IS_RFM69HW_HCW
   radio.setHighPower(); //must include this only for RFM69HW/HCW!
 #endif
+#ifdef ENCRYPTKEY
   radio.encrypt(ENCRYPTKEY);
-  //sprintf(buff, "\nTransmitting at %d Mhz...", FREQUENCY==RF69_433MHZ ? 433 : FREQUENCY==RF69_868MHZ ? 868 : 915);
-  sprintf(buff, "\nTransmitting at %d Mhz, id:%d nid:%d gid:%d", FREQUENCY==RF69_433MHZ ? 433 : FREQUENCY==RF69_868MHZ ? 868 : 915, NODEID, NETWORKID, GATEWAYID);
+#endif
+#ifdef FREQUENCY_EXACT
+  radio.setFrequency(FREQUENCY_EXACT); //set frequency to some custom frequency
+#endif
+#ifdef ENABLE_ATC
+    radio.enableAutoPower();
+#endif
+  sprintf(buff, "\nTransmitting at %l Hz, id:%d nid:%d gid:%d", radio.getFrequency(), NODEID, NETWORKID, GATEWAYID);
   DEBUG(buff);
   for (byte i=0;i<strlen(ENCRYPTKEY);i++) DEBUG(ENCRYPTKEY[i]);
   DEBUGln();
@@ -132,15 +129,16 @@ void setup() {
   pinMode(TRIG, OUTPUT);
   pinMode(ECHO, INPUT);
   pinMode(SENSOR_EN, OUTPUT);
+  pinMode(LED_BUILTIN, OUTPUT);
   digitalWrite(SENSOR_EN, LOW);
 #ifdef BUZZER_ENABLE
   pinMode(BUZZER, OUTPUT);
   buzzer(50,2,100);
 #endif
 
+  if (flash.initialize()) flash.sleep();
   radio.sendWithRetry(GATEWAYID, "START", 5);
-
-  SERIALFLUSH();
+  DEBUGFlush();
   readDistance(); //first reading seems to always be low
   readBattery();
 }
@@ -171,7 +169,7 @@ void loop() {
       sprintf(buff, "BAT:%s", BATstr); //distance has not changed significantly so only send last battery reading
     sendLen = strlen(buff);
 
-    digitalWrite(LED, HIGH);
+    digitalWrite(LED_BUILTIN, HIGH);
     DEBUG(buff);
     if (radio.sendWithRetry(GATEWAYID, buff, sendLen))
     {
@@ -180,13 +178,14 @@ void loop() {
       DEBUGln(radio.RSSI);
     }
     else DEBUGln(" - ACK:NOK...");
-    digitalWrite(LED, LOW);
+    digitalWrite(LED_BUILTIN, LOW);
     sendLoops = SENDLOOPS-1; //reset send loop counter
   }
-  radio.sleep();
-  SERIALFLUSH();
 
-  LowPower.powerDown(sleepTime, ADC_OFF, BOD_OFF); //put microcontroller to sleep to save battery life
+  radio.sleep();
+  DEBUGFlush();
+
+  LowPower.powerDown(SLEEP_8S, ADC_OFF, BOD_OFF); //sleep the microcontroller
 }
 
 float readDistance(byte samples)
@@ -227,7 +226,6 @@ void readBattery()
     readings+=analogRead(BATT_MONITOR);
   batteryVolts = BATT_FORMULA(readings / 5.0);
   dtostrf(batteryVolts,3,2, BATstr); //update the BATStr which gets sent every BATT_CYCLES or along with the MOTION message
-  if (batteryVolts <= BATT_LOW) BATstr = "LOW";
 }
 
 float microsecondsToInches(long microseconds)
@@ -260,11 +258,3 @@ void buzzer(byte soundTime, byte repeats, byte repeatsDelay)
   }
 }
 #endif
-
-void Blink(byte pin)
-{
-  pinMode(pin, OUTPUT);
-  digitalWrite(pin, HIGH);
-  delay(2);
-  digitalWrite(pin, LOW);
-}

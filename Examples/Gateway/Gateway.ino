@@ -1,18 +1,13 @@
 // **********************************************************************************
-//
 //            !!!!     ATTENTION:    !!!!
-//
 // This is just a simple receiving sketch that will work with most examples
 // in the RFM69 library.
 //
 // If you're looking for the Gateway sketch to use with your RaspberryPi,
 // as part of the PiGateway software interface (lowpowerlab.com/gateway),
-// this is the wrong sketch.
-//
-// Use this sketch instead: PiGateway:
+// this is the wrong sketch. Use this sketch instead: PiGateway:
 // https://github.com/LowPowerLab/RFM69/blob/master/Examples/PiGateway/PiGateway.ino
 // **********************************************************************************
-
 // Sample RFM69 receiver/gateway sketch, with ACK and optional encryption, and Automatic Transmission Control
 // Passes through any wireless received messages to the serial port & responds to ACKs
 // It also looks for an onboard FLASH chip, if present
@@ -42,12 +37,11 @@
 #include <RFM69.h>         //get it here: https://www.github.com/lowpowerlab/rfm69
 #include <RFM69_ATC.h>     //get it here: https://www.github.com/lowpowerlab/rfm69
 #include <SPIFlash.h>      //get it here: https://www.github.com/lowpowerlab/spiflash
-#include <SPI.h>           //included with Arduino IDE install (www.arduino.cc)
 
 //*********************************************************************************************
 //************ IMPORTANT SETTINGS - YOU MUST CHANGE/CONFIGURE TO FIT YOUR HARDWARE *************
 //*********************************************************************************************
-#define NODEID        1    //unique for each node on same network
+#define NODEID        1    //should always be 1 for a Gateway
 #define NETWORKID     100  //the same on all nodes that talk to each other
 //Match frequency to the hardware version of the radio on your Moteino (uncomment one):
 //#define FREQUENCY     RF69_433MHZ
@@ -72,7 +66,7 @@
 #endif
 
 SPIFlash flash(SS_FLASHMEM, 0xEF30); //EF30 for 4mbit  Windbond chip (W25X40CL)
-bool promiscuousMode = false; //set to 'true' to sniff all packets on the same network
+bool spy = false; //set to 'true' to sniff all packets on the same network
 
 void setup() {
   Serial.begin(SERIAL_BAUD);
@@ -82,8 +76,8 @@ void setup() {
   radio.setHighPower(); //must include this only for RFM69HW/HCW!
 #endif
   radio.encrypt(ENCRYPTKEY);
-  radio.promiscuous(promiscuousMode);
-  //radio.setFrequency(919000000); //set frequency to some custom frequency
+  radio.spyMode(spy);
+  //radio.setFrequency(916000000); //set frequency to some custom frequency
   char buff[50];
   sprintf(buff, "\nListening at %d Mhz...", FREQUENCY==RF69_433MHZ ? 433 : FREQUENCY==RF69_868MHZ ? 868 : 915);
   Serial.println(buff);
@@ -129,9 +123,9 @@ void loop() {
       radio.encrypt(null);
     if (input == 'p')
     {
-      promiscuousMode = !promiscuousMode;
-      radio.promiscuous(promiscuousMode);
-      Serial.print("Promiscuous mode ");Serial.println(promiscuousMode ? "on" : "off");
+      spy = !spy;
+      radio.spyMode(spy);
+      Serial.print("SpyMode mode ");Serial.println(spy ? "on" : "off");
     }
     
     if (input == 'd') //d=dump flash area
@@ -177,10 +171,7 @@ void loop() {
     Serial.print(++packetCount);
     Serial.print(']');
     Serial.print('[');Serial.print(radio.SENDERID, DEC);Serial.print("] ");
-    if (promiscuousMode)
-    {
-      Serial.print("to [");Serial.print(radio.TARGETID, DEC);Serial.print("] ");
-    }
+    if (spy) Serial.print("to [");Serial.print(radio.TARGETID, DEC);Serial.print("] ");
     for (byte i = 0; i < radio.DATALEN; i++)
       Serial.print((char)radio.DATA[i]);
     Serial.print("   [RX_RSSI:");Serial.print(radio.RSSI);Serial.print("]");

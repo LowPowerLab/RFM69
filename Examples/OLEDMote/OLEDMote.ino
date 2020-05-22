@@ -55,7 +55,7 @@
 
 RFM69 radio;
 U8GLIB_SSD1306_128X64 u8g(U8G_I2C_OPT_NONE); // I2C / TWI SSD1306 OLED 128x64
-bool promiscuousMode = true; //set to 'true' to sniff all packets on the same network
+bool spy = true; //set to 'true' to sniff all packets on the same network
 
 void setup() {
   Serial.begin(SERIAL_BAUD);
@@ -64,7 +64,7 @@ void setup() {
   radio.setHighPower(); //must include this only for RFM69HW/HCW!
 #endif
   radio.encrypt(ENCRYPTKEY);
-  radio.promiscuous(promiscuousMode);
+  radio.spyMode(spy);
   char buff[50];
   sprintf(buff, "\nListening at %d Mhz...", FREQUENCY==RF69_433MHZ ? 433 : FREQUENCY==RF69_868MHZ ? 868 : 915);
   Serial.println(buff);
@@ -146,9 +146,7 @@ void loop() {
   if (radio.receiveDone())
   {
     Serial.print('[');Serial.print(radio.SENDERID);Serial.print("] ");
-    if (promiscuousMode)
-      Serial.print("to [");Serial.print(radio.TARGETID);Serial.print("] ");
-
+    if (spy) Serial.print("to [");Serial.print(radio.TARGETID);Serial.print("] ");
     Serial.print((char*)radio.DATA);
     Serial.print("   [RX_RSSI:");Serial.print(radio.RSSI);Serial.print("]");
     Serial.println();

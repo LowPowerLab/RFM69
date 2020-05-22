@@ -55,7 +55,7 @@
 #endif
 
 SPIFlash flash(SS_FLASHMEM, 0xEF30); //EF40 for 16mbit windbond chip
-bool promiscuousMode = false; //set to 'true' to sniff all packets on the same network
+bool spy = false; //set to 'true' to sniff all packets on the same network
 
 typedef struct {
   int           nodeId; //store this nodeId
@@ -72,7 +72,7 @@ void setup() {
   radio.setHighPower(); //must include this only for RFM69HW/HCW!
 #endif
   radio.encrypt(ENCRYPTKEY);
-  radio.promiscuous(promiscuousMode);
+  radio.spyMode(spy);
   char buff[50];
   sprintf(buff, "\nListening at %d Mhz...", FREQUENCY==RF69_433MHZ ? 433 : FREQUENCY==RF69_868MHZ ? 868 : 915);
   Serial.println(buff);
@@ -96,9 +96,9 @@ void loop() {
       radio.encrypt(null);
     if (input == 'p')
     {
-      promiscuousMode = !promiscuousMode;
-      radio.promiscuous(promiscuousMode);
-      Serial.print("Promiscuous mode ");Serial.println(promiscuousMode ? "on" : "off");
+      spy = !spy;
+      radio.spyMode(spy);
+      Serial.print("Spy mode ");Serial.println(spy ? "on" : "off");
     }
     
     if (input == 'd') //d=dump flash area
@@ -132,10 +132,7 @@ void loop() {
   {
     Serial.print('[');Serial.print(radio.SENDERID, DEC);Serial.print("] ");
     Serial.print(" [RX_RSSI:");Serial.print(radio.readRSSI());Serial.print("]");
-    if (promiscuousMode)
-    {
-      Serial.print("to [");Serial.print(radio.TARGETID, DEC);Serial.print("] ");
-    }
+    if (spy) Serial.print("to [");Serial.print(radio.TARGETID, DEC);Serial.print("] ");
 
     if (radio.DATALEN != sizeof(Payload))
       Serial.print("Invalid payload received, not matching Payload struct!");

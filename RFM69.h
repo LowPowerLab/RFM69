@@ -215,7 +215,7 @@ class RFM69 {
     void setCS(uint8_t newSPISlaveSelect);
     int16_t readRSSI(bool forceTrigger=false); // *current* signal strength indicator; e.g. < -90dBm says the frequency channel is free + ready to transmit
     void spyMode(bool onOff=true);
-    void promiscuous(bool onOff=true); //deprecated, replaced with spyMode()
+    //void promiscuous(bool onOff=true); //replaced with spyMode()
     virtual void setHighPower(bool onOFF=true); // has to be called after initialize() for RFM69HW
     virtual void setPowerLevel(uint8_t level); // reduce/increase transmit power level
     void sleep();

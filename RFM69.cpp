@@ -26,7 +26,9 @@
 #include "RFM69.h"
 #include "RFM69registers.h"
 #include <SPI.h>
-#include <LowPower.h> //http://github.com/LowPowerLab/LowPower
+#if defined(__AVR__)
+  #include <LowPower.h> //http://github.com/LowPowerLab/LowPower
+#endif
 
 uint8_t RFM69::DATA[RF69_MAX_DATA_LEN+1];
 uint8_t RFM69::_mode;        // current transceiver state
@@ -515,11 +517,6 @@ void RFM69::spyMode(bool onOff) {
   //writeReg(REG_PACKETCONFIG1, (readReg(REG_PACKETCONFIG1) & 0xF9) | (onOff ? RF_PACKET1_ADRSFILTERING_OFF : RF_PACKET1_ADRSFILTERING_NODEBROADCAST));
 }
 
-void RFM69::promiscuous(bool onOff) {
-  #pragma message ("\nRFM69::promiscuous(bool): DEPRECATED, use spyMode(bool) instead!\n")
-  spyMode(onOff);
-}
-
 // for RFM69HW only: you must call setHighPower(true) after initialize() or else transmission won't work
 void RFM69::setHighPower(bool onOff) {
   _isRFM69HW = onOff;
@@ -868,6 +865,7 @@ void RFM69::rcCalibration()
 // ListenMode sleep/timer
 void RFM69::listenModeSleep(uint16_t millisInterval) 
 {
+#if defined (__AVR__)
   setMode( RF69_MODE_STANDBY );
   while ((readReg(REG_IRQFLAGS1) & RF_IRQFLAGS1_MODEREADY) == 0x00); // wait for ModeReady
 
@@ -912,6 +910,7 @@ void RFM69::listenModeSleep(uint16_t millisInterval)
   LowPower.powerDown( SLEEP_FOREVER, ADC_OFF, BOD_OFF );
 
   endListenModeSleep();
+#endif
 }
 
 //=============================================================================

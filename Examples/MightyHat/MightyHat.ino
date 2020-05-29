@@ -85,6 +85,9 @@
   #define DEBUGln(input)
 #endif
 
+#define PRINT_UPTIME Serial<< F("UPTIME:") << millis() << endl;
+#define PRINT_FREQUENCY Serial << F("SYSFREQ:") << radio.getFrequency() << endl;
+
 #define LED_HIGH digitalWrite(LED_BUILTIN, HIGH)
 #define LED_LOW digitalWrite(LED_BUILTIN, LOW)
 
@@ -648,6 +651,8 @@ void setup() {
   Beep(20, false);delay(50);Beep(20, false);delay(50);Beep(20, false);
   setupPowerControl();
   Serial.begin(SERIAL_BAUD);
+  pinMode(LED_BUILTIN, OUTPUT);
+  LED_HIGH;
 
   radio.initialize(FREQUENCY,NODEID,NETWORKID);
 #ifdef ENCRYPTKEY
@@ -656,9 +661,10 @@ void setup() {
 #ifdef IS_RFM69HW_HCW
   radio.setHighPower();
 #endif
-  Pbuff="SYSFREQ:";
-  Pbuff << radio.getFrequency();
-  DEBUGln(buff);
+  Serial << endl << "GATEWAYSTART" << endl;
+  PRINT_FREQUENCY;
+  PRINT_UPTIME;
+
   if (!flash.initialize()) DEBUGln(F("DEBUG:SPI_Flash_Init_FAIL"));
 
 #ifdef FREQUENCY_EXACT
@@ -678,6 +684,7 @@ void setup() {
   refreshLCD();
   delay(1000);
 #endif
+  LED_LOW;
 }
 
 boolean newPacketReceived;
@@ -769,11 +776,11 @@ boolean insert(uint16_t new_id, char new_data[]) {
 //processCommand - parse the command and send it to target
 //if target is non-responsive it(sleeppy node?) then queue command to send when target wakes and asks for an ACK
 //SPECIAL COMMANDS FROM HOST:
-// - REQUESTQUEUE:123:MESSAGE - send or (upon fail) queue message
+// - RQ:123:MESSAGE - send or (upon fail) queue message
 // - 123:VOID - removes all queued commands for node 123
 // - 123:VOID:command - removes 'command' from queue (if found)
-// - REQUESTQUEUE - prints the queued list of nodes on serial port, to host (Pi?)
-// - REQUESTQUEUE:VOID - flush entire queue
+// - RQ - prints the queued list of nodes on serial port, to host (Pi?)
+// - RQ:VOID - flush entire queue
 // - FREERAM - returns # of unallocated bytes at end of heap
 // - SYSFREQ - returns operating frequency in Hz
 // - UPTIME - returns millis()
@@ -787,16 +794,16 @@ void processCommand(char data[], boolean allowDuplicate=false) {
 
   if (strcmp(data, "FREERAM")==0)
     Serial << F("FREERAM:") << freeRAM() << ':' << RAMSIZE << endl;
-  if (strcmp(data, "REQUESTQUEUE")==0)
+  if (strcmp(data, "RQ")==0)
   {
     ptr = strtok(NULL, ":");  //move to next :
     if (ptr == NULL) printQueue(queue);
     else isQueueRequest = true;
   }
   if (strcmp(data, "SYSFREQ")==0)
-    Serial << F("SYSFREQ:") << radio.getFrequency() << endl;
+    PRINT_FREQUENCY;
   if (strcmp(data, "UPTIME")==0)
-    Serial << F("UPTIME:") << millis() << endl;
+    PRINT_UPTIME;
   if (strcmp(data, "NETWORKID")==0)
     Serial << F("NETWORKID:") << NETWORKID << endl;
   if (strcmp(data, "BEEP")==0) Beep(5, false);
@@ -811,7 +818,7 @@ void processCommand(char data[], boolean allowDuplicate=false) {
   if(ptr != NULL) {                  // delimiter found, valid command
     sprintf(dataPart, "%s", ptr);
 
-    //if "REQUESTQUEUE:VOID" then flush entire requst queue
+    //if "RQ:VOID" then flush entire requst queue
     if (isQueueRequest && strcmp(dataPart, "VOID")==0) {
       REQUEST* aux = queue;
       byte removed=0;
@@ -846,8 +853,7 @@ void processCommand(char data[], boolean allowDuplicate=false) {
     if (strlen(dataPart) == 0) return;
 
     //check target nodeID is valid
-    if (targetId > 0 && targetId != NODEID && targetId<=1023)      
-    {
+    if (targetId > 0 && targetId != NODEID && targetId<=1023) {
       REQUEST* aux;
       byte removed=0;
 
@@ -944,24 +950,28 @@ void processCommand(char data[], boolean allowDuplicate=false) {
         //DEBUGln(dataPart);
         size_of_queue++;
       }
-      else 
+      else
       {
         DEBUGln(F("DEBUG:INSERT_FAIL:MEM_FULL"));
         Serial << F("[") << targetId << F("] ") << dataPart << F(":MEMFULL") << endl;
       }
+    }
+    else { 
+      //DEBUG(F("DEBUG:INSERT_FAIL - INVALID nodeId:")); DEBUGln(targetId);
+      Serial<< '[' << targetId <<"] " << dataPart << F(":INV:ID-OUT-OF-RANGE") << endl;
     }
   }
 }
 
 void printQueue(REQUEST* p) {
   if (!size_of_queue) {
-    Serial << F("REQUESTQUEUE:EMPTY") << endl;
+    Serial << F("RQ:EMPTY") << endl;
     return;
   }
 
   REQUEST* aux=p;
   while (aux!=NULL) {
-    Serial << F("REQUESTQUEUE:") << aux->nodeId << ':' << aux->data << endl;
+    Serial << F("RQ:") << aux->nodeId << ':' << aux->data << endl;
     aux=aux->next;
   }
 }

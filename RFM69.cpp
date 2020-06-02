@@ -844,6 +844,11 @@ uint8_t RFM69::readTemperature(uint8_t calFactor) // returns centigrade
   return ~readReg(REG_TEMP2) + COURSE_TEMP_COEF + calFactor; // 'complement' corrects the slope, rising temp = rising val
 } // COURSE_TEMP_COEF puts reading in the ballpark, user can add additional correction
 
+uint8_t RFM69::readPowerLevel() // get powerLevel
+{
+  return _powerLevel;
+}
+
 void RFM69::rcCalibration()
 {
   writeReg(REG_OSC1, RF_OSC1_RCCAL_START);

@@ -197,7 +197,7 @@ class RFM69 {
     RFM69(uint8_t slaveSelectPin, uint8_t interruptPin, bool isRFM69HW, uint8_t interruptNum) //interruptNum is now deprecated
                 : RFM69(slaveSelectPin, interruptPin, isRFM69HW){};
 
-    RFM69(uint8_t slaveSelectPin=RF69_SPI_CS, uint8_t interruptPin=RF69_IRQ_PIN, bool isRFM69HW=false);
+    RFM69(uint8_t slaveSelectPin=RF69_SPI_CS, uint8_t interruptPin=RF69_IRQ_PIN, bool isRFM69HW=false, SPIClass *spi=nullptr);
 
     bool initialize(uint8_t freqBand, uint16_t ID, uint8_t networkID=1);
     void setAddress(uint16_t addr);
@@ -249,6 +249,7 @@ class RFM69 {
     bool _spyMode;
     uint8_t _powerLevel;
     bool _isRFM69HW;
+    SPIClass *_spi;
 #if defined (SPCR) && defined (SPSR)
     uint8_t _SPCR;
     uint8_t _SPSR;

@@ -197,6 +197,7 @@ class RFM69 {
     virtual void setPowerLevel(uint8_t level); // reduce/increase transmit power level
     void sleep();
     uint8_t readTemperature(uint8_t calFactor=0); // get CMOS temperature (8bit)
+ 	  uint8_t readPowerLevel(); // get powerLevel	
     void rcCalibration(); // calibrate the internal RC oscillator for use in wide temperature variations - see datasheet section [4.3.5. RC Timer Accuracy]
 
     // allow hacking registers by making these public

@@ -241,6 +241,11 @@ void RFM69::setPowerLevel(uint8_t powerLevel)
   writeReg(REG_PALEVEL, (readReg(REG_PALEVEL) & 0xE0) | _powerLevel);
 }
 
+uint8_t RFM69::getPowerLevel() // get powerLevel
+{
+  return _powerLevel;
+}
+
 bool RFM69::canSend()
 {
   if (_mode == RF69_MODE_RX && PAYLOADLEN == 0 && readRSSI() < CSMA_LIMIT) // if signal stronger than -100dBm is detected assume channel activity

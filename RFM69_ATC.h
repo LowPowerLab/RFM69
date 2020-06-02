@@ -36,7 +36,7 @@ class RFM69_ATC: public RFM69 {
   public:
     static volatile uint8_t ACK_RSSI_REQUESTED;  // new flag in CTL byte to request RSSI with ACK (could potentially be merged with ACK_REQUESTED)
 
-    RFM69_ATC(uint8_t slaveSelectPin=RF69_SPI_CS, uint8_t interruptPin=RF69_IRQ_PIN, bool isRFM69HW=false, uint8_t interruptNum=0, SPIClass *spi=nullptr) :
+    RFM69_ATC(uint8_t slaveSelectPin=RF69_SPI_CS, uint8_t interruptPin=RF69_IRQ_PIN, bool isRFM69HW=false, SPIClass *spi=nullptr) :
       RFM69(slaveSelectPin, interruptPin, isRFM69HW, spi) {
     }
 

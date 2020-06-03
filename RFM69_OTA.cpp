@@ -79,8 +79,16 @@ void CheckForWirelessHEX(RFM69& radio, SPIFlash& flash, uint8_t DEBUG, uint8_t L
 void HandleHandshakeACK(RFM69& radio, SPIFlash& flash, uint8_t flashCheck) {
   if (flashCheck)
   {
-    if (!flash.initialize())
-    {
+    uint16_t deviceID=0;
+    for (uint8_t i=0;i<10;i++) {
+      uint16_t idNow = flash.readDeviceId();
+      if (idNow==0 || idNow==0xffff || (i>0 && idNow != deviceID)) {
+        deviceID=0;
+        break;
+      }
+      deviceID=idNow;
+    }
+    if (deviceID==0) {
       radio.sendACK("FLX?NOK:NOFLASH",15); //NO FLASH CHIP FOUND, ABORTING
       Serial.println(F("FAIL:NO FLASH MEM"));
       return;

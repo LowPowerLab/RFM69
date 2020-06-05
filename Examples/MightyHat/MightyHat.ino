@@ -93,7 +93,7 @@
 
 //******************************************** BEGIN ADVANCED variables ********************************************************************************
 #define RAMSIZE 2048
-#define MAX_BUFFER_LENGTH   40 //limit parameter update requests to 40 chars. ex: Parameter:LongRequest
+#define MAX_BUFFER_LENGTH       61 //limit parameter update requests to 40 chars. ex: Parameter:LongRequest
 #define MAX_ACK_REQUEST_LENGTH  30 //60 is max for ACK (with ATC enabled), but need to allow appending :OK and :INV to confirmations from node
 
 typedef struct req {

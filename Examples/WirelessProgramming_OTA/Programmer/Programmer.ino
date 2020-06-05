@@ -10,7 +10,7 @@
 // is handled by the SPIFLash/WirelessHEX69 library, which also relies on the RFM69 library
 // These libraries and custom 1k Optiboot bootloader for the target node are at: http://github.com/lowpowerlab
 // **********************************************************************************
-// Copyright Felix Rusu 2020, http://www.LowPowerLab.com/contact
+// (C) 2020 Felix Rusu, LowPowerLab LLC, http://www.LowPowerLab.com/contact
 // **********************************************************************************
 // License
 // **********************************************************************************
@@ -32,103 +32,151 @@
 // Please maintain this license information along with authorship
 // and copyright notices in any redistribution of this code
 // **********************************************************************************
-#include <RFM69.h>          //get it here: https://github.com/lowpowerlab/RFM69
-#include <RFM69_ATC.h>      //get it here: https://github.com/lowpowerlab/RFM69
-#include <RFM69_OTA.h>      //get it here: https://github.com/lowpowerlab/RFM69
+#define SKETCH_VERSION "1.0"
+// **********************************************************************************
+#include <RFM69.h>      //https://github.com/lowpowerlab/RFM69
+#include <RFM69_ATC.h>  //https://github.com/lowpowerlab/RFM69
+#include <RFM69_OTA.h>  //https://github.com/lowpowerlab/RFM69
+#include <EEPROMex.h>   //http://playground.arduino.cc/Code/EEPROMex
+#include <Streaming.h>  //easy C++ style output operators: http://arduiniana.org/libraries/streaming/
 //****************************************************************************************************************
 //**** IMPORTANT RADIO SETTINGS - YOU MUST CHANGE/CONFIGURE TO MATCH YOUR HARDWARE TRANSCEIVER CONFIGURATION! ****
 //****************************************************************************************************************
-#define NODEID             254  //this node's ID, should be unique among nodes on this NETWORKID
-#define NETWORKID          100  //what network this node is on
-//Match frequency to the hardware version of the radio on your Moteino (uncomment one):
-//#define FREQUENCY   RF69_433MHZ
-//#define FREQUENCY   RF69_868MHZ
-#define FREQUENCY     RF69_915MHZ
-#define FREQUENCY_EXACT 916000000
-#define ENCRYPTKEY "sampleEncryptKey" //(16 bytes of your choice - keep the same on all encrypted nodes)
-#define IS_RFM69HW_HCW  //uncomment only for RFM69HW/HCW! Leave out if you have RFM69W/CW!
+//#define IS_RFM69HW_HCW  //uncomment for RFM69HW/HCW! Leave out for RFM69W/CW!
 //*********************************************************************************************
-#define ENABLE_ATC               //comment out this line to disable AUTO TRANSMISSION CONTROL
+#define NODEID_DEFAULT     1023
+#define NETWORKID_DEFAULT  100
+#define FREQUENCY_DEFAULT  915000000
+#define VALID_FREQUENCY(freq) ((freq >= 430000000 && freq <= 435000000) || (freq >= 860000000 && freq <= 870000000) || (freq >= 902000000 && freq <= 928000000))
+#define ENCRYPTKEY_DEFAULT ""
 //*********************************************************************************************
-//#define BR_300KBPS             //run radio at max rate of 300kbps!
-//*********************************************************************************************
-#define DEBUG_MODE false         //set 'true' to see verbose output from programming sequence
-
+#define DEBUG_MODE  false  //'true' = verbose output from programming sequence, ~12% slower OTA!
 #define SERIAL_BAUD 115200
 #define ACK_TIME    50  // # of ms to wait for an ack
 #define TIMEOUT     3000
-
-#ifdef ENABLE_ATC
-  RFM69_ATC radio;
-#else
-  RFM69 radio;
-#endif
+//*********************************************************************************************
+RFM69_ATC radio;
+struct config {
+  uint8_t NETWORKID;
+  uint16_t NODEID;
+  uint32_t FREQUENCY;
+  uint8_t BR300KBPS;
+  char ENCRYPTKEY[17]; //16+nullptr
+} CONFIG;
 
 char c = 0;
 char input[64]; //serial input buffer
 uint16_t targetID=0;
-
-void setup(){
-  Serial.begin(SERIAL_BAUD);
-  delay(1000);
-  radio.initialize(FREQUENCY,NODEID,NETWORKID);
-  radio.encrypt(ENCRYPTKEY); //OPTIONAL
-
-#ifdef FREQUENCY_EXACT
-  radio.setFrequency(FREQUENCY_EXACT); //set frequency to some custom frequency
-#endif
-
+//*********************************************************************************************
+void initRadio() {
+  radio.initialize(RF69_915MHZ, CONFIG.NODEID, CONFIG.NETWORKID);
+  radio.encrypt(CONFIG.ENCRYPTKEY);
+  radio.setFrequency(CONFIG.FREQUENCY);
 #ifdef IS_RFM69HW_HCW
   radio.setHighPower(); //must include this only for RFM69HW/HCW!
 #endif
-  Serial.println("Start wireless gateway...");
+  if (CONFIG.BR300KBPS) {
+    radio.writeReg(0x03, 0x00);  //REG_BITRATEMSB: 300kbps (0x006B, see DS p20)
+    radio.writeReg(0x04, 0x6B);  //REG_BITRATELSB: 300kbps (0x006B, see DS p20)
+    radio.writeReg(0x19, 0x40);  //REG_RXBW: 500kHz
+    radio.writeReg(0x1A, 0x80);  //REG_AFCBW: 500kHz
+    radio.writeReg(0x05, 0x13);  //REG_FDEVMSB: 300khz (0x1333)
+    radio.writeReg(0x06, 0x33);  //REG_FDEVLSB: 300khz (0x1333)
+    radio.writeReg(0x29, 240);   //set REG_RSSITHRESH to -120dBm
+  }
+}
 
-#ifdef BR_300KBPS
-  radio.writeReg(0x03, 0x00);  //REG_BITRATEMSB: 300kbps (0x006B, see DS p20)
-  radio.writeReg(0x04, 0x6B);  //REG_BITRATELSB: 300kbps (0x006B, see DS p20)
-  radio.writeReg(0x19, 0x40);  //REG_RXBW: 500kHz
-  radio.writeReg(0x1A, 0x80);  //REG_AFCBW: 500kHz
-  radio.writeReg(0x05, 0x13);  //REG_FDEVMSB: 300khz (0x1333)
-  radio.writeReg(0x06, 0x33);  //REG_FDEVLSB: 300khz (0x1333)
-  radio.writeReg(0x29, 240);   //set REG_RSSITHRESH to -120dBm
-#endif
+void setup(){
+  Serial.begin(SERIAL_BAUD);
+  delay(100);
+
+  EEPROM.setMaxAllowedWrites(10000);
+  EEPROM.readBlock(0, CONFIG);
+
+  Serial.println("START OTA programmer...");
+  Serial << F("SKETCH_VERSION:") << SKETCH_VERSION << endl;
+
+  //if EEPROM is empty or has invalid values, set/write defaults
+  if (resetEEPROMCondition()) resetEEPROM();
+
+  initRadio();
+
+  pinMode(LED_BUILTIN, OUTPUT);
+  printSettings();
 }
 
 void loop(){
   byte inputLen = readSerialLine(input, 10, 64, 100); //readSerialLine(char* input, char endOfLineChar=10, byte maxLength=64, uint16_t timeout=1000);
-  
-  if (inputLen==4 && input[0]=='F' && input[1]=='L' && input[2]=='X' && input[3]=='?') {
-    if (targetID==0)
-      Serial.println("TO?");
-    else
-      CheckForSerialHEX((byte*)input, inputLen, radio, targetID, TIMEOUT, ACK_TIME, DEBUG_MODE);
-  }
-  else if (inputLen>3 && inputLen<=6 && input[0]=='T' && input[1]=='O' && input[2]==':')
-  {
-    byte newTarget=0;
-    for (byte i = 3; i<inputLen; i++) //up to 3 characters for target ID
-      if (input[i] >=48 && input[i]<=57)
-        newTarget = newTarget*10+input[i]-48;
-      else
-      {
-        newTarget=0;
-        break;
+
+  if (inputLen > 0) {
+    boolean configChanged=false;
+    char* colon = strchr(input, ':');
+
+    if (strstr(input, "EEPROMRESET")==input) {
+      resetEEPROM();
+    } else if (strstr(input, "SETTINGS?")==input) {
+      printSettings();
+    } else if (strstr(input, "NETWORKID:")==input && strlen(colon+1)>0) {
+      uint8_t newNetId = atoi(++colon); //extract ID from message
+      if (newNetId <= 255) {
+        CONFIG.NETWORKID=newNetId; 
+        configChanged=true;
+      } else {
+        Serial << F("Invalid networkId:") << newNetId << endl;
       }
-    if (newTarget>0)
-    {
-      targetID = newTarget;
-      Serial.print("TO:");
-      Serial.print(newTarget);
-      Serial.println(":OK");
+    } else if (strstr(input, "NODEID:")==input && strlen(colon+1)>0) {
+      uint16_t newId = atoi(++colon); //extract ID from message
+      if (newId <= 1023) {
+        CONFIG.NODEID=newId; 
+        configChanged=true;
+      } else {
+        Serial << F("Invalid nodeId:") << newId << endl;
+      }
+    } else if (strstr(input, "FREQUENCY:")==input && strlen(colon+1)>0) {
+      uint32_t newFreq = atol(++colon); //extract ID from message
+      if (VALID_FREQUENCY(newFreq)) {
+        CONFIG.FREQUENCY=newFreq; 
+        configChanged=true;
+      } else {
+        Serial << F("Invalid frequency:") << newFreq << endl;
+      }
+    } else if (strstr(input, "ENCRYPTKEY:")==input) {
+      if (strlen(colon+1)==16) {
+        strcpy(CONFIG.ENCRYPTKEY, colon+1);
+        configChanged=true;
+      } else if (strlen(colon+1)==0) {
+        strcpy(CONFIG.ENCRYPTKEY, "");
+        configChanged=true;
+      }
+      else Serial << F("Invalid encryptkey length:") << colon+1 << "(" << strlen(colon+1) << F("expected:16)") << endl;
+    } else if (strstr(input, "BR300KBPS:")==input && strlen(colon+1)>0) {
+      uint8_t newBR = atoi(++colon); //extract ID from message
+      if (newBR==0 || newBR==1) {
+        CONFIG.BR300KBPS=newBR; 
+        configChanged=true;
+      } else {
+        Serial << F("Invalid BR300KBPS:") << newBR << endl;
+      }
+    } else if (inputLen==4 && strstr(input, "FLX?")==input) {
+      if (targetID==0)
+        Serial.println("TO?");
+      else
+        CheckForSerialHEX((byte*)input, inputLen, radio, targetID, TIMEOUT, ACK_TIME, DEBUG_MODE);
+    } else if (strstr(input, "TO:")==input && strlen(colon+1)>0) {
+      uint16_t newTarget=atoi(++colon);
+      if (newTarget>0 && newTarget <=1023)
+      {
+        targetID = newTarget;
+        Serial << F("TO:") << targetID << F(":OK") << endl;
+      }
+      else Serial << input << F(":INV") << endl;
+    } else Serial << F("UNKNOWN_CMD: ") << input << endl; //echo back un
+
+    if (configChanged) {
+      EEPROM.writeBlock(0, CONFIG); //save changes to EEPROM
+      printSettings();
+      initRadio();
     }
-    else
-    {
-      Serial.print(input);
-      Serial.print(":INV");
-    }
-  }
-  else if (inputLen>0) { //just echo back
-    Serial.print("SERIAL IN > ");Serial.println(input);
   }
 
   if (radio.receiveDone())
@@ -144,13 +192,37 @@ void loop(){
     
     Serial.println();
   }
-  Blink(LED_BUILTIN,1); //heartbeat
+  Blink(1); //heartbeat
 }
 
-void Blink(byte PIN, int DELAY_MS)
+boolean resetEEPROMCondition() {
+  //conditions for resetting EEPROM:
+  return CONFIG.NETWORKID > 255 ||
+    CONFIG.NODEID > 1023 ||
+    !VALID_FREQUENCY(CONFIG.FREQUENCY);
+}
+
+void resetEEPROM() {
+  Serial.println("Resetting EEPROM to default values...");
+  CONFIG.NETWORKID=NETWORKID_DEFAULT;
+  CONFIG.NODEID=NODEID_DEFAULT;
+  CONFIG.FREQUENCY=FREQUENCY_DEFAULT;
+  CONFIG.BR300KBPS=false;
+  strcpy(CONFIG.ENCRYPTKEY, ENCRYPTKEY_DEFAULT);
+  EEPROM.writeBlock(0, CONFIG);
+}
+
+void printSettings() {
+  Serial << endl << F("NETWORKID:") << CONFIG.NETWORKID << endl;
+  Serial << F("NODEID:") << CONFIG.NODEID << endl;
+  Serial << F("FREQUENCY:") << CONFIG.FREQUENCY << endl;
+  Serial << F("BR300KBPS:") << CONFIG.BR300KBPS << endl;
+  Serial << F("ENCRYPTKEY:") << CONFIG.ENCRYPTKEY << endl;
+}
+
+void Blink(int DELAY_MS)
 {
-  pinMode(PIN, OUTPUT);
-  digitalWrite(PIN,HIGH);
+  digitalWrite(LED_BUILTIN,HIGH);
   delay(DELAY_MS);
-  digitalWrite(PIN,LOW);
+  digitalWrite(LED_BUILTIN,LOW);
 }

@@ -44,8 +44,8 @@
 //#define FREQUENCY   RF69_433MHZ
 //#define FREQUENCY   RF69_868MHZ
 #define FREQUENCY     RF69_915MHZ
-#define FREQUENCY_EXACT 916000000
-#define ENCRYPTKEY  "sampleEncryptKey" //(16 bytes of your choice - keep the same on all encrypted nodes)
+#define FREQUENCY_EXACT 915000000
+#define ENCRYPTKEY  "sampleEncryptKey" //16-bytes or ""/0/null for no encryption
 #define IS_RFM69HW_HCW  //uncomment only for RFM69HW/HCW! Leave out if you have RFM69W/CW!
 //*****************************************************************************************************************************
 #define ENABLE_ATC    //comment out this line to disable AUTO TRANSMISSION CONTROL

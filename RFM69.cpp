@@ -438,7 +438,8 @@ void RFM69::encrypt(const char* key) {
   _haveEncryptKey = key;
 #endif
   setMode(RF69_MODE_STANDBY);
-  if (key != 0)
+  uint8_t validKey = key != 0 && strlen(key)!=0;
+  if (validKey)
   {
 #if defined(RF69_LISTENMODE_ENABLE)
     memcpy(_encryptKey, key, 16);
@@ -449,7 +450,7 @@ void RFM69::encrypt(const char* key) {
       _spi->transfer(key[i]);
     unselect();
   }
-  writeReg(REG_PACKETCONFIG2, (readReg(REG_PACKETCONFIG2) & 0xFE) | (key ? 1 : 0));
+  writeReg(REG_PACKETCONFIG2, (readReg(REG_PACKETCONFIG2) & 0xFE) | (validKey ? 1 : 0));
 }
 
 // get the received signal strength indicator (RSSI)

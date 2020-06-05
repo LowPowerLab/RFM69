@@ -56,7 +56,7 @@ install:
     # https://platformio.org/lib/show/560/Streaming
     # https://platformio.org/lib/show/6230/PString-Arduino-lib
 
-    - platformio lib install 7 38 125 131 136 176 531 532 536 684 560 6230
+    - platformio lib install 7 38 125 131 136 170 176 531 532 536 684 560 6230
 
 script:
     - platformio ci --board=moteino --lib=.

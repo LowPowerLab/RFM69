@@ -111,7 +111,7 @@
 #endif
 
 // On some platforms, attachInterrupt() takes a pin number, not an interrupt number
-#if (RF69_PLATFORM == RF69_PLATFORM_ARDUINO) && defined (__arm__) && (defined(ARDUINO_ARCH_SAMD) || defined(ARDUINO_SAM_DUE))
+#if (defined(TEENSYDUINO))||((RF69_PLATFORM == RF69_PLATFORM_ARDUINO) && defined (__arm__) && (defined(ARDUINO_ARCH_SAMD) || defined(ARDUINO_SAM_DUE)))
  #define RF69_ATTACHINTERRUPT_TAKES_PIN_NUMBER
 #endif
 ////////////////////////////////////////////////////

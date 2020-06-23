@@ -39,15 +39,17 @@
  #elif defined(MPIDE)
   // Uno32 under old MPIDE, which has been discontinued:
   #define RF69_PLATFORM RF69_PLATFORM_UNO32
-#elif defined(NRF51)
+ #elif defined(NRF51)
   #define RF69_PLATFORM RF69_PLATFORM_NRF51
-#elif defined(NRF52)
+ #elif defined(NRF52)
   #define RF69_PLATFORM RF69_PLATFORM_NRF52
  #elif defined(ESP8266)
   #define RF69_PLATFORM RF69_PLATFORM_ESP8266
  #elif defined(ESP32)
   #define RF69_PLATFORM RF69_PLATFORM_ESP32
  #elif defined(ARDUINO)
+  #define RF69_PLATFORM RF69_PLATFORM_ARDUINO
+ #elif defined(AVR_ATtinyxy7) || defined(AVR_ATtinyxy6) // MegaTinyCore AVR Series-1
   #define RF69_PLATFORM RF69_PLATFORM_ARDUINO
  #elif defined(__MSP430G2452__) || defined(__MSP430G2553__)
   #define RF69_PLATFORM RF69_PLATFORM_MSP430
@@ -59,9 +61,9 @@
   #define RF69_PLATFORM RF69_PLATFORM_STM32STD
  #elif defined(RASPBERRY_PI)
   #define RF69_PLATFORM RF69_PLATFORM_RASPI
-#elif defined(__unix__) // Linux
+ #elif defined(__unix__) // Linux
   #define RF69_PLATFORM RF69_PLATFORM_UNIX
-#elif defined(__APPLE__) // OSX
+ #elif defined(__APPLE__) // OSX
   #define RF69_PLATFORM RF69_PLATFORM_UNIX
  #else
   #error Platform not defined! 	

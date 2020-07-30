@@ -417,9 +417,10 @@ void handleSerialData() {
 }
 
 //returns # of unfragmented free RAM bytes (free end of heap)
+extern "C" char *sbrk(int i);
 int freeRAM() {
 #ifdef __arm__
-  char top;
+  char top=0;
   return &top - reinterpret_cast<char*>(sbrk(0));
 #else
   extern int __heap_start, *__brkval; 

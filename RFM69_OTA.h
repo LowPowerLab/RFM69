@@ -59,7 +59,7 @@
 
 //functions used in the REMOTE node
 void CheckForWirelessHEX(RFM69& radio, SPIFlash& flash, uint8_t DEBUG=false, uint8_t LEDpin=LED);
-void HandleHandshakeACK(RFM69& radio, SPIFlash& flash, uint8_t flashCheck=true);
+uint8_t HandleHandshakeACK(RFM69& radio, SPIFlash& flash, uint8_t flashCheck=true);
 void resetUsingWatchdog(uint8_t DEBUG=false);
 uint8_t HandleWirelessHEXData(RFM69& radio, uint16_t remoteID, SPIFlash& flash, uint8_t DEBUG=false, uint8_t LEDpin=LED);
 

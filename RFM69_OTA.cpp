@@ -76,7 +76,7 @@ void CheckForWirelessHEX(RFM69& radio, SPIFlash& flash, uint8_t DEBUG, uint8_t L
 //===================================================================================================================
 // HandleHandshakeACK() - checks there is a FLASH chip and sends an ACK for the OTA request handshake
 //===================================================================================================================
-void HandleHandshakeACK(RFM69& radio, SPIFlash& flash, uint8_t flashCheck) {
+uint8_t HandleHandshakeACK(RFM69& radio, SPIFlash& flash, uint8_t flashCheck) {
   if (flashCheck)
   {
     uint16_t deviceID=0;
@@ -91,10 +91,11 @@ void HandleHandshakeACK(RFM69& radio, SPIFlash& flash, uint8_t flashCheck) {
     if (deviceID==0) {
       radio.sendACK("FLX?NOK:NOFLASH",15); //NO FLASH CHIP FOUND, ABORTING
       Serial.println(F("FAIL:NO FLASH MEM"));
-      return;
+      return false;
     }
   }
   radio.sendACK("FLX?OK",6); //ACK the HANDSHAKE
+  return true;
 }
 
 
@@ -104,7 +105,7 @@ void HandleHandshakeACK(RFM69& radio, SPIFlash& flash, uint8_t flashCheck) {
 //===================================================================================================================
 #ifdef SHIFTCHANNEL
 uint8_t HandleWirelessHEXDataWrapper(RFM69& radio, uint16_t remoteID, SPIFlash& flash, uint8_t DEBUG, uint8_t LEDpin) {
-  HandleHandshakeACK(radio, flash);
+  if (!HandleHandshakeACK(radio, flash)) return false;
   if (DEBUG) { Serial.println(F("FLX?OK (ACK sent)")); Serial.print(F("Shifting channel to ")); Serial.println(radio.getFrequency() + SHIFTCHANNEL);}
   radio.setFrequency(radio.getFrequency() + SHIFTCHANNEL); //shift center freq by SHIFTCHANNEL amount
   uint8_t result = HandleWirelessHEXData(radio, remoteID, flash, DEBUG, LEDpin);

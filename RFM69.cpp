@@ -498,7 +498,9 @@ void RFM69::select() {
   // set RFM69 SPI settings explicitly
   _spi->setDataMode(SPI_MODE0);
   _spi->setBitOrder(MSBFIRST);
-  #if defined(__arm__)
+  #if defined(__STM32F1__)
+    _spi->setClockDivider(SPI_CLOCK_DIV8);
+  #elif defined(__arm__)
     _spi->setClockDivider(SPI_CLOCK_DIV16);
   #else
     _spi->setClockDivider(SPI_CLOCK_DIV2);

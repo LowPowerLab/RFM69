@@ -204,7 +204,7 @@ class RFM69 {
     bool initialize(uint8_t freqBand, uint16_t ID, uint8_t networkID=1);
     void setAddress(uint16_t addr);
     void setNetwork(uint8_t networkID);
-    bool canSend();
+    virtual bool canSend();
     virtual void send(uint16_t toAddress, const void* buffer, uint8_t bufferSize, bool requestACK=false);
     virtual bool sendWithRetry(uint16_t toAddress, const void* buffer, uint8_t bufferSize, uint8_t retries=2, uint8_t retryWaitTime=RFM69_ACK_TIMEOUT);
     virtual bool receiveDone();

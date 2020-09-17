@@ -92,8 +92,8 @@ void setup() {
   pinMode(LED_BUILTIN, OUTPUT);
 
   radio.initialize(FREQUENCY,NODEID,NETWORKID);
-#ifdef IS_RFM69HCW
-  radio.setHighPower(); //uncomment only for RFM69HW!
+#ifdef IS_RFM69HW_HCW
+  radio.setHighPower(); //make sure to call this for RFM69_HW/HCW
 #endif
 #ifdef FREQUENCY_EXACT
   radio.setFrequency(FREQUENCY_EXACT); //set frequency to some custom frequency

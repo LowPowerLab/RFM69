@@ -139,6 +139,7 @@ void loop() {
 }
 
 void listenModeSleep(uint16_t millisInterval) {
+  radio.listenModeSleep(millisInterval);
   LowPower.powerDown( SLEEP_FOREVER, ADC_OFF, BOD_OFF );
   LowPower.powerDown( SLEEP_FOREVER, ADC_OFF, BOD_OFF );
   LowPower.powerDown( SLEEP_FOREVER, ADC_OFF, BOD_OFF );

@@ -54,6 +54,8 @@ waitForAck	KEYWORD2
 PrintHex83	KEYWORD2
 resetUsingWatchdog	KEYWORD2
 
+listenModeSleep	KEYWORD2
+endListenModeSleep	KEYWORD2
 listenModeStart	KEYWORD2
 listenModeEnd	KEYWORD2
 listenModeHighSpeed	KEYWORD2

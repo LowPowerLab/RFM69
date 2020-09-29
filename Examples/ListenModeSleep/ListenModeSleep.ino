@@ -26,8 +26,8 @@
 // **********************************************************************************
 #include <RFM69.h>
 #include <RFM69_ATC.h>
-#include <LowPower.h>
-#include <PString.h>   //easy string manipulator: http://arduiniana.org/libraries/pstring/
+#include <LowPower.h>   //https://github.com/LowPowerLab/LowPower
+#include <PString.h>    //easy string manipulator: http://arduiniana.org/libraries/pstring/
 //*********************************************************************************************
 //************ IMPORTANT SETTINGS - YOU MUST CHANGE/CONFIGURE TO FIT YOUR HARDWARE ************
 //*********************************************************************************************
@@ -118,13 +118,13 @@ void loop() {
   if (TRANSMITPERIOD%262 && TRANSMITPERIOD > 262*2)
   {
     DEBUG("Sleeping "); DEBUGln(TRANSMITPERIOD-TRANSMITPERIOD%262-262); DEBUGFlush();
-    radio.listenModeSleep(TRANSMITPERIOD-TRANSMITPERIOD%262-262);
+    listenModeSleep(TRANSMITPERIOD-TRANSMITPERIOD%262-262);
     DEBUG("Sleeping "); DEBUGln(TRANSMITPERIOD%262 + 262); DEBUGFlush();
-    radio.listenModeSleep(TRANSMITPERIOD%262 + 262);
+    listenModeSleep(TRANSMITPERIOD%262 + 262);
   }
   else {
     DEBUG("Sleeping "); DEBUGln(TRANSMITPERIOD); DEBUGFlush();
-    radio.listenModeSleep(TRANSMITPERIOD);
+    listenModeSleep(TRANSMITPERIOD);
   }
 
   //wakeup (must reinit)
@@ -136,4 +136,11 @@ void loop() {
     radio.setFrequency(FREQUENCY_EXACT);
   #endif
 #endif
+}
+
+void listenModeSleep(uint16_t millisInterval) {
+  LowPower.powerDown( SLEEP_FOREVER, ADC_OFF, BOD_OFF );
+  LowPower.powerDown( SLEEP_FOREVER, ADC_OFF, BOD_OFF );
+  LowPower.powerDown( SLEEP_FOREVER, ADC_OFF, BOD_OFF );
+  radio.endListenModeSleep();
 }

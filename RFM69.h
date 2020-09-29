@@ -233,6 +233,7 @@ class RFM69 {
 
     // ListenMode sleep/timer
     void listenModeSleep(uint16_t millisInterval);
+    void endListenModeSleep();
 
   protected:
     static void isr0();
@@ -243,7 +244,6 @@ class RFM69 {
 
     // for ListenMode sleep/timer
     static void delayIrq();
-    void endListenModeSleep();
    
     uint8_t _slaveSelectPin;
     uint8_t _interruptPin;

@@ -26,9 +26,6 @@
 #include "RFM69.h"
 #include "RFM69registers.h"
 #include <SPI.h>
-#if defined(__AVR__)
-  #include <LowPower.h> //http://github.com/LowPowerLab/LowPower
-#endif
 
 uint8_t RFM69::DATA[RF69_MAX_DATA_LEN+1];
 uint8_t RFM69::_mode;        // current transceiver state
@@ -874,10 +871,9 @@ void RFM69::rcCalibration()
   while ((readReg(REG_OSC1) & RF_OSC1_RCCAL_DONE) == 0x00);
 }
 
-// ListenMode sleep/timer
+// ListenMode sleep/timer - see ListenModeSleep example for proper usage!
 void RFM69::listenModeSleep(uint16_t millisInterval) 
 {
-#if defined (__AVR__)
   setMode( RF69_MODE_STANDBY );
   while ((readReg(REG_IRQFLAGS1) & RF_IRQFLAGS1_MODEREADY) == 0x00); // wait for ModeReady
 
@@ -917,12 +913,7 @@ void RFM69::listenModeSleep(uint16_t millisInterval)
 
   attachInterrupt( _interruptNum, delayIrq, RISING);
 
-  LowPower.powerDown( SLEEP_FOREVER, ADC_OFF, BOD_OFF );
-  LowPower.powerDown( SLEEP_FOREVER, ADC_OFF, BOD_OFF );
-  LowPower.powerDown( SLEEP_FOREVER, ADC_OFF, BOD_OFF );
-
-  endListenModeSleep();
-#endif
+  //must call sleep + interrupt handler 3 times here, then endListenModeSleep() - see ListenModeSleep example!
 }
 
 //=============================================================================

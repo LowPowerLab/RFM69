@@ -80,6 +80,7 @@ uint8_t HandleHandshakeACK(RFM69& radio, SPIFlash& flash, uint8_t flashCheck) {
   if (flashCheck)
   {
     uint16_t deviceID=0;
+    flash.wakeup(); //if flash.sleep() was previously called, flash.wakeup() is required or it's non responsive
     for (uint8_t i=0;i<10;i++) {
       uint16_t idNow = flash.readDeviceId();
       if (idNow==0 || idNow==0xffff || (i>0 && idNow != deviceID)) {

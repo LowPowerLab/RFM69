@@ -115,27 +115,48 @@ void loop() {
   radio.sleep();
   LowPower.longPowerDown(TRANSMITPERIOD);
 #else
-  if (TRANSMITPERIOD%262 && TRANSMITPERIOD > 262*2)
-  {
-    DEBUG("Sleeping "); DEBUGln(TRANSMITPERIOD-TRANSMITPERIOD%262-262); DEBUGFlush();
-    listenModeSleep(TRANSMITPERIOD-TRANSMITPERIOD%262-262);
-    DEBUG("Sleeping "); DEBUGln(TRANSMITPERIOD%262 + 262); DEBUGFlush();
-    listenModeSleep(TRANSMITPERIOD%262 + 262);
-  }
-  else {
-    DEBUG("Sleeping "); DEBUGln(TRANSMITPERIOD); DEBUGFlush();
-    listenModeSleep(TRANSMITPERIOD);
-  }
-
-  //wakeup (must reinit)
-  radio.RFM69::initialize(FREQUENCY,NODEID,NETWORKID); //call base init!
-  #ifdef ENCRYPTKEY
-    radio.encrypt(ENCRYPTKEY);
-  #endif
-  #ifdef FREQUENCY_EXACT
-    radio.setFrequency(FREQUENCY_EXACT);
-  #endif
+  sleep(TRANSMITPERIOD);
 #endif
+}
+
+void sleep(uint32_t sleepTime) {
+  DEBUGFlush();
+  if (sleepTime < 262) { //sleeps just the MCU, using WDT (radio is not touched)
+    LowPower.longPowerDown(sleepTime);
+  }
+  else
+  { //sleeps MCU using the radio timer - should not be used if radio needs to be in RX mode!
+    uint32_t freq = radio.getFrequency();
+    
+    uint32_t remainingSleepTime = sleepTime;
+
+    while (remainingSleepTime) { //split into sleep(60s) calls if > 60s sleep
+      if (remainingSleepTime > 65500) {
+        sleepTime = 65500;
+        remainingSleepTime -= 65500;
+      } else { 
+        sleepTime = remainingSleepTime;
+        remainingSleepTime = 0;
+      }
+  
+      if (sleepTime%262 && sleepTime > 262*2) {
+        DEBUG("Sleeping "); DEBUGln(sleepTime-sleepTime%262-262); DEBUGFlush();
+        listenModeSleep(sleepTime-sleepTime%262-262);
+        DEBUG("Sleeping "); DEBUGln(sleepTime%262 + 262); DEBUGFlush();
+        listenModeSleep(sleepTime%262 + 262);
+      } else {
+        DEBUG("Sleeping "); DEBUGln(sleepTime); DEBUGFlush();
+        listenModeSleep(sleepTime);
+      }
+  
+      //WAKEUP happens here (must reinit!)
+      radio.RFM69::initialize(FREQUENCY,NODEID,NETWORKID); //call base init!
+      #ifdef ENCRYPTKEY
+        radio.encrypt(ENCRYPTKEY);
+      #endif
+      radio.setFrequency(freq);
+    }
+  }
 }
 
 void listenModeSleep(uint16_t millisInterval) {

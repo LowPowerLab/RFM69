@@ -127,8 +127,9 @@
   #define RF69_IRQ_PIN          2
 #elif defined(__AVR_ATmega32U4__)
   #define RF69_IRQ_PIN          7
-#elif defined(__STM32F1__)
+#elif defined(__STM32F1__) || defined(STM32F1)
   #define RF69_IRQ_PIN          PA3
+  #define RF69_ATTACHINTERRUPT_TAKES_PIN_NUMBER
 #elif defined(MOTEINO_M0)
   #define RF69_IRQ_PIN          9
 #elif defined(__SAMD51__)
@@ -215,6 +216,7 @@ class RFM69 {
     void setFrequency(uint32_t freqHz);
     void encrypt(const char* key);
     void setCS(uint8_t newSPISlaveSelect);
+    bool setIrq(uint8_t newIRQPin);
     int16_t readRSSI(bool forceTrigger=false); // *current* signal strength indicator; e.g. < -90dBm says the frequency channel is free + ready to transmit
     void spyMode(bool onOff=true);
     //void promiscuous(bool onOff=true); //replaced with spyMode()

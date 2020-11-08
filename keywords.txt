@@ -29,6 +29,7 @@ setFrequency	KEYWORD2
 getFrequency	KEYWORD2
 encrypt	KEYWORD2
 setCS	KEYWORD2
+setIrq	KEYWORD2
 readRSSI	KEYWORD2
 spyMode	KEYWORD2
 setHighPower	KEYWORD2

@@ -167,7 +167,7 @@ void RFM69_ATC::interruptHook(uint8_t CTLbyte) {
 //=============================================================================
 bool RFM69_ATC::sendWithRetry(uint16_t toAddress, const void* buffer, uint8_t bufferSize, uint8_t retries, uint8_t retryWaitTime) {
   uint32_t sentTime;
-  for (uint8_t i = 0; i <= retries; i++)
+  for (uint8_t i = 0; i < retries; i++)
   {
     send(toAddress, buffer, bufferSize, true);
     sentTime = millis();

@@ -1,20 +1,19 @@
-// Sample RFM69 sender/node sketch for the MotionMote
-// https://lowpowerlab.com/guide/motionmote/
-// PIR motion sensor connected to D3 (INT1)
-// When RISE happens on D3, the sketch transmits a "MOTION" msg to receiver Moteino and goes back to sleep
-// In sleep mode, Moteino + PIR motion sensor use about ~60uA
-// With Panasonic PIRs it's possible to use only around ~9uA, see guide link above for details
-// IMPORTANT: adjust the settings in the configuration section below !!!
 // **********************************************************************************
-// Copyright Felix Rusu of LowPowerLab.com, 2018
-// RFM69 library and sample code by Felix Rusu - lowpowerlab.com/contact
+// Sample RFM69 sender/node sketch for the MotionMote R4 With Panasonic PIR sensors
+// http://lowpowerlab.com/motion
+// PIR motion sensor connected to D3 (INT1)
+// When RISE happens on D3, the sketch transmits a "MOTION" msg to receiver Moteino Gateway and goes back to sleep
+// In sleep mode, Moteino + PIR motion sensor use ~2uA
+// Get the RFM69 and SPIFlash library at: https://github.com/LowPowerLab/
+// Make sure you adjust the settings in the configuration section below !!!
+// (C) 2020, Felix Rusu, LowPowerLab.com
 // **********************************************************************************
 // License
 // **********************************************************************************
 // This program is free software; you can redistribute it 
 // and/or modify it under the terms of the GNU General    
-// Public License as published by the Free Software       
 // Foundation; either version 3 of the License, or        
+// Public License as published by the Free Software       
 // (at your option) any later version.                    
 //                                                        
 // This program is distributed in the hope that it will   
@@ -22,50 +21,50 @@
 // implied warranty of MERCHANTABILITY or FITNESS FOR A   
 // PARTICULAR PURPOSE. See the GNU General Public        
 // License for more details.                              
-//
+//                                                        
+// You should have received a copy of the GNU General    
+// Public License along with this program.
+// If not, see <http://www.gnu.org/licenses/>.
+//                                                        
 // Licence can be viewed at                               
 // http://www.gnu.org/licenses/gpl-3.0.txt
 //
 // Please maintain this license information along with authorship
 // and copyright notices in any redistribution of this code
 // **********************************************************************************
-#include <RFM69.h>         //get it here: https://www.github.com/lowpowerlab/rfm69
-#include <RFM69_ATC.h>     //get it here: https://www.github.com/lowpowerlab/rfm69
-#include <SPI.h>           //comes with Arduino IDE (www.arduino.cc)
-#include <LowPower.h>      //get library from: https://github.com/lowpowerlab/lowpower
-                           //writeup here: http://www.rocketscream.com/blog/2011/07/04/lightweight-low-power-arduino-library/
-#include <SPIFlash.h>      //get it here: https://www.github.com/lowpowerlab/spiflash
-#include <SparkFunBME280.h>//get it here: https://github.com/sparkfun/SparkFun_BME280_Arduino_Library/tree/master/src
-#include <Wire.h>          //comes with Arduino
-
-//****************************************************************************************************************
-//**** IMPORTANT RADIO SETTINGS - YOU MUST CHANGE/CONFIGURE TO MATCH YOUR HARDWARE TRANSCEIVER CONFIGURATION! ****
-//****************************************************************************************************************
-#define GATEWAYID     1     //ID of  your main/gateway/receiver node (can be any ID but good to keep this as 1 or an easy to remember number)
-#define NODEID        88    //unique for each node on same network
+#include <RFM69.h>    //get it here: https://www.github.com/lowpowerlab/rfm69
+#include <RFM69_ATC.h>//get it here: https://www.github.com/lowpowerlab/rfm69
+#include <SPI.h>      //comes with Arduino IDE (www.arduino.cc)
+#include <LowPower.h> //get library from: https://github.com/lowpowerlab/lowpower
+                      //writeup here: http://www.rocketscream.com/blog/2011/07/04/lightweight-low-power-arduino-library/
+#include <SPIFlash.h> //get it here: https://www.github.com/lowpowerlab/spiflash
+//*********************************************************************************************
+//************ IMPORTANT SETTINGS - YOU MUST CHANGE/CONFIGURE TO FIT YOUR HARDWARE *************
+//*********************************************************************************************
+#define NODEID        86    //unique for each node on same network
 #define NETWORKID     100  //the same on all nodes that talk to each other
+#define GATEWAYID     1
 //Match frequency to the hardware version of the radio on your Moteino (uncomment one):
-//#define FREQUENCY     RF69_433MHZ
-//#define FREQUENCY     RF69_868MHZ
 #define FREQUENCY     RF69_915MHZ
-#define IS_RFM69HW_HCW  //uncomment only for RFM69HW/HCW! Leave out if you have RFM69W/CW!
 #define ENCRYPTKEY    "sampleEncryptKey" //exactly the same 16 characters/bytes on all nodes!
 #define ENABLE_ATC    //comment out this line to disable AUTO TRANSMISSION CONTROL
-#define ATC_RSSI      -75
-//#define ENABLE_BME280 //uncomment to allow reading the BME280 (if present)
+#define ATC_RSSI      -85 //at -85 it works 50%
 //*********************************************************************************************
 #define ACK_TIME      30  // max # of ms to wait for an ack
 #define ONBOARDLED     9  // Moteinos have LEDs on D9
-#define LED            5  // MotionOLEDMote has an external LED on D5
+#define PIR_POWER      7
 #define MOTION_PIN     3  // D3
 #define MOTION_IRQ     1  // hardware interrupt 1 (D3) - where motion sensors OUTput is connected, this will generate an interrupt every time there is MOTION
-#define BATT_MONITOR  A7  // Sense VBAT_COND signal (when powered externally should read ~3.25v/3.3v (1000-1023), when external power is cutoff it should start reading around 2.85v/3.3v * 1023 ~= 883 (ratio given by 10k+4.7K divider from VBAT_COND = 1.47 multiplier)
-#define BATT_FORMULA(reading) reading * 0.00322 * 1.49 // >>> fine tune this parameter to match your voltage when fully charged
-                                                       // details on how this works: https://lowpowerlab.com/forum/index.php/topic,1206.0.html
 #define DUPLICATE_INTERVAL 20000 //avoid duplicates in 55second intervals (ie mailman sometimes spends 30+ seconds at mailbox)
 #define BATT_INTERVAL  300000  // read and report battery voltage every this many ms (approx)
+const uint16_t INTERNAL_AREF_V = 1091;
 
-//#define SERIAL_EN             //comment this out when deploying to an installed Mote to save a few KB of sketch size
+#define LED_PWR 6
+#define LED_GND 5
+#define LED_HIGH digitalWrite(LED_PWR, HIGH)
+#define LED_LOW digitalWrite(LED_PWR, LOW)
+
+#define SERIAL_EN             //comment this out when deploying to an installed SM to save a few KB of sketch size
 #define SERIAL_BAUD    115200
 #ifdef SERIAL_EN
 #define DEBUG(input)   {Serial.print(input); delay(1);}
@@ -83,24 +82,15 @@
   RFM69 radio;
 #endif
 
-#define FLASH_SS      8 // and FLASH SS on D8 on regular Moteinos (D23 on MoteinoMEGA)
-SPIFlash flash(FLASH_SS, 0xEF30); //EF30 for 4mbit  Windbond chip (W25X40CL)
-
-#ifdef ENABLE_BME280
-  BME280 bme280;
-#endif
+SPIFlash flash(SS_FLASHMEM, 0xEF30); //EF30 for 4mbit  Windbond chip (W25X40CL)
 
 volatile boolean motionDetected=false;
 float batteryVolts = 5;
+float temp = 0;
 char BATstr[10]; //longest battery voltage reading message = 9chars
+char TEMPstr[10];
 char sendBuf[32];
 byte sendLen;
-#ifdef ENABLE_BME280
-  double F,P,H;
-  char Pstr[10];
-  char Fstr[10];
-  char Hstr[10];
-#endif
 
 void motionIRQ(void);
 void checkBattery(void);
@@ -108,9 +98,7 @@ void checkBattery(void);
 void setup() {
   Serial.begin(SERIAL_BAUD);
   radio.initialize(FREQUENCY,NODEID,NETWORKID);
-#ifdef IS_RFM69HW_HCW
-  radio.setHighPower(); //must include this only for RFM69HW/HCW!
-#endif
+  radio.setHighPower(); //for RFM69HCW only!
   radio.encrypt(ENCRYPTKEY);
 
 //Auto Transmission Control - dials down transmit power to save battery (-100 is the noise floor, -90 is still pretty good)
@@ -120,44 +108,27 @@ void setup() {
 #ifdef ENABLE_ATC
   radio.enableAutoPower(ATC_RSSI);
 #endif
-  
+
   pinMode(MOTION_PIN, INPUT);
   attachInterrupt(MOTION_IRQ, motionIRQ, RISING);
   char buff[50];
   sprintf(buff, "\nTransmitting at %d Mhz...", FREQUENCY==RF69_433MHZ ? 433 : FREQUENCY==RF69_868MHZ ? 868 : 915);
   DEBUGln(buff);
   pinMode(ONBOARDLED, OUTPUT);
-  pinMode(LED, OUTPUT);
   radio.sendWithRetry(GATEWAYID, "START", 5);
-  
+
 #ifdef ENABLE_ATC
   DEBUGln("RFM69_ATC Enabled (Auto Transmission Control)\n");
 #endif
 
-  if (flash.initialize()) flash.sleep(); //if Moteino has FLASH-MEM, make sure it sleeps
-
-#ifdef ENABLE_BME280
-  Wire.begin();
-  Wire.setClock(400000); //Increase to fast I2C speed!
-
-  //initialize weather shield BME280 sensor
-  bme280.setI2CAddress(0x77); //0x76,0x77 is valid.
-  bme280.beginI2C();
-  bme280.setMode(MODE_FORCED); //MODE_SLEEP, MODE_FORCED, MODE_NORMAL is valid. See 3.3
-  bme280.setStandbyTime(0); //0 to 7 valid. Time between readings. See table 27.
-  bme280.setFilter(0); //0 to 4 is valid. Filter coefficient. See 3.4.4
-  bme280.setTempOverSample(1); //0 to 16 are valid. 0 disables temp sensing. See table 24.
-  bme280.setPressureOverSample(1); //0 to 16 are valid. 0 disables pressure sensing. See table 23.
-  bme280.setHumidityOverSample(1); //0 to 16 are valid. 0 disables humidity sensing. See table 19.
-  P = bme280.readFloatPressure() * 0.0002953; //read Pa and convert to inHg
-  F = bme280.readTempF();
-  H = bme280.readFloatHumidity();
-  bme280.setMode(MODE_SLEEP);
-#endif
+  if (flash.initialize()) flash.sleep();
+  pinMode(PIR_POWER, OUTPUT);
+  digitalWrite(PIR_POWER, HIGH);
+  pinMode(LED_PWR, OUTPUT);
+  pinMode(LED_GND, OUTPUT);
 }
 
-void motionIRQ()
-{
+void motionIRQ() {
   motionDetected=true;
   DEBUGln("IRQ");
 }
@@ -172,60 +143,29 @@ void loop() {
 
   if (motionDetected && (time-MLO > DUPLICATE_INTERVAL))
   {
-    digitalWrite(LED, HIGH);
+    LED_HIGH; //digitalWrite(LED, HIGH);
     MLO = time; //save timestamp of event
-
-#ifdef ENABLE_BME280
-    //read BME sensor
-    bme280.setMode(MODE_FORCED); //Wake up sensor and take reading
-    P = bme280.readFloatPressure() * 0.0002953; //read Pa and convert to inHg
-    F = bme280.readTempF();
-    H = bme280.readFloatHumidity();
-    bme280.setMode(MODE_SLEEP);
-    dtostrf(F, 3,2, Fstr);
-    dtostrf(H, 3,2, Hstr);
-    dtostrf(P, 3,2, Pstr);
-    
-    sprintf(sendBuf, "MOTION BAT:%sv F:%s H:%s P:%s", BATstr, Fstr, Hstr, Pstr);
-#else
-    sprintf(sendBuf, "MOTION BAT:%sv", BATstr);
-#endif
-
+    sprintf(sendBuf, "MOTION BAT:%sv F:%s", BATstr, TEMPstr);
+    DEBUG(sendBuf);
     sendLen = strlen(sendBuf);
 
     if (radio.sendWithRetry(GATEWAYID, sendBuf, sendLen))
     {
-      DEBUG("MOTION ACK:OK! RSSI:");
+      DEBUG("..OK! RSSI:");
       DEBUG(radio.RSSI);
       batteryReportCycles = 0;
     }
-    else DEBUG("MOTION ACK:NOK...");
-
-    DEBUG(" VIN: ");
-    DEBUGln(BATstr);
+    else DEBUG("..NOK..");
 
     radio.sleep();
-    digitalWrite(LED, LOW);
+    LED_LOW; //digitalWrite(LED, LOW);
   }
   else if (time-BLO > BATT_INTERVAL)
   {
-#ifdef ENABLE_BME280
-    //read BME sensor
-    bme280.setMode(MODE_FORCED); //Wake up sensor and take reading
-    P = bme280.readFloatPressure() * 0.0002953; //read Pa and convert to inHg
-    F = bme280.readTempF();
-    H = bme280.readFloatHumidity();
-    bme280.setMode(MODE_SLEEP); 
-    dtostrf(F, 3,2, Fstr);
-    dtostrf(H, 3,2, Hstr);
-    dtostrf(P, 3,2, Pstr);
-    sprintf(sendBuf, "BAT:%sv F:%s H:%s P:%s", BATstr, Fstr, Hstr, Pstr);
-#else
-    sprintf(sendBuf, "BAT:%sv", BATstr);
-#endif
-
+    sprintf(sendBuf, "BAT:%sv F:%s", BATstr, TEMPstr);
     sendLen = strlen(sendBuf);
     BLO = time;
+    DEBUGln(sendBuf);
     radio.sendWithRetry(GATEWAYID, sendBuf, sendLen);
     radio.sleep();
     batteryReportCycles=0;
@@ -235,21 +175,22 @@ void loop() {
 
   //while motion recently happened sleep for small slots of time to better approximate last motion event
   //this helps with debouncing a "MOTION" event more accurately for sensors that fire the IRQ very rapidly (ie panasonic sensors)
-  if (motionDetected || motionRecentlyCycles>0)
+  if (motionDetected ||motionRecentlyCycles>0)
   {
     if (motionDetected) motionRecentlyCycles=8;
     else motionRecentlyCycles--;
     motionDetected=false; //do NOT move this after the SLEEP line below or motion will never be detected
-    time = time + 250 + millis()-now;
+    time = time + 250 + millis()-now; //correct millis() resonator drift, may need to be tweaked to be accurate
     radio.sleep();
     LowPower.powerDown(SLEEP_250MS, ADC_OFF, BOD_OFF);
     DEBUGln("WAKEUP250ms");
   }
   else
   {
-    time = time + 8000 + millis()-now;
+    time = time + 8000 + millis()-now /*+ 480*/; //correct millis() resonator drift, may need to be tweaked to be accurate
     radio.sleep();
-    LowPower.powerDown(SLEEP_8S, ADC_OFF, BOD_OFF);
+    //LowPower.powerDown(SLEEP_8S, ADC_OFF, BOD_OFF); //watchdog sleep uses extra ~4uA!
+    sleep(8000);
     DEBUGln("WAKEUP8s");
   }
   batteryReportCycles++;
@@ -260,11 +201,56 @@ void checkBattery()
 {
   if (time-BLR > 30000) //only read battery every 30s or so
   {
-    unsigned int readings=0;
     BLR = time;
-    for (byte i=0; i<10; i++) //take 10 samples, and average
-      readings+=analogRead(BATT_MONITOR);
-    batteryVolts = BATT_FORMULA(readings / 10.0);
+    long vavg = 0;
+    temp = 0;
+    ADMUX = _BV(REFS0) | _BV(MUX3) | _BV(MUX2) | _BV(MUX1);  // Ref to Vcc. Measure internal 1.1V ref
+    for (int j = 0; j < 10; j++)
+    {                                     // Read a few times to get ADC to settle
+      ADCSRA |= _BV(ADSC);                // Start conversion
+      temp +=  radio.readTemperature(-1); // Temperature. -1 = user cal factor, adjust for correct ambient 
+      while (bit_is_set(ADCSRA,ADSC));    // measuring
+      if (j > 4) {                        // Skip the first 5 Vcc readings, take the next 5
+        vavg = vavg + (((INTERNAL_AREF_V * 1024L) / ADC) + 5L);
+      }
+    }
+    batteryVolts = (vavg/5.0)/1000.0;
+    temp /= 10;
+    dtostrf(temp, 3,2, TEMPstr);
     dtostrf(batteryVolts, 3,2, BATstr); //update the BATStr which gets sent every BATT_CYCLES or along with the MOTION message
   }
+}
+
+
+void sleep(uint32_t sleepTime) {
+  DEBUGFlush();
+  if (sleepTime < 262) { //sleeps just the MCU, using WDT (radio is not touched)
+    LowPower.longPowerDown(sleepTime);
+  } else { //sleeps MCU using the radio timer - should not be used if radio needs to be in RX mode!
+    uint32_t freq = radio.getFrequency();
+    if (sleepTime%262 && sleepTime > 262*2) {
+      DEBUG("Sleeping "); DEBUGln(sleepTime-sleepTime%262-262); DEBUGFlush();
+      listenModeSleep(sleepTime-sleepTime%262-262);
+      DEBUG("Sleeping "); DEBUGln(sleepTime%262 + 262); DEBUGFlush();
+      listenModeSleep(sleepTime%262 + 262);
+    } else {
+      DEBUG("Sleeping "); DEBUGln(sleepTime); DEBUGFlush();
+      listenModeSleep(sleepTime);
+    }
+
+    //WAKEUP happens here (must reinit!)
+    radio.RFM69::initialize(FREQUENCY,NODEID,NETWORKID); //call base init!
+    #ifdef ENCRYPTKEY
+      radio.encrypt(ENCRYPTKEY);
+    #endif
+    radio.setFrequency(freq);
+  }
+}
+
+void listenModeSleep(uint16_t millisInterval) {
+  radio.listenModeSleep(millisInterval);
+  LowPower.powerDown( SLEEP_FOREVER, ADC_OFF, BOD_OFF );
+  LowPower.powerDown( SLEEP_FOREVER, ADC_OFF, BOD_OFF );
+  LowPower.powerDown( SLEEP_FOREVER, ADC_OFF, BOD_OFF );
+  radio.endListenModeSleep();
 }

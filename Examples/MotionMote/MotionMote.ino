@@ -41,23 +41,23 @@
 //*********************************************************************************************
 //************ IMPORTANT SETTINGS - YOU MUST CHANGE/CONFIGURE TO FIT YOUR HARDWARE *************
 //*********************************************************************************************
-#define NODEID        86    //unique for each node on same network
+#define NODEID        123   //unique for each node on same network
 #define NETWORKID     100  //the same on all nodes that talk to each other
 #define GATEWAYID     1
 //Match frequency to the hardware version of the radio on your Moteino (uncomment one):
 #define FREQUENCY     RF69_915MHZ
 #define ENCRYPTKEY    "sampleEncryptKey" //exactly the same 16 characters/bytes on all nodes!
 #define ENABLE_ATC    //comment out this line to disable AUTO TRANSMISSION CONTROL
-#define ATC_RSSI      -85 //at -85 it works 50%
+#define ATC_RSSI      -90
 //*********************************************************************************************
 #define ACK_TIME      30  // max # of ms to wait for an ack
-#define ONBOARDLED     9  // Moteinos have LEDs on D9
-#define PIR_POWER      7
-#define MOTION_PIN     3  // D3
+#define ONBOARDLED     9  // same as LED_BUILTIN on Moteinos (D9)
+#define PIR_POWER      7  // PIR is powered from D7
+#define MOTION_PIN     3  // PIR output
 #define MOTION_IRQ     1  // hardware interrupt 1 (D3) - where motion sensors OUTput is connected, this will generate an interrupt every time there is MOTION
 #define DUPLICATE_INTERVAL 20000 //avoid duplicates in 55second intervals (ie mailman sometimes spends 30+ seconds at mailbox)
 #define BATT_INTERVAL  300000  // read and report battery voltage every this many ms (approx)
-const uint16_t INTERNAL_AREF_V = 1091;
+const uint16_t INTERNAL_AREF_V = 1100; //measured internal 1.1v bandgap
 
 #define LED_PWR 6
 #define LED_GND 5

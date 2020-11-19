@@ -636,13 +636,13 @@ void RFM69::readAllRegs()
             capVal = (regVal >> 2) & 0x7;
             if ( capVal == 0b000 ) {
                 SerialPrint ( "000 -> Sleep mode (SLEEP)\n" );
-            } else if ( capVal = 0b001 ) {
+            } else if ( capVal == 0b001 ) {
                 SerialPrint ( "001 -> Standby mode (STDBY)\n" );
-            } else if ( capVal = 0b010 ) {
+            } else if ( capVal == 0b010 ) {
                 SerialPrint ( "010 -> Frequency Synthesizer mode (FS)\n" );
-            } else if ( capVal = 0b011 ) {
+            } else if ( capVal == 0b011 ) {
                 SerialPrint ( "011 -> Transmitter mode (TX)\n" );
-            } else if ( capVal = 0b100 ) {
+            } else if ( capVal == 0b100 ) {
                 SerialPrint ( "100 -> Receiver Mode (RX)\n" );
             } else {
                 Serial.print( capVal, BIN );

@@ -1,6 +1,7 @@
 // **********************************************************************************
 // Sample RFM69 sender/node sketch with radio listen mode sleep
 // Saves additional 2-3uA over WDT sleep
+// *** NOTE: This example is only applicable to AVR Moteinos, not SAMD Moteinos.  ***
 // **********************************************************************************
 // Copyright Felix Rusu 2020, http://www.LowPowerLab.com/contact
 // **********************************************************************************

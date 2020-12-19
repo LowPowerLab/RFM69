@@ -1086,7 +1086,7 @@ void RFM69::listenModeInterruptHandler(void)
 
   // We've read the target, and will read the sender id and two time offset bytes for a total of 4 bytes
   DATALEN = PAYLOADLEN - 4;
-  SENDERID = spi->transfer(0);
+  SENDERID = _spi->transfer(0);
   burstRemaining.b[0] =  _spi->transfer(0);  // and get the time remaining
   burstRemaining.b[1] =  _spi->transfer(0);
   RF69_LISTEN_BURST_REMAINING_MS = burstRemaining.l;

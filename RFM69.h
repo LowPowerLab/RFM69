@@ -138,10 +138,8 @@
   #define RF69_IRQ_PIN          3
 #elif defined(ESP8266)
   #define RF69_IRQ_PIN          4
-  #define RF69_SPI_CS           15
 #elif defined(ESP32)
   #define RF69_IRQ_PIN          2
-  #define RF69_SPI_CS           5
 #else
   #define RF69_IRQ_PIN          2
 #endif

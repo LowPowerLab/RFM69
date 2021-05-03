@@ -510,7 +510,13 @@ uint8_t sendHEXPacket(RFM69& radio, uint16_t targetID, uint8_t* sendBuf, uint8_t
           radio.DATA[ackLen-2]=='O' && radio.DATA[ackLen-1]=='K')
       {
         uint16_t tmp=0;
-        sscanf((const char*)radio.DATA, "FLX:%" PRIu16 ":OK", &tmp);
+#if defined(__arm__)
+        // On the ARM platform, uint16_t = short unsigned int, so %hu formatting is needed:
+        sscanf((const char*)radio.DATA, "FLX:%hu:OK", &tmp);
+#else
+        // On the AVR platform, uint16_t = unsigned int, so %u formatting is needed:
+        sscanf((const char*)radio.DATA, "FLX:%u:OK", &tmp);
+#endif
         return tmp == seq;
       }
     }

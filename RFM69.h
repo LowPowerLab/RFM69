@@ -247,7 +247,7 @@ class RFM69 {
    
     uint8_t _slaveSelectPin;
     uint8_t _interruptPin;
-    int _interruptNum;
+    uint8_t _interruptNum;
     uint16_t _address;
     bool _spyMode;
     uint8_t _powerLevel;

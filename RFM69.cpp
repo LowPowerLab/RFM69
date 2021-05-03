@@ -551,7 +551,7 @@ void RFM69::setCS(uint8_t newSPISlaveSelect) {
 
 // set the IRQ pin
 bool RFM69::setIrq(uint8_t newIRQPin) {
-  uint8_t _newInterruptNum = digitalPinToInterrupt(newIRQPin);
+  int _newInterruptNum = digitalPinToInterrupt(newIRQPin);
   if (_newInterruptNum == NOT_AN_INTERRUPT) return false;
 #ifdef RF69_ATTACHINTERRUPT_TAKES_PIN_NUMBER
   _newInterruptNum = newIRQPin;

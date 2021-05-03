@@ -510,7 +510,7 @@ uint8_t sendHEXPacket(RFM69& radio, uint16_t targetID, uint8_t* sendBuf, uint8_t
           radio.DATA[ackLen-2]=='O' && radio.DATA[ackLen-1]=='K')
       {
         uint16_t tmp=0;
-        sscanf((const char*)radio.DATA, "FLX:%hu:OK", &tmp);
+        sscanf((const char*)radio.DATA, "FLX:%u:OK", &tmp);
         return tmp == seq;
       }
     }

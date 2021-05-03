@@ -59,7 +59,7 @@ RFM69::RFM69(uint8_t slaveSelectPin, uint8_t interruptPin, bool isRFM69HW, SPICl
 bool RFM69::initialize(uint8_t freqBand, uint16_t nodeID, uint8_t networkID)
 {
   _interruptNum = digitalPinToInterrupt(_interruptPin);
-  if (_interruptNum == NOT_AN_INTERRUPT) return false;
+  if (_interruptNum == (uint8_t)NOT_AN_INTERRUPT) return false;
 #ifdef RF69_ATTACHINTERRUPT_TAKES_PIN_NUMBER
     _interruptNum = _interruptPin;
 #endif
@@ -552,7 +552,7 @@ void RFM69::setCS(uint8_t newSPISlaveSelect) {
 // set the IRQ pin
 bool RFM69::setIrq(uint8_t newIRQPin) {
   uint8_t _newInterruptNum = digitalPinToInterrupt(newIRQPin);
-  if (_newInterruptNum == NOT_AN_INTERRUPT) return false;
+  if (_newInterruptNum == (uint8_t)NOT_AN_INTERRUPT) return false;
 #ifdef RF69_ATTACHINTERRUPT_TAKES_PIN_NUMBER
   _newInterruptNum = newIRQPin;
 #endif

@@ -15,7 +15,7 @@
 #include <SPIFlash.h>    //get it here: https://github.com/lowpowerlab/spiflash
 #include <PString.h>     //easy string manipulator: http://arduiniana.org/libraries/pstring/
 #include <Streaming.h>   //easy C++ style output operators: http://arduiniana.org/libraries/streaming/
-#include "U8glib.h"      //https://bintray.com/olikraus/u8glib/Arduino
+#include "U8glib.h"      //https://github.com/olikraus/U8glib_Arduino/releases
                          //u8g compared to adafruit lib: https://www.youtube.com/watch?v=lkWZuAnHa2Y
                          //drawing bitmaps: https://www.coconauts.net/blog/2015/01/19/easy-draw-bitmaps-arduino/
 //*****************************************************************************************************************************

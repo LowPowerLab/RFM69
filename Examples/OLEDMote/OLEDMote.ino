@@ -31,7 +31,7 @@
 #include <RFM69.h>    //get it here: https://www.github.com/lowpowerlab/rfm69
 #include <SPIFlash.h> //get library from: https://www.github.com/lowpowerlab/spiflash
 #include <LowPower.h> //get library from: https://github.com/lowpowerlab/lowpower
-#include "U8glib.h"   //get library from: https://code.google.com/p/u8glib/
+#include "U8glib.h"   //get library from: https://github.com/olikraus/U8glib_Arduino/releases
 #include <SPI.h>      //included with Arduino IDE (www.arduino.cc)
 
 //****************************************************************************************************************

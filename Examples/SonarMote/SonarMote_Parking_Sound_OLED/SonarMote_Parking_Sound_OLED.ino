@@ -50,7 +50,7 @@
                          //the OLED drawing will cause a visible delay in the LED blinking, nothing much to do about it without complicating the sketch a lot more
 
 #ifdef OLED_ENABLE
-  #include "U8glib.h"   //get library from: https://code.google.com/p/u8glib/
+  #include "U8glib.h"   //get library from: https://github.com/olikraus/U8glib_Arduino/releases
 #endif
 
 #ifdef __AVR_ATmega1284P__

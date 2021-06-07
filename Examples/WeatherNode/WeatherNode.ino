@@ -229,7 +229,6 @@ void loop()
   }
   
   SERIALFLUSH();
-  flash.sleep();
   radio.sleep(); //you can comment out this line if you want this node to listen for wireless programming requests
 
 #if defined(MOTEINO_M0)

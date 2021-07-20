@@ -37,14 +37,10 @@
 #include "RFM69.h"
 #include <SPIFlash.h>
 
-#if defined(MOTEINO_M0)
-  #define LED           13 // Moteino M0
-#elif defined(__AVR_ATmega1284P__)
-  #define LED           15 // Moteino MEGAs have LEDs on D15
-#elif defined (__AVR_ATmega328P__)
-  #define LED           9 // Moteinos have LEDs on D9
+#if defined(LED_BUILTIN)
+  #define LED   LED_BUILTIN
 #else
-  #define LED           13 // catch all others (UNO, pro mini etc)
+  #define LED   13 // catch all
 #endif
 
 #define SHIFTCHANNEL 1000000 //amount to shift frequency of HEX transmission to keep original channel free of the HEX transmission traffic

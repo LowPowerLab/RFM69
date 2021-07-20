@@ -78,5 +78,8 @@ uint8_t sendHEXPacket(RFM69& radio, uint16_t remoteID, uint8_t* sendBuf, uint8_t
 uint8_t BYTEfromHEX(char MSB, char LSB);
 uint8_t readSerialLine(char* input, char endOfLineChar=10, uint8_t maxLength=115, uint16_t timeout=1000);
 void PrintHex83(uint8_t* data, uint8_t length);
+uint8_t bufferChecksum(uint8_t* buffer, uint8_t length);
+uint8_t prepareStoreBuffer(char* hexdata, uint8_t*buf, uint8_t length);
+uint8_t validHexString(char* hex, uint16_t expectedByteCount);
 
 #endif

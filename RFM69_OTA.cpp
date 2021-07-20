@@ -158,7 +158,7 @@ uint8_t HandleWirelessHEXData(RFM69& radio, uint16_t remoteID, SPIFlash& flash, 
         {
           uint8_t index=3;
           tmp = 0;
-          
+
           //read packet SEQ
           for (uint8_t i = 4; i<8; i++) //up to 4 characters for seq number
           {
@@ -416,7 +416,7 @@ uint8_t HandleSerialHEXData(RFM69& radio, uint16_t targetID, uint16_t TIMEOUT, u
         }
       }
     }
-    
+
     //abort FLASH sequence if no valid packet received for a long time
 timeoutcheck:
     if (millis()-now > TIMEOUT)
@@ -545,6 +545,34 @@ void PrintHex83(uint8_t* data, uint8_t length)
     Serial.print((char)((tmp > 57) ? tmp+7 : tmp));
   }
   Serial.println();
+}
+
+//===================================================================================================================
+// bufferChecksum() - compute 1 byte checksum on a byte stream
+//===================================================================================================================
+uint8_t bufferChecksum(uint8_t* buffer, uint8_t length) {
+  uint8_t checksum=0;
+  for (uint8_t i=0;i<length;i++)
+    checksum += buffer[i];
+  return (checksum^0xFF)+1;
+}
+
+//===================================================================================================================
+// prepareSendBuffer() - returns the final size of the buf
+//===================================================================================================================
+uint8_t prepareStoreBuffer(char* hexdata, uint8_t*buf, uint8_t length) {
+  for (uint8_t i=0; i<length;i++)
+    buf[i] = BYTEfromHEX(hexdata[i*2], hexdata[i*2+1]);
+  return length;
+}
+
+//===================================================================================================================
+// validHexString() - walk a char stream and check all chars are valid ascii HEX chars
+//===================================================================================================================
+uint8_t validHexString(char* hex, uint16_t expectedByteCount) {
+  for (uint16_t i=0;i<expectedByteCount*2;i++)
+    if (hex[i]<48 || (hex[i]>57 && hex[i]< 65) || hex[i]>70) return false;
+  return true;
 }
 
 //===================================================================================================================

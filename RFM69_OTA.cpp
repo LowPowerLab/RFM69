@@ -578,21 +578,13 @@ uint8_t validHexString(char* hex, uint16_t expectedByteCount) {
 //===================================================================================================================
 // resetUsingWatchdog() - Use watchdog to reset the MCU
 //===================================================================================================================
-void resetUsingWatchdog(uint8_t DEBUG)
+void resetUsingWatchdog(uint8_t DEBUG __attribute__((unused)))
 {
 #ifdef __AVR__
-  //wdt_disable();
   if (DEBUG) Serial.print(F("REBOOTING"));
   wdt_enable(WDTO_15MS);
   while(1) if (DEBUG) Serial.print(F("."));
 #elif defined(MOTEINO_M0)
-  //WDT->CTRL.reg = 0; // disable watchdog
-  //while (WDT->STATUS.bit.SYNCBUSY == 1); // sync is required
-  //WDT->CONFIG.reg = 0; // see Table 18.8.2 Timeout Period (valid values 0-11)
-  //WDT->CTRL.reg = WDT_CTRL_ENABLE; //enable WDT
-  //while (WDT->STATUS.bit.SYNCBUSY == 1);
-  //WDT->CLEAR.reg= 0x00; // system reset via WDT
-  //while (WDT->STATUS.bit.SYNCBUSY == 1);
   *((volatile uint32_t *)(HMCRAMC0_ADDR + HMCRAMC0_SIZE - 4)) = 0xF1A507AF;
   NVIC_SystemReset();
 #endif

@@ -198,7 +198,7 @@ class RFM69 {
     RFM69(uint8_t slaveSelectPin, uint8_t interruptPin, bool isRFM69HW, uint8_t interruptNum __attribute__((unused))) //interruptNum is now deprecated
                 : RFM69(slaveSelectPin, interruptPin, isRFM69HW){};
 
-    RFM69(uint8_t slaveSelectPin=RF69_SPI_CS, uint8_t interruptPin=RF69_IRQ_PIN, bool isRFM69HW=false, SPIClass *spi=nullptr);
+    RFM69(uint8_t slaveSelectPin=RF69_SPI_CS, uint8_t interruptPin=RF69_IRQ_PIN, bool isRFM69HW_HCW=false, SPIClass *spi=nullptr);
 
     bool initialize(uint8_t freqBand, uint16_t ID, uint8_t networkID=1);
     void setAddress(uint16_t addr);
@@ -218,13 +218,16 @@ class RFM69 {
     int16_t readRSSI(bool forceTrigger=false); // *current* signal strength indicator; e.g. < -90dBm says the frequency channel is free + ready to transmit
     void spyMode(bool onOff=true);
     //void promiscuous(bool onOff=true); //replaced with spyMode()
-    virtual void setHighPower(bool onOFF=true); // has to be called after initialize() for RFM69HW
+    virtual void setHighPower(bool _isRFM69HW_HCW=true); // has to be called after initialize() for RFM69 HW/HCW
     virtual void setPowerLevel(uint8_t level); // reduce/increase transmit power level
-    uint8_t getPowerLevel(); // get powerLevel	
+    virtual int8_t setPowerDBm(int8_t dBm); // reduce/increase transmit power level, in dBm
+
+    virtual uint8_t getPowerLevel(); // get powerLevel	
     void sleep();
     uint8_t readTemperature(uint8_t calFactor=0); // get CMOS temperature (8bit)
     void rcCalibration(); // calibrate the internal RC oscillator for use in wide temperature variations - see datasheet section [4.3.5. RC Timer Accuracy]
     void set300KBPS();
+    uint8_t setLNA(uint8_t newReg);
 
     // allow hacking registers by making these public
     uint8_t readReg(uint8_t addr);
@@ -235,6 +238,9 @@ class RFM69 {
     // ListenMode sleep/timer
     void listenModeSleep(uint16_t millisInterval);
     void endListenModeSleep();
+    virtual void setMode(uint8_t mode);
+    virtual void select();
+    virtual void unselect();
 
   protected:
     static void isr0();
@@ -245,7 +251,7 @@ class RFM69 {
 
     // for ListenMode sleep/timer
     static void delayIrq();
-   
+
     uint8_t _slaveSelectPin;
     uint8_t _interruptPin;
     uint8_t _interruptNum;
@@ -263,10 +269,10 @@ class RFM69 {
 #endif
 
     virtual void receiveBegin();
-    virtual void setMode(uint8_t mode);
-    virtual void setHighPowerRegs(bool onOff);
-    virtual void select();
-    virtual void unselect();
+    //virtual void setMode(uint8_t mode);
+    virtual void setHighPowerRegs(bool enable);
+    //virtual void select();
+    //virtual void unselect();
 
 #if defined(RF69_LISTENMODE_ENABLE)
   static RFM69* selfPointer;

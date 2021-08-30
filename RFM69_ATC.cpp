@@ -40,25 +40,8 @@ bool RFM69_ATC::initialize(uint8_t freqBand, uint16_t nodeID, uint8_t networkID)
   _targetRSSI = 0;        // TomWS1: default to disabled
   _ackRSSI = 0;           // TomWS1: no existing response at init time
   ACK_RSSI_REQUESTED = 0; // TomWS1: init to none
-  //_powerBoost = false;    // TomWS1: require someone to explicitly turn boost on!
-  _transmitLevel = 31;    // TomWS1: match default value in PA Level register
   _transmitLevelStep = 1; //increment 1 step at a time by default
   return RFM69::initialize(freqBand, nodeID, networkID);  // use base class to initialize most everything
-}
-
-//=============================================================================
-// setMode() - got to set updated transmit power level before switching to TX mode
-//=============================================================================
-void RFM69_ATC::setMode(uint8_t newMode) {
-  if (newMode == _mode) return;
-  //_powerBoost = (_transmitLevel >= 50);  // this needs to be set before changing mode just in case setHighPowerRegs is called
-  RFM69::setMode(newMode);  // call base class first
-
-  if (newMode == RF69_MODE_TX)  // special stuff if switching to TX mode
-  {
-    if (_targetRSSI) setPowerLevel(_transmitLevel);   // TomWS1: apply most recent transmit level if auto power
-    //if (_isRFM69HW) setHighPowerRegs(true);
-  }
 }
 
 //=============================================================================
@@ -145,18 +128,12 @@ void RFM69_ATC::interruptHook(uint8_t CTLbyte) {
       DATALEN -= 1;   // and compensate data length accordingly
       // TomWS1: Now dither transmitLevel value (register update occurs later when transmitting);
       if (_targetRSSI != 0) {
-        // if (_isRFM69HW) {
-          // if (_ackRSSI < _targetRSSI && _transmitLevel < 51) _transmitLevel++;
-          // else if (_ackRSSI > _targetRSSI && _transmitLevel > 32) _transmitLevel--;
-        // } else {
-        if (_ackRSSI < _targetRSSI && _transmitLevel < 31)
-        {
-          _transmitLevel += _transmitLevelStep;
-          if (_transmitLevel > 31) _transmitLevel = 31;
+        uint8_t maxLevel = _isRFM69HW ? 23 : 31;
+        if (_ackRSSI < _targetRSSI && _powerLevel < maxLevel) {
+          _powerLevel += _transmitLevelStep;
         }
-        else if (_ackRSSI > _targetRSSI && _transmitLevel > 0)
-          _transmitLevel--;
-        //}
+        else if (_ackRSSI > _targetRSSI && _powerLevel > 0)
+          _powerLevel--;
       }
     }
   }
@@ -167,15 +144,14 @@ void RFM69_ATC::interruptHook(uint8_t CTLbyte) {
 //=============================================================================
 bool RFM69_ATC::sendWithRetry(uint16_t toAddress, const void* buffer, uint8_t bufferSize, uint8_t retries, uint8_t retryWaitTime) {
   uint32_t sentTime;
-  for (uint8_t i = 0; i <= retries; i++)
-  {
+  for (uint8_t i = 0; i <= retries; i++) {
     send(toAddress, buffer, bufferSize, true);
     sentTime = millis();
+    uint8_t maxLevel = _isRFM69HW ? 23 : 31;
     while (millis() - sentTime < retryWaitTime)
       if (ACKReceived(toAddress)) return true;
-    if (_transmitLevel < 31) {
-      _transmitLevel += _transmitLevelStep;
-      if (_transmitLevel > 31) _transmitLevel = 31;
+    if (_powerLevel < maxLevel) {
+      setPowerLevel(_powerLevel + _transmitLevelStep);
     }
   }
 
@@ -191,70 +167,6 @@ void RFM69_ATC::receiveBegin() {
 }
 
 //=============================================================================
-// setPowerLevel() - outright replacement for base class.  Provides finer granularity for RFM69HW.
-//=============================================================================
-// set output power: 0=min, 31=max (for RFM69W or RFM69CW), 0-31 or 32->51 for RFM69HW (see below)
-// this results in a "weaker" transmitted signal, and directly results in a lower RSSI at the receiver
-// allows power level selections above 31 (as in original base RFM69 lib) & selects appropriate PA based on the value
-// more discussion and details in this forum post: https://lowpowerlab.com/forum/index.php/topic,688.0.html
-// void RFM69_ATC::setPowerLevel(uint8_t powerLevel) {
-  // _transmitLevel = powerLevel;    // save this for later in case we do auto power control.
-  // _powerBoost = (powerLevel >= 50);
-  // if (!_isRFM69HW || powerLevel < 32) {     // use original code without change
-    // _powerLevel = powerLevel;
-    // writeReg(REG_PALEVEL, (readReg(REG_PALEVEL) & 0xE0) | (_powerLevel > 31 ? 31 : _powerLevel));
-  // } else {
-    // // the allowable range of power level value, if >31 is: 32 -> 51, where...
-    // // 32->47 use PA2 only and sets powerLevel register 0-15,
-    // // 48->49 uses both PAs, and sets powerLevel register 14-15,
-    // // 50->51 uses both PAs, sets powerBoost, and sets powerLevel register 14-15.
-    // if (powerLevel < 48) {
-      // _powerLevel = powerLevel & 0x0f;  // just use 4 lower bits when in high power mode
-      // _PA_Reg = 0x20;
-    // } else {
-      // _PA_Reg = 0x60;
-      // if (powerLevel < 50) {
-        // _powerLevel = powerLevel - 34;  // leaves 14-15
-      // } else {
-        // if (powerLevel > 51) 
-          // powerLevel = 51;  // saturate
-        // _powerLevel = powerLevel - 36;  // leaves 14-15
-      // }
-    // }
-    // writeReg(REG_OCP, (_PA_Reg==0x60) ? RF_OCP_OFF : RF_OCP_ON);
-    // writeReg(REG_PALEVEL, _powerLevel | _PA_Reg);
-  // }
-// }
-
-//=============================================================================
-// setHighPower() - only set High power bits on RFM69HW IFF the power level is set to MAX.  Otherwise it is kept off.
-//=============================================================================
-// void RFM69_ATC::setHighPower(bool onOff, byte PA_ctl) {
-  // _isRFM69HW = onOff;
-  // writeReg(REG_OCP, (_isRFM69HW && PA_ctl==0x60) ? RF_OCP_OFF : RF_OCP_ON);
-  // if (_isRFM69HW) { //turning ON based on module type 
-    // _powerLevel = readReg(REG_PALEVEL) & 0x1F; // make sure internal value matches reg
-    // _powerBoost = (PA_ctl == 0x60);
-    // _PA_Reg = PA_ctl;
-    // writeReg(REG_PALEVEL, _powerLevel | PA_ctl ); //TomWS1: enable selected P1 & P2 amplifier stages
-  // }
-  // else {
-    // _PA_Reg = RF_PALEVEL_PA0_ON;        // TomWS1: save to reflect register value
-    // writeReg(REG_PALEVEL, RF_PALEVEL_PA0_ON | RF_PALEVEL_PA1_OFF | RF_PALEVEL_PA2_OFF | _powerLevel); //enable P0 only
-  // }
-// }
-
-//=============================================================================
-// ditto from above.
-//=============================================================================
-// void RFM69_ATC::setHighPowerRegs(bool onOff) {
-  // if ((0x60 != (readReg(REG_PALEVEL) & 0xe0)) || !_powerBoost)    // TomWS1: only set to high power if we are using both PAs... and boost range is requested.
-    // onOff = false;
-  // writeReg(REG_TESTPA1, onOff ? 0x5D : 0x55);
-  // writeReg(REG_TESTPA2, onOff ? 0x7C : 0x70);
-// }
-
-//=============================================================================
 // enableAutoPower() - call with target RSSI, use 0 to disable (default), any other value with turn on autotransmit control.
 //=============================================================================
 // TomWS1: New methods to address autoPower control
@@ -267,14 +179,4 @@ void  RFM69_ATC::enableAutoPower(int16_t targetRSSI){    // TomWS1: New method t
 //=============================================================================
 int16_t  RFM69_ATC::getAckRSSI(void){                     // TomWS1: New method to retrieve the ack'd RSSI (if any)
   return (_targetRSSI==0?0:_ackRSSI);
-}
-
-//=============================================================================
-// setLNA() - used for power level testing.
-//=============================================================================
-byte RFM69_ATC::setLNA(byte newReg) {  // TomWS1: New method used to disable LNA AGC for testing purposes
-  byte oldReg;
-  oldReg = readReg(REG_LNA);
-  writeReg(REG_LNA, ((newReg & 7) | (oldReg & ~7)));   // just control the LNA Gain bits for now
-  return oldReg;  // return the original value in case we need to restore it
 }

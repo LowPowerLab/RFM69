@@ -6,7 +6,7 @@
 // Copyright Felix Rusu 2021, http://www.LowPowerLab.com/contact
 // **********************************************************************************
 #include <RFM69.h>          //get it here: https://www.github.com/lowpowerlab/rfm69
-#include <RFM69Registers.h> //get it here: https://www.github.com/lowpowerlab/rfm69
+#include <RFM69registers.h> //get it here: https://www.github.com/lowpowerlab/rfm69
 
 #define NODEID        1   //must be unique for each node on same network (range up to 254, 255 is used for broadcast)
 #define NETWORKID     100  //the same on all nodes that talk to each other (range up to 255)

@@ -35,6 +35,8 @@ env:
     - PLATFORMIO_CI_SRC=Examples/WeatherNode
     - PLATFORMIO_CI_SRC=Examples/WirelessProgramming_OTA/Target
     - PLATFORMIO_CI_SRC=Examples/WirelessProgramming_OTA/Programmer
+    - PLATFORMIO_CI_SRC=Examples/TxPowerTest_Transmitter
+    - PLATFORMIO_CI_SRC=Examples/TxPowerTest_Receiver
 
 install:
     - pip install -U platformio

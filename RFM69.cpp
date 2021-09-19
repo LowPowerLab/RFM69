@@ -90,6 +90,7 @@ bool RFM69::initialize(uint8_t freqBand, uint16_t nodeID, uint8_t networkID)
     /* 0x26 */ { REG_DIOMAPPING2, RF_DIOMAPPING2_CLKOUT_OFF }, // DIO5 ClkOut disable for power saving
     /* 0x28 */ { REG_IRQFLAGS2, RF_IRQFLAGS2_FIFOOVERRUN }, // writing to this bit ensures that the FIFO & status flags are reset
     /* 0x29 */ { REG_RSSITHRESH, 220 }, // must be set to dBm = (-Sensitivity / 2), default is 0xE4 = 228 so -114dBm
+    /* 0x2B */ { REG_RXTIMEOUT2, 0}, // set to 0 in case listen mode was enabled when the program started
     ///* 0x2D */ { REG_PREAMBLELSB, RF_PREAMBLESIZE_LSB_VALUE } // default 3 preamble bytes 0xAAAAAA
     /* 0x2E */ { REG_SYNCCONFIG, RF_SYNC_ON | RF_SYNC_FIFOFILL_AUTO | RF_SYNC_SIZE_2 | RF_SYNC_TOL_0 },
     /* 0x2F */ { REG_SYNCVALUE1, 0x2D },      // attempt to make this compatible with sync1 byte of RFM12B lib
@@ -136,6 +137,12 @@ bool RFM69::initialize(uint8_t freqBand, uint16_t nodeID, uint8_t networkID)
   encrypt(0);
 
   setHighPower(_isRFM69HW); // called regardless if it's a RFM69W or RFM69HW (at this point _isRFM69HW may not be explicitly set by constructor and setHighPower() may not have been called yet (ie called after initialize() call)
+
+  // If listen mode was on when we started, turn it off
+  if(readReg(REG_OPMODE) & RF_OPMODE_LISTEN_ON) {
+    writeReg(REG_OPMODE, RF_OPMODE_SEQUENCER_ON | RF_OPMODE_LISTENABORT | RF_OPMODE_STANDBY);
+    writeReg(REG_OPMODE, RF_OPMODE_SEQUENCER_ON | RF_OPMODE_STANDBY);
+  }
   setMode(RF69_MODE_STANDBY);
   start = millis();
   while (((readReg(REG_IRQFLAGS1) & RF_IRQFLAGS1_MODEREADY) == 0x00) && millis()-start < timeout); // wait for ModeReady
@@ -1223,11 +1230,6 @@ void RFM69::listenModeStart(void)
 void RFM69::listenModeEnd(void)
 {
   detachInterrupt(_interruptNum);
-  writeReg(REG_OPMODE, RF_OPMODE_SEQUENCER_ON | RF_OPMODE_LISTENABORT | RF_OPMODE_STANDBY);
-  writeReg(REG_OPMODE, RF_OPMODE_SEQUENCER_ON | RF_OPMODE_STANDBY);
-  writeReg(REG_RXTIMEOUT2, 0);
-  setMode(RF69_MODE_STANDBY);
-  while ((readReg(REG_IRQFLAGS1) & RF_IRQFLAGS1_MODEREADY) == 0x00); // wait for ModeReady
   listenModeReset();
   reinitRadio();
 }

@@ -1046,8 +1046,9 @@ volatile uint16_t RFM69::RF69_LISTEN_BURST_REMAINING_MS = 0;
 //=============================================================================
 bool RFM69::reinitRadio()
 {
+  bool haveEncryptKey = _haveEncryptKey;
   if (!initialize(_freqBand, _address, _networkID)) return false;
-  if (_haveEncryptKey) RFM69::encrypt(_encryptKey); // Restore the encryption key if necessary
+  if (haveEncryptKey) encrypt(_encryptKey); // Restore the encryption key if necessary
   if (_isHighSpeed) writeReg(REG_LNA, (readReg(REG_LNA) & ~0x3) | RF_LNA_GAINSELECT_AUTO);
   return true;
 }

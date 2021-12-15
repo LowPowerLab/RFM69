@@ -44,24 +44,23 @@ install:
     - pip install -U platformio
     - platformio update
 
-    #
     # Libraries from PlatformIO Library Registry:
-    #
-    # http://platformio.org/#!/lib/show/7/U8glib
-    # http://platformio.org/#!/lib/show/11817/LowPower
-    # http://platformio.org/#!/lib/show/125/SPIFlash
-    # http://platformio.org/#!/lib/show/131/TimerOne
-    # http://platformio.org/#!/lib/show/136/LiquidCrystal
-    # http://platformio.org/#!/lib/show/176/NewPing
-    # http://platformio.org/#!/lib/show/531/WirelessHEX69
-    # http://platformio.org/#!/lib/show/532/BMP180
-    # http://platformio.org/#!/lib/show/536/Si7021
-    # http://platformio.org/#!/lib/show/684/Sparkfun BME280
+    # https://platformio.org/lib/show/7/U8glib
+    # https://platformio.org/lib/show/11817/LowPower
+    # https://platformio.org/lib/show/125/SPIFlash
+    # https://platformio.org/lib/show/131/TimerOne
+    # https://platformio.org/lib/show/136/LiquidCrystal
+    # https://platformio.org/lib/show/170/EEPROMEx
+    # https://platformio.org/lib/show/176/NewPing
+    # https://platformio.org/lib/show/531/WirelessHEX69
+    # https://platformio.org/lib/show/532/BMP180
+    # https://platformio.org/lib/show/536/Si7021
+    # https://platformio.org/lib/show/684/Sparkfun BME280
     # https://platformio.org/lib/show/560/Streaming
     # https://platformio.org/lib/show/6230/PString-Arduino-lib
     # https://platformio.org/lib/show/942/U8g2
 
-    - platformio lib -g install 7 11817 125 131 136 170 176 531 532 536 684 560 6230 942
+    - platformio lib install 7 11817 125 131 136 170 176 531 532 536 684 560 6230 942
 
 script:
-    - platformio ci --board=moteino --lib=.
+    - platformio ci --board=moteino

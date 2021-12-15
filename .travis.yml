@@ -40,13 +40,6 @@ env:
     - PLATFORMIO_CI_SRC=Examples/RangeTest_Gateway
     - PLATFORMIO_CI_SRC=Examples/RangeTest_Transmitter
 
-lib_deps =
-
-     # RECOMMENDED
-     # Accept new functionality in a backwards compatible manner and patches
-     lowpowerlab/LowPower_LowPowerLab @ ^2.2
-     platformio/Streaming @ ^0.0.0
-
 install:
     - pip install -U platformio
     - platformio update

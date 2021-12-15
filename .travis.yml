@@ -63,4 +63,5 @@ install:
     - platformio lib install 7 11817 125 131 136 170 176 531 532 536 684 560 6230 942
 
 script:
-    - platformio ci --board=moteino --project-option="lib_compat_mode=strict" --project-option="lib_deps=Streaming" --lib=.
+    #- platformio ci --board=moteino --project-option="lib_compat_mode=strict" --project-option="lib_deps=Streaming" --lib=.
+    - platformio ci --board=moteino --project-option="build_flags=-I include" --lib=.

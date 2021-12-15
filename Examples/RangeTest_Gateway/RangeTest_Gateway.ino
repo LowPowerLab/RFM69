@@ -10,6 +10,7 @@
 #include <U8g2lib.h>   //https://github.com/olikraus/u8g2/wiki/u8g2reference fonts:https://github.com/olikraus/u8g2/wiki/fntlistall
 #include <Wire.h>      //i2c scanner: https://playground.arduino.cc/Main/I2cScanner
 #include <PString.h>   //easy string manipulator: http://arduiniana.org/libraries/pstring/
+#include <Streaming.h>  //easy C++ style output operators: http://arduiniana.org/libraries/streaming/
 //*********************************************************************************************
 // *********** IMPORTANT SETTINGS - YOU MUST CHANGE/ONFIGURE TO FIT YOUR HARDWARE *************
 //*********************************************************************************************

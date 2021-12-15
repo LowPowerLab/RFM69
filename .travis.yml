@@ -40,6 +40,13 @@ env:
     - PLATFORMIO_CI_SRC=Examples/RangeTest_Gateway
     - PLATFORMIO_CI_SRC=Examples/RangeTest_Transmitter
 
+lib_deps =
+
+     # RECOMMENDED
+     # Accept new functionality in a backwards compatible manner and patches
+     lowpowerlab/LowPower_LowPowerLab @ ^2.2
+     platformio/Streaming @ ^0.0.0
+
 install:
     - pip install -U platformio
     - platformio update
@@ -48,7 +55,7 @@ install:
     # Libraries from PlatformIO Library Registry:
     #
     # http://platformio.org/#!/lib/show/7/U8glib
-    # http://platformio.org/#!/lib/show/38/LowPower
+    # http://platformio.org/#!/lib/show/11817/LowPower
     # http://platformio.org/#!/lib/show/125/SPIFlash
     # http://platformio.org/#!/lib/show/131/TimerOne
     # http://platformio.org/#!/lib/show/136/LiquidCrystal
@@ -61,7 +68,7 @@ install:
     # https://platformio.org/lib/show/6230/PString-Arduino-lib
     # https://platformio.org/lib/show/942/U8g2
 
-    - platformio lib install 7 38 125 131 136 170 176 531 532 536 684 560 6230 942
+    - platformio lib -g install 7 11817 125 131 136 170 176 531 532 536 684 560 6230 942
 
 script:
     - platformio ci --board=moteino --lib=.

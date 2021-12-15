@@ -37,6 +37,8 @@ env:
     - PLATFORMIO_CI_SRC=Examples/WirelessProgramming_OTA/Programmer
     - PLATFORMIO_CI_SRC=Examples/TxPowerTest_Transmitter
     - PLATFORMIO_CI_SRC=Examples/TxPowerTest_Receiver
+    - PLATFORMIO_CI_SRC=Examples/RangeTest_Gateway
+    - PLATFORMIO_CI_SRC=Examples/RangeTest_Transmitter
 
 install:
     - pip install -U platformio

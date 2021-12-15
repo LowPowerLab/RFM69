@@ -59,8 +59,9 @@ install:
     # http://platformio.org/#!/lib/show/684/Sparkfun BME280
     # https://platformio.org/lib/show/560/Streaming
     # https://platformio.org/lib/show/6230/PString-Arduino-lib
+    # https://platformio.org/lib/show/942/U8g2
 
-    - platformio lib install 7 38 125 131 136 170 176 531 532 536 684 560 6230
+    - platformio lib install 7 38 125 131 136 170 176 531 532 536 684 560 6230 942
 
 script:
     - platformio ci --board=moteino --lib=.

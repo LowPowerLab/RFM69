@@ -56,13 +56,14 @@ install:
     # https://platformio.org/lib/show/532/BMP180
     # https://platformio.org/lib/show/536/Si7021
     # https://platformio.org/lib/show/684/Sparkfun BME280
-    # https://platformio.org/lib/show/560/Streaming
+    # https://platformio.org/lib/show/560/Streaming - https://registry.platformio.org/packages/libraries/mikalhart/Streaming
     # https://platformio.org/lib/show/6230/PString-Arduino-lib
     # https://platformio.org/lib/show/942/U8g2
 
-    - platformio lib --global install 7 11817 125 131 136 170 176 531 532 536 684 6230 942
-    - platformio lib --global install http://arduiniana.org/Streaming/Streaming5.zip
+    - platformio lib --global install 7 11817 125 131 136 170 176 531 532 536 684 560 6230 942
+
+    #alternative installing a library from a zip file (see https://community.platformio.org/t/pio-ci-build-suddenly-fails-can-no-longer-find-library/24977):
+    #- platformio lib --global install http://arduiniana.org/Streaming/Streaming5.zip
 
 script:
-    #- platformio ci --board=moteino --project-option="lib_compat_mode=strict" --project-option="build_flags=-I include" --project-option="lib_deps=Streaming" --lib=.
     - platformio ci --board=moteino --lib=.

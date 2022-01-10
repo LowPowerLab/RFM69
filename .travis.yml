@@ -64,6 +64,7 @@ install:
 
     #alternative installing a library from a zip file (see https://community.platformio.org/t/pio-ci-build-suddenly-fails-can-no-longer-find-library/24977):
     #- platformio lib --global install http://arduiniana.org/Streaming/Streaming5.zip
+    #or: --global install mikalhart/Streaming
 
 script:
     - platformio ci --board=moteino --lib=.

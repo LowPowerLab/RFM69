@@ -282,12 +282,13 @@ int8_t RFM69::setPowerDBm(int8_t dBm) {
     else if (dBm>20) dBm=20;
 
     //map dBm to _powerLevel according to implementation in setPowerLevel()
-    if (dBm<17) setPowerLevel(2+dBm);
-    //else if (dBm<16) setPowerLevel(4+dBm);
+    if (dBm<12) setPowerLevel(2+dBm);
+    else if (dBm<16) setPowerLevel(4+dBm);
     else setPowerLevel(3+dBm);
   } else { //W/CW
     if (dBm<-18) dBm=-18;
     else if (dBm>13) dBm=13;
+    setPowerLevel(18+dBm);
   }
   return dBm;
 }
@@ -947,7 +948,7 @@ void RFM69::set300KBPS() {
   writeReg(0x06, 0x33);  //REG_FDEVLSB: 300khz (0x1333)
   writeReg(0x29, 240);   //set REG_RSSITHRESH to -120dBm
   writeReg(0x37, 0b10010000); //DC=WHITENING, CRCAUTOOFF=0
-  //                      ** DC: 00 none, 01 manchester, 10, whitening
+  //                ^^->DC: 00=none, 01=manchester, 10=whitening
 }
 
 //=============================================================================

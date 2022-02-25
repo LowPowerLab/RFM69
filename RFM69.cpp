@@ -261,7 +261,12 @@ void RFM69::send(uint16_t toAddress, const void* buffer, uint8_t bufferSize, boo
 {
   writeReg(REG_PACKETCONFIG2, (readReg(REG_PACKETCONFIG2) & 0xFB) | RF_PACKET2_RXRESTART); // avoid RX deadlocks
   uint32_t now = millis();
-  while (!canSend() && millis() - now < RF69_CSMA_LIMIT_MS) receiveDone();
+  while (!canSend() && millis() - now < RF69_CSMA_LIMIT_MS){
+      receiveDone();
+#ifdef ESP8266
+      delay(1); // Give esp8266-based boards to handle background tasks. Seems to work better than yield();
+#endif
+  }
   sendFrame(toAddress, buffer, bufferSize, requestACK, false);
 }
 
@@ -307,7 +312,7 @@ void RFM69::sendACK(const void* buffer, uint8_t bufferSize) {
   while (!canSend() && millis() - now < RF69_CSMA_LIMIT_MS){
       receiveDone();
 #ifdef ESP8266
-      delay(1); // Give esp8266-based boards to handle background tasks
+      delay(1); // Give esp8266-based boards to handle background tasks. Seems to work better than yield().
 #endif
   }
   SENDERID = sender;    // TWS: Restore SenderID after it gets wiped out by receiveDone()

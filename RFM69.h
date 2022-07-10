@@ -201,6 +201,7 @@ class RFM69 {
     RFM69(uint8_t slaveSelectPin=RF69_SPI_CS, uint8_t interruptPin=RF69_IRQ_PIN, bool isRFM69HW_HCW=false, SPIClass *spi=nullptr);
 
     bool initialize(uint8_t freqBand, uint16_t ID, uint8_t networkID=1);
+    void setIsrCallback(void (*callback)());
     void setAddress(uint16_t addr);
     void setNetwork(uint8_t networkID);
     virtual bool canSend();
@@ -247,6 +248,8 @@ class RFM69 {
     void interruptHandler();
     virtual void interruptHook(uint8_t CTLbyte __attribute__((unused))) {};
     static volatile bool _haveData;
+    static RFM69 *_instance;
+    void (*_isrCallback)() = nullptr;
     virtual void sendFrame(uint16_t toAddress, const void* buffer, uint8_t size, bool requestACK=false, bool sendACK=false);
 
     // for ListenMode sleep/timer

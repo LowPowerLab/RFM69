@@ -154,11 +154,6 @@ bool RFM69::initialize(uint8_t freqBand, uint16_t nodeID, uint8_t networkID)
   return true;
 }
 
-void RFM69::setIsrCallback(void (*callback)())
-{
-  _isrCallback = callback;
-}
-
 // return the frequency (in Hz)
 uint32_t RFM69::getFrequency()
 {
@@ -232,6 +227,12 @@ void RFM69::setAddress(uint16_t addr)
 void RFM69::setNetwork(uint8_t networkID)
 {
   writeReg(REG_SYNCVALUE2, networkID);
+}
+
+//set user's ISR callback
+void RFM69::setIsrCallback(void (*callback)())
+{
+  _isrCallback = callback;
 }
 
 // Control transmitter output power (this is NOT a dBm value!)

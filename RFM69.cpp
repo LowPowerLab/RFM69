@@ -37,8 +37,10 @@ uint8_t RFM69::ACK_REQUESTED;
 uint8_t RFM69::ACK_RECEIVED; // should be polled immediately after sending a packet with ACK request
 int16_t RFM69::RSSI;          // most accurate RSSI during reception (closest to the reception)
 volatile bool RFM69::_haveData;
+RFM69 *RFM69::_instance = nullptr;
 
 RFM69::RFM69(uint8_t slaveSelectPin, uint8_t interruptPin, bool isRFM69HW_HCW, SPIClass *spi) {
+  _instance = this;
   _slaveSelectPin = slaveSelectPin;
   _interruptPin = interruptPin;
   _mode = RF69_MODE_STANDBY;
@@ -225,6 +227,12 @@ void RFM69::setAddress(uint16_t addr)
 void RFM69::setNetwork(uint8_t networkID)
 {
   writeReg(REG_SYNCVALUE2, networkID);
+}
+
+//set user's ISR callback
+void RFM69::setIsrCallback(void (*callback)())
+{
+  _isrCallback = callback;
 }
 
 // Control transmitter output power (this is NOT a dBm value!)
@@ -446,7 +454,11 @@ void RFM69::interruptHandler() {
 }
 
 // internal function
-ISR_PREFIX void RFM69::isr0() { _haveData = true; }
+ISR_PREFIX void RFM69::isr0() {
+  _haveData = true;
+  if (_instance->_isrCallback)
+    _instance->_isrCallback();
+}
 
 // internal function
 void RFM69::receiveBegin() {

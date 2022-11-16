@@ -113,12 +113,7 @@ bool RFM69::initialize(uint8_t freqBand, uint16_t nodeID, uint8_t networkID)
   if(_spi == nullptr){
     _spi = &SPI;
   }
-#if defined(ESP32)
-  _spi->begin(18,19,23,5); //SPI3  (SCK,MISO,MOSI,CS)
-  //_spi->begin(14,12,13,15); //SPI2  (SCK,MISO,MOSI,CS) 
-#else
   _spi->begin();
-#endif  
 
 #ifdef SPI_HAS_TRANSACTION
   _settings = SPISettings(8000000, MSBFIRST, SPI_MODE0);

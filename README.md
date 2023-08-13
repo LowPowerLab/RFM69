@@ -1,10 +1,10 @@
 # RFM69 Library
+[![arduino-library-badge](https://www.ardu-badge.com/badge/RFM69_LowPowerLab.svg?)](https://www.ardu-badge.com/RFM69_LowPowerLab)
 [![Build Status](https://app.travis-ci.com/LowPowerLab/RFM69.svg)](https://app.travis-ci.com/LowPowerLab/RFM69)
 [![GitHub release](https://img.shields.io/github/release/LowPowerLab/RFM69.svg)](https://github.com/LowPowerLab/RFM69)
 [![GitHub issues](https://img.shields.io/github/issues/LowPowerLab/RFM69.svg)](https://github.com/LowPowerLab/RFM69/issues)
 [![GitHub pull requests](https://img.shields.io/github/issues-pr/LowPowerLab/RFM69.svg)](https://github.com/LowPowerLab/RFM69/pulls)
 [![license](https://img.shields.io/github/license/LowPowerLab/RFM69.svg)](https://github.com/LowPowerLab/RFM69/blob/master/LICENSE.txt)
-
 
 By Felix Rusu, [LowPowerLab.com](http://LowPowerLab.com)
 <br/>

@@ -174,6 +174,10 @@ void  RFM69_ATC::enableAutoPower(int16_t targetRSSI){    // TomWS1: New method t
   _targetRSSI = targetRSSI;         // no logic here, just set the value (if non-zero, then enabled), caller's responsibility to use a reasonable value
 }
 
+int16_t RFM69_ATC::getTargetRssi() {
+  return _targetRSSI;
+}
+
 //=============================================================================
 // getAckRSSI() - returns the RSSI value ack'd by the far end.
 //=============================================================================

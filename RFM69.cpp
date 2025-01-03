@@ -140,12 +140,16 @@ bool RFM69::initialize(uint8_t freqBand, uint16_t nodeID, uint8_t networkID) {
   attachInterrupt(_interruptNum, RFM69::isr0, RISING);
 
   _address = nodeID;
+  _networkID = networkID;
 #if defined(RF69_LISTENMODE_ENABLE)
   selfPointer = this;
   _freqBand = freqBand;
-  _networkID = networkID;
 #endif
   return true;
+}
+
+uint8_t RFM69::getVersion() {
+  return readReg(REG_VERSION);
 }
 
 // return the frequency (in Hz)
@@ -167,6 +171,15 @@ void RFM69::setFrequency(uint32_t freqHz) {
     setMode(RF69_MODE_SYNTH);
   }
   setMode(oldMode);
+}
+
+// return the frequency deviation (in Hz)
+uint32_t RFM69::getFrequencyDeviation() {
+return RF69_FSTEP * ((readReg(REG_FDEVMSB) << 8) | readReg(REG_FDEVLSB));
+}
+
+uint32_t RFM69::getBitRate() {
+  return RF69_FXOSC / ((readReg(REG_BITRATEMSB) << 8) | readReg(REG_BITRATELSB));
 }
 
 void RFM69::setMode(uint8_t newMode) {
@@ -210,12 +223,21 @@ void RFM69::sleep() {
 // set this node's address
 void RFM69::setAddress(uint16_t addr) {
   _address = addr;
-  writeReg(REG_NODEADRS, _address); //unused in packet mode
+  writeReg(REG_NODEADRS, _address); // unused in packet mode
+}
+
+uint16_t RFM69::getAddress() {
+  return _address;
 }
 
 // set this node's network id
 void RFM69::setNetwork(uint8_t networkID) {
+  _networkID = networkID;
   writeReg(REG_SYNCVALUE2, networkID);
+}
+
+uint8_t RFM69::getNetwork() {
+  return _networkID;
 }
 
 // set user's ISR callback
@@ -263,8 +285,38 @@ void RFM69::setPowerLevel(uint8_t powerLevel) {
   writeReg(REG_PALEVEL, PA_SETTING | powerLevel);
 }
 
-// return stored _powerLevel
-uint8_t RFM69::getPowerLevel() { return _powerLevel; }
+uint8_t RFM69::getOutputPower() {
+  // _RegisterBits(_REG_PA_LEVEL, offset=0, bits=5)
+  return readReg(REG_PALEVEL) & 0x1F;
+}
+
+uint8_t RFM69::getPowerLevel() {
+  uint8_t val = readReg(REG_PALEVEL);
+  uint8_t outputPower = getOutputPower();
+
+  bool pa0 = (val & 0b10000000) > 0;
+  bool pa1 = (val & 0b01000000) > 0;
+  bool pa2 = (val & 0b00100000) > 0;
+
+  if (pa0 && !pa1 && !pa2) {
+    // -18 to 13 dBm range
+    return -18 + outputPower;
+  }
+  if (!pa0 && pa1 && !pa2) {
+    // -2 to 13 dBm range
+    return -18 + outputPower;
+  }
+  if (!pa0 && pa1 && pa2 && !_isRFM69HW) {
+    // 2 to 17 dBm range
+    return -14 + outputPower;
+  }
+  if (!pa0 && pa1 && pa2 && _isRFM69HW) {
+    // 5 to 20 dBm range
+    return -11 + outputPower;
+  }
+
+  return 255;
+}
 
 // Set TX Output power in dBm:
 // [-18..+13]dBm in RFM69 W/CW
@@ -285,6 +337,10 @@ int8_t RFM69::setPowerDBm(int8_t dBm) {
     setPowerLevel(18+dBm);
   }
   return dBm;
+}
+
+double RFM69::dBm_to_mW(uint8_t dBm) {
+  return pow(10, (dBm / 10.0));
 }
 
 bool RFM69::canSend() {
@@ -568,11 +624,35 @@ void RFM69::spyMode(bool onOff) {
   //writeReg(REG_PACKETCONFIG1, (readReg(REG_PACKETCONFIG1) & 0xF9) | (onOff ? RF_PACKET1_ADRSFILTERING_OFF : RF_PACKET1_ADRSFILTERING_NODEBROADCAST));
 }
 
+bool RFM69::getSpyMode() {
+  return _spyMode;
+}
+
+bool RFM69::isSyncOn() {
+  return readReg(REG_SYNCCONFIG) >> 7;
+}
+
+uint8_t RFM69::getSyncSize() {
+  return (readReg(REG_SYNCCONFIG) & 0b00111000) >> 3;
+}
+
+bool RFM69::isCrcOn() {
+  return (readReg(REG_PACKETCONFIG1) & 0b00010000) >> 4;
+}
+
+bool RFM69::isAesOn() {
+  return readReg(REG_PACKETCONFIG2) & 0b00000001;
+}
+
 // for RFM69 HW/HCW only: you must call setHighPower(true) after initialize() or else transmission won't work
 void RFM69::setHighPower(bool _isRFM69HW_HCW) {
   _isRFM69HW = _isRFM69HW_HCW;
   writeReg(REG_OCP, _isRFM69HW ? RF_OCP_OFF : RF_OCP_ON); // disable OverCurrentProtection for HW/HCW
   setPowerLevel(_powerLevel);
+}
+
+bool RFM69::isHighPower() {
+ return _isRFM69HW;
 }
 
 // internal function - for HW/HCW only:

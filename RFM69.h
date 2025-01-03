@@ -66,7 +66,7 @@
  #elif defined(__APPLE__) // OSX
   #define RF69_PLATFORM RF69_PLATFORM_UNIX
  #else
-  #error Platform not defined! 	
+  #error Platform not defined!
  #endif
 #endif
 
@@ -87,7 +87,7 @@
    // Arduino Mega, Mega ADK, Mega Pro
    // 2->0, 3->1, 21->2, 20->3, 19->4, 18->5
    #define digitalPinToInterrupt(p) ((p) == 2 ? 0 : ((p) == 3 ? 1 : ((p) >= 18 && (p) <= 21 ? 23 - (p) : NOT_AN_INTERRUPT)))
-  #elif defined(__AVR_ATmega1284__) || defined(__AVR_ATmega1284P__) 
+  #elif defined(__AVR_ATmega1284__) || defined(__AVR_ATmega1284P__)
    // Arduino 1284 and 1284P - See Maniacbug and Optiboot
    // 10->0, 11->1, 2->2
    #define digitalPinToInterrupt(p) ((p) == 10 ? 0 : ((p) == 11 ? 1 : ((p) == 2 ? 2 : NOT_AN_INTERRUPT)))
@@ -163,6 +163,7 @@
 #define RF69_BROADCAST_ADDR     0
 #define RF69_CSMA_LIMIT_MS      1000
 #define RF69_TX_LIMIT_MS        1000
+#define RF69_FXOSC              32000000L
 #define RF69_FSTEP              61.03515625 // == FXOSC / 2^19 = 32MHz / 2^19 (p13 in datasheet)
 
 // TWS: define CTLbyte bits
@@ -201,7 +202,10 @@ class RFM69 {
     RFM69(uint8_t slaveSelectPin=RF69_SPI_CS, uint8_t interruptPin=RF69_IRQ_PIN, bool isRFM69HW_HCW=false, SPIClass *spi=nullptr);
 
     bool initialize(uint8_t freqBand, uint16_t ID, uint8_t networkID=1);
+    uint8_t getVersion();
+    uint16_t getAddress();
     void setAddress(uint16_t addr);
+    uint8_t getNetwork();
     void setNetwork(uint8_t networkID);
     void setIsrCallback(void (*callback)());
     virtual bool canSend();
@@ -213,17 +217,27 @@ class RFM69 {
     virtual void sendACK(const void* buffer = "", uint8_t bufferSize=0);
     uint32_t getFrequency();
     void setFrequency(uint32_t freqHz);
+    uint32_t getFrequencyDeviation();
+    uint32_t getBitRate();
     void encrypt(const char* key);
     void setCS(uint8_t newSPISlaveSelect);
     bool setIrq(uint8_t newIRQPin);
     int16_t readRSSI(bool forceTrigger=false); // *current* signal strength indicator; e.g. < -90dBm says the frequency channel is free + ready to transmit
+    bool getSpyMode();
     void spyMode(bool onOff=true);
-    //void promiscuous(bool onOff=true); //replaced with spyMode()
+    bool isSyncOn();
+    uint8_t getSyncSize();
+    bool isCrcOn();
+    bool isAesOn();
+    //void promiscuous(bool onOff=true); // replaced with spyMode()
     virtual void setHighPower(bool _isRFM69HW_HCW=true); // has to be called after initialize() for RFM69 HW/HCW
+    bool isHighPower();
     virtual void setPowerLevel(uint8_t level); // reduce/increase transmit power level
     virtual int8_t setPowerDBm(int8_t dBm); // reduce/increase transmit power level, in dBm
+    double dBm_to_mW(uint8_t dBm); // convert dBm to mW
 
-    virtual uint8_t getPowerLevel(); // get powerLevel	
+    uint8_t getOutputPower();
+    uint8_t getPowerLevel(); // get powerLevel
     void sleep();
     uint8_t readTemperature(uint8_t calFactor=0); // get CMOS temperature (8bit)
     void rcCalibration(); // calibrate the internal RC oscillator for use in wide temperature variations - see datasheet section [4.3.5. RC Timer Accuracy]
@@ -258,6 +272,7 @@ class RFM69 {
     uint8_t _interruptPin;
     uint8_t _interruptNum;
     uint16_t _address;
+    uint8_t _networkID;
     bool _spyMode;
     uint8_t _powerLevel;
     bool _isRFM69HW;
@@ -280,17 +295,17 @@ class RFM69 {
 #if defined(RF69_LISTENMODE_ENABLE)
   static RFM69* selfPointer;
   //=============================================================================
-  //                     ListenMode specific declarations  
+  //                     ListenMode specific declarations
   //=============================================================================
   public:
     // When we receive a packet in listen mode, this is the time left in the sender's burst.
     // You need to wait at least this long before trying to reply.
     static volatile uint16_t RF69_LISTEN_BURST_REMAINING_MS;
-    
+
     void listenModeStart(void);
     void listenModeEnd(void);
     void listenModeHighSpeed(bool highSpeed) { _isHighSpeed = highSpeed; }
-    
+
     // rx and idle duration in microseconds
     bool listenModeSetDurations(uint32_t& rxDuration, uint32_t& idleDuration);
 
@@ -319,7 +334,6 @@ class RFM69 {
     // Save these so we can reinitialize the radio after sending a burst
     // or exiting listen mode.
     uint8_t _freqBand;
-    uint8_t _networkID;
     uint8_t _rxListenCoef;
     uint8_t _rxListenResolution;
     uint8_t _idleListenCoef;

@@ -44,6 +44,7 @@ class RFM69_ATC: public RFM69 {
     void sendACK(const void* buffer = "", uint8_t bufferSize=0);
     bool sendWithRetry(uint16_t toAddress, const void* buffer, uint8_t bufferSize, uint8_t retries=2, uint8_t retryWaitTime=RFM69_ACK_TIMEOUT);
     void enableAutoPower(int16_t targetRSSI=-90);  // TWS: New method to enable/disable auto Power control
+    int16_t getTargetRssi();
 
     int16_t getAckRSSI(void);       // TWS: New method to retrieve the ack'd RSSI (if any)
     int16_t _targetRSSI;     // if non-zero then this is the desired end point RSSI for our transmission

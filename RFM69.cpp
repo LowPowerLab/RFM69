@@ -108,7 +108,7 @@ bool RFM69::initialize(uint8_t freqBand, uint16_t nodeID, uint8_t networkID) {
 
   digitalWrite(_slaveSelectPin, HIGH);
   pinMode(_slaveSelectPin, OUTPUT);
-  if(_spi == nullptr){
+  if (_spi == nullptr) {
     _spi = &SPI;
   }
   _spi->begin();
@@ -202,23 +202,23 @@ void RFM69::setMode(uint8_t newMode) {
   _mode = newMode;
 }
 
-//put transceiver in sleep mode to save battery - to wake or resume receiving just call receiveDone()
+// put transceiver in sleep mode to save battery - to wake or resume receiving just call receiveDone()
 void RFM69::sleep() {
   setMode(RF69_MODE_SLEEP);
 }
 
-//set this node's address
+// set this node's address
 void RFM69::setAddress(uint16_t addr) {
   _address = addr;
   writeReg(REG_NODEADRS, _address); //unused in packet mode
 }
 
-//set this node's network id
+// set this node's network id
 void RFM69::setNetwork(uint8_t networkID) {
   writeReg(REG_SYNCVALUE2, networkID);
 }
 
-//set user's ISR callback
+// set user's ISR callback
 void RFM69::setIsrCallback(void (*callback)()) { 
   _isrCallback = callback;
 }
@@ -238,7 +238,7 @@ void RFM69::setIsrCallback(void (*callback)()) {
 void RFM69::setPowerLevel(uint8_t powerLevel) {
   uint8_t PA_SETTING;
   if (_isRFM69HW) {
-    if (powerLevel>23) powerLevel = 23;
+    if (powerLevel > 23) powerLevel = 23;
     _powerLevel =  powerLevel;
 
     //now set Pout value & active PAs based on _powerLevel range as outlined in summary above
@@ -254,7 +254,7 @@ void RFM69::setPowerLevel(uint8_t powerLevel) {
     }
     setHighPowerRegs(true); //always call this in case we're crossing power boundaries in TX mode
   } else { //this is a W/CW, register value is the same as _powerLevel
-    if (powerLevel>31) powerLevel = 31;
+    if (powerLevel > 31) powerLevel = 31;
     _powerLevel =  powerLevel;
     PA_SETTING = RF_PALEVEL_PA0_ON; // enable PA0 only
   }
@@ -266,22 +266,22 @@ void RFM69::setPowerLevel(uint8_t powerLevel) {
 // return stored _powerLevel
 uint8_t RFM69::getPowerLevel() { return _powerLevel; }
 
-//Set TX Output power in dBm:
+// Set TX Output power in dBm:
 // [-18..+13]dBm in RFM69 W/CW
 // [ -2..+20]dBm in RFM69 HW/HCW
 int8_t RFM69::setPowerDBm(int8_t dBm) {
   if (_isRFM69HW) {
     //fix any out of bounds
-    if (dBm<-2) dBm=-2;
+    if (dBm < -2) dBm=-2;
     else if (dBm>20) dBm=20;
 
     //map dBm to _powerLevel according to implementation in setPowerLevel()
-    if (dBm<12) setPowerLevel(2+dBm);
-    else if (dBm<16) setPowerLevel(4+dBm);
+    if (dBm < 12) setPowerLevel(2+dBm);
+    else if (dBm < 16) setPowerLevel(4+dBm);
     else setPowerLevel(3+dBm);
   } else { //W/CW
-    if (dBm<-18) dBm=-18;
-    else if (dBm>13) dBm=13;
+    if (dBm < -18) dBm=-18;
+    else if (dBm > 13) dBm=13;
     setPowerLevel(18+dBm);
   }
   return dBm;
@@ -370,8 +370,8 @@ void RFM69::sendFrame(uint16_t toAddress, const void* buffer, uint8_t bufferSize
   else if (requestACK)
     CTLbyte = RFM69_CTL_REQACK;
 
-  if (toAddress > 0xFF) CTLbyte |= (toAddress & 0x300) >> 6; //assign last 2 bits of address if > 255
-  if (_address > 0xFF) CTLbyte |= (_address & 0x300) >> 8;   //assign last 2 bits of address if > 255
+  if (toAddress > 0xFF) CTLbyte |= (toAddress & 0x300) >> 6; // assign last 2 bits of address if > 255
+  if (_address > 0xFF) CTLbyte |= (_address & 0x300) >> 8;   // assign last 2 bits of address if > 255
 
   // write to FIFO
   select();
@@ -404,8 +404,8 @@ void RFM69::interruptHandler() {
     TARGETID = _spi->transfer(0);
     SENDERID = _spi->transfer(0);
     uint8_t CTLbyte = _spi->transfer(0);
-    TARGETID |= (uint16_t(CTLbyte) & 0x0C) << 6; //10 bit address (most significant 2 bits stored in bits(2,3) of CTL byte
-    SENDERID |= (uint16_t(CTLbyte) & 0x03) << 8; //10 bit address (most sifnigicant 2 bits stored in bits(0,1) of CTL byte
+    TARGETID |= (uint16_t(CTLbyte) & 0x0C) << 6; // 10 bit address (most significant 2 bits stored in bits(2,3) of CTL byte
+    SENDERID |= (uint16_t(CTLbyte) & 0x03) << 8; // 10 bit address (most sifnigicant 2 bits stored in bits(0,1) of CTL byte
 
     if(!(_spyMode || TARGETID == _address || TARGETID == RF69_BROADCAST_ADDR) // match this node's address, or broadcast address or anything in spy mode
        || PAYLOADLEN < 3) // address situation could receive packets that are malformed and don't fit this libraries extra fields
@@ -419,7 +419,7 @@ void RFM69::interruptHandler() {
     DATALEN = PAYLOADLEN - 3;
     ACK_RECEIVED = CTLbyte & RFM69_CTL_SENDACK; // extract ACK-received flag
     ACK_REQUESTED = CTLbyte & RFM69_CTL_REQACK; // extract ACK-requested flag
-    uint8_t _pl = _powerLevel; //interruptHook() can change _powerLevel so remember it
+    uint8_t _pl = _powerLevel; // interruptHook() can change _powerLevel so remember it
     interruptHook(CTLbyte);    // TWS: hook to derived class interrupt function
 
     for (uint8_t i = 0; i < DATALEN; i++) DATA[i] = _spi->transfer(0);
@@ -427,7 +427,7 @@ void RFM69::interruptHandler() {
     DATA[DATALEN] = 0; // add null at end of string // add null at end of string
     unselect();
     setMode(RF69_MODE_RX);
-    if (_pl != _powerLevel) setPowerLevel(_powerLevel); //set new _powerLevel if changed
+    if (_pl != _powerLevel) setPowerLevel(_powerLevel); // set new _powerLevel if changed
   }
   RSSI = readRSSI();
 }
@@ -571,7 +571,7 @@ void RFM69::spyMode(bool onOff) {
 // for RFM69 HW/HCW only: you must call setHighPower(true) after initialize() or else transmission won't work
 void RFM69::setHighPower(bool _isRFM69HW_HCW) {
   _isRFM69HW = _isRFM69HW_HCW;
-  writeReg(REG_OCP, _isRFM69HW ? RF_OCP_OFF : RF_OCP_ON); //disable OverCurrentProtection for HW/HCW
+  writeReg(REG_OCP, _isRFM69HW ? RF_OCP_OFF : RF_OCP_ON); // disable OverCurrentProtection for HW/HCW
   setPowerLevel(_powerLevel);
 }
 
@@ -606,14 +606,14 @@ bool RFM69::setIrq(uint8_t newIRQPin) {
   return true;
 }
 
-//for debugging
+// for debugging
 #define REGISTER_DETAIL 0
 #if REGISTER_DETAIL
 // SERIAL PRINT
 // replace Serial.print("string") with SerialPrint("string")
 #define SerialPrint(x) SerialPrint_P(PSTR(x))
-void SerialWrite ( uint8_t c ) {
-    Serial.write ( c );
+void SerialWrite(uint8_t c) {
+    Serial.write(c);
 }
 
 void SerialPrint_P(PGM_P str, void (*f)(uint8_t) = SerialWrite ) {
@@ -643,12 +643,12 @@ void RFM69::readAllRegs() {
 
     Serial.print(regAddr, HEX);
     Serial.print(" - ");
-    Serial.print(regVal,HEX);
+    Serial.print(regVal, HEX);
     Serial.print(" - ");
-    Serial.println(regVal,BIN);
+    Serial.println(regVal, BIN);
 
 #if REGISTER_DETAIL 
-    switch ( regAddr ){
+    switch (regAddr){
       case 0x1 : {
         SerialPrint("Controls the automatic Sequencer ( see section 4.2 )\nSequencerOff : ");
         if (0x80 & regVal) {
@@ -673,16 +673,16 @@ void RFM69::readAllRegs() {
         capVal = (regVal >> 2) & 0x7;
         if (capVal == 0b000) {
           SerialPrint("000 -> Sleep mode (SLEEP)\n");
-        } else if ( capVal == 0b001 ) {
+        } else if (capVal == 0b001) {
           SerialPrint("001 -> Standby mode (STDBY)\n");
-        } else if ( capVal == 0b010 ) {
+        } else if (capVal == 0b010) {
           SerialPrint("010 -> Frequency Synthesizer mode (FS)\n");
-        } else if ( capVal == 0b011 ) {
+        } else if (capVal == 0b011) {
           SerialPrint("011 -> Transmitter mode (TX)\n");
-        } else if ( capVal == 0b100 ) {
+        } else if (capVal == 0b100) {
           SerialPrint("100 -> Receiver Mode (RX)\n");
         } else {
-          Serial.print( capVal, BIN );
+          Serial.print(capVal, BIN);
           SerialPrint(" -> RESERVED\n");
         }
         SerialPrint("\n");
@@ -716,7 +716,7 @@ void RFM69::readAllRegs() {
         }
         
         SerialPrint("\nData shaping: ");
-        if ( modeFSK ) {
+        if (modeFSK) {
           SerialPrint("in FSK:\n");
         } else {
           SerialPrint("in OOK:\n");
@@ -726,11 +726,11 @@ void RFM69::readAllRegs() {
         if (modeFSK) {
           if (capVal == 0b00) {
             SerialPrint("00 -> no shaping\n");
-          } else if ( capVal == 0b01 ) {
+          } else if (capVal == 0b01) {
             SerialPrint("01 -> Gaussian filter, BT = 1.0\n");
-          } else if ( capVal == 0b10 ) {
+          } else if (capVal == 0b10) {
             SerialPrint("10 -> Gaussian filter, BT = 0.5\n");
-          } else if ( capVal == 0b11 ) {
+          } else if (capVal == 0b11) {
             SerialPrint("11 -> Gaussian filter, BT = 0.3\n");
           }
         } else {
@@ -758,13 +758,13 @@ void RFM69::readAllRegs() {
         bitRate |= regVal;
         SerialPrint("Bit Rate (Chip Rate when Manchester encoding is enabled)\nBitRate : ");
         unsigned long val = 32UL * 1000UL * 1000UL / bitRate;
-        Serial.println( val );
+        Serial.println(val);
         SerialPrint("\n");
         break;
       }
       
       case 0x5 : {
-        freqDev = ( (regVal & 0x3f) << 8 );
+        freqDev = ((regVal & 0x3f) << 8);
         break;
       }
       
@@ -772,20 +772,20 @@ void RFM69::readAllRegs() {
         freqDev |= regVal;
         SerialPrint("Frequency deviation\nFdev : ");
         unsigned long val = RF69_FSTEP * freqDev;
-        Serial.println( val );
+        Serial.println(val);
         SerialPrint("\n");
         break;
       }
       
       case 0x7 : {
         unsigned long tempVal = regVal;
-        freqCenter = ( tempVal << 16 );
+        freqCenter = (tempVal << 16);
         break;
       }
      
       case 0x8 : {
         unsigned long tempVal = regVal;
-        freqCenter = freqCenter | ( tempVal << 8 );
+        freqCenter = freqCenter | (tempVal << 8);
         break;
       }
 
@@ -793,14 +793,14 @@ void RFM69::readAllRegs() {
         freqCenter = freqCenter | regVal;
         SerialPrint("RF Carrier frequency\nFRF : ");
         unsigned long val = RF69_FSTEP * freqCenter;
-        Serial.println( val );
+        Serial.println(val);
         SerialPrint("\n");
         break;
       }
 
       case 0xa : {
         SerialPrint("RC calibration control & status\nRcCalDone : ");
-        if ( 0x40 & regVal ) {
+        if (0x40 & regVal) {
             SerialPrint("1 -> RC calibration is over\n");
         } else {
             SerialPrint("0 -> RC calibration is in progress\n");
@@ -812,7 +812,7 @@ void RFM69::readAllRegs() {
 
       case 0xb : {
         SerialPrint("Improved AFC routine for signals with modulation index lower than 2.  Refer to section 3.4.16 for details\nAfcLowBetaOn : ");
-        if ( 0x20 & regVal ) {
+        if (0x20 & regVal) {
             SerialPrint("1 -> Improved AFC routine\n");
         } else {
             SerialPrint("0 -> Standard AFC routine\n");
@@ -885,8 +885,8 @@ void RFM69::readAllRegs() {
 
 void RFM69::readAllRegsCompact() {
   // Print the header row and first register entry
-  Serial.println();Serial.print("     ");
-  for ( uint8_t reg = 0x00; reg<0x10; reg++ ) {
+  Serial.println(); Serial.print("     ");
+  for (uint8_t reg = 0x00; reg < 0x10; reg++) {
     Serial.print(reg, HEX);
     Serial.print("  ");
   }
@@ -894,17 +894,17 @@ void RFM69::readAllRegsCompact() {
   Serial.print("00: -- ");
 
   // Loop over the registers from 0x01 to 0x7F and print their values
-  for ( uint8_t reg = 0x01; reg<0x80; reg++ ) {
-    if ( reg % 16 == 0 ) {    // Print the header column entries
+  for (uint8_t reg = 0x01; reg < 0x80; reg++) {
+    if (reg % 16 == 0) {    // Print the header column entries
       Serial.println();
-      Serial.print( reg, HEX );
+      Serial.print(reg, HEX);
       Serial.print(": ");
     }
 
     // Print the actual register values
-    uint8_t ret = readReg( reg );
-    if ( ret < 0x10 ) Serial.print("0");  // Handle values less than 10
-    Serial.print( ret, HEX);
+    uint8_t ret = readReg(reg);
+    if (ret < 0x10) Serial.print("0");  // Handle values less than 10
+    Serial.print(ret, HEX);
     Serial.print(" ");
   }
 }
@@ -964,21 +964,21 @@ void RFM69::listenModeSleep(uint16_t millisInterval) {
 
   detachInterrupt( _interruptNum );
   //attachInterrupt( _interruptNum, delayIrq, RISING);
-  writeReg( REG_DIOMAPPING1, RF_DIOMAPPING1_DIO0_11 );
-  writeReg( REG_BITRATEMSB, RF_BITRATEMSB_200000);
-  writeReg( REG_BITRATELSB, RF_BITRATELSB_200000);
-  writeReg( REG_FDEVMSB, RF_FDEVMSB_100000 );
-  writeReg( REG_FDEVLSB, RF_FDEVLSB_100000 );
-  writeReg( REG_RXBW, RF_RXBW_DCCFREQ_000 | RF_RXBW_MANT_16 | RF_RXBW_EXP_0 );
+  writeReg(REG_DIOMAPPING1, RF_DIOMAPPING1_DIO0_11);
+  writeReg(REG_BITRATEMSB, RF_BITRATEMSB_200000);
+  writeReg(REG_BITRATELSB, RF_BITRATELSB_200000);
+  writeReg(REG_FDEVMSB, RF_FDEVMSB_100000);
+  writeReg(REG_FDEVLSB, RF_FDEVLSB_100000);
+  writeReg(REG_RXBW, RF_RXBW_DCCFREQ_000 | RF_RXBW_MANT_16 | RF_RXBW_EXP_0);
 
   uint8_t idleResol;
   uint32_t divisor;
   uint32_t microInterval = millisInterval * 1000L;
 
-  if( microInterval > 255 * 4100L ) {
+  if(microInterval > 255 * 4100L) {
     idleResol = RF_LISTEN1_RESOL_IDLE_262000;
     divisor = 262000;
-  } else if( microInterval > 255 * 64L ) {
+  } else if(microInterval > 255 * 64L) {
     idleResol = RF_LISTEN1_RESOL_IDLE_4100;
     divisor = 4100;
   } else {
@@ -986,14 +986,14 @@ void RFM69::listenModeSleep(uint16_t millisInterval) {
     divisor = 64;
   }
 
-  writeReg( REG_LISTEN1, RF_LISTEN1_RESOL_RX_64 | idleResol | RF_LISTEN1_CRITERIA_RSSI | RF_LISTEN1_END_10 );
-  writeReg( REG_LISTEN2, (microInterval + (divisor >> 1 ) ) / divisor );
-  writeReg( REG_LISTEN3, 4 );
-  writeReg( REG_RSSITHRESH, 255 );
-  writeReg( REG_RXTIMEOUT2, 1 );
-  writeReg( REG_OPMODE, RF_OPMODE_SEQUENCER_ON | RF_OPMODE_STANDBY  );
-  writeReg( REG_OPMODE, RF_OPMODE_SEQUENCER_ON | RF_OPMODE_STANDBY | RF_OPMODE_LISTEN_ON  );
-  attachInterrupt( _interruptNum, delayIrq, RISING);
+  writeReg(REG_LISTEN1, RF_LISTEN1_RESOL_RX_64 | idleResol | RF_LISTEN1_CRITERIA_RSSI | RF_LISTEN1_END_10);
+  writeReg(REG_LISTEN2, (microInterval + (divisor >> 1 ) ) / divisor);
+  writeReg(REG_LISTEN3, 4);
+  writeReg(REG_RSSITHRESH, 255);
+  writeReg(REG_RXTIMEOUT2, 1);
+  writeReg(REG_OPMODE, RF_OPMODE_SEQUENCER_ON | RF_OPMODE_STANDBY );
+  writeReg(REG_OPMODE, RF_OPMODE_SEQUENCER_ON | RF_OPMODE_STANDBY | RF_OPMODE_LISTEN_ON );
+  attachInterrupt(_interruptNum, delayIrq, RISING);
   //must call sleep + interrupt handler 3 times here, then endListenModeSleep() - see ListenModeSleep example!
 }
 
@@ -1002,10 +1002,10 @@ void RFM69::listenModeSleep(uint16_t millisInterval) {
 //=============================================================================
 void RFM69::endListenModeSleep() {
   detachInterrupt( _interruptNum );
-  writeReg( REG_OPMODE, RF_OPMODE_SEQUENCER_ON | RF_OPMODE_LISTENABORT | RF_OPMODE_STANDBY );
-  writeReg( REG_OPMODE, RF_OPMODE_SEQUENCER_ON | RF_OPMODE_STANDBY );
-  writeReg( REG_RXTIMEOUT2, 0 );
-  setMode( RF69_MODE_STANDBY );
+  writeReg(REG_OPMODE, RF_OPMODE_SEQUENCER_ON | RF_OPMODE_LISTENABORT | RF_OPMODE_STANDBY);
+  writeReg(REG_OPMODE, RF_OPMODE_SEQUENCER_ON | RF_OPMODE_STANDBY);
+  writeReg(REG_RXTIMEOUT2, 0);
+  setMode(RF69_MODE_STANDBY);
   while ((readReg(REG_IRQFLAGS1) & RF_IRQFLAGS1_MODEREADY) == 0x00); // wait for ModeReady
 }
 
@@ -1161,7 +1161,6 @@ out:
 // listenModeStart() - switch radio to Listen Mode in prep for sleep until burst
 //=============================================================================
 void RFM69::listenModeStart(void) {
-  //pRadio = this;
   while (readReg(REG_IRQFLAGS2) & RF_IRQFLAGS2_PACKETSENT == 0x00); // wait for ModeReady
   listenModeReset();
 
@@ -1207,7 +1206,7 @@ void RFM69::listenModeApplyHighSpeedSettings() {
   writeReg(REG_BITRATELSB, RF_BITRATELSB_200000);
   writeReg(REG_FDEVMSB, RF_FDEVMSB_100000);
   writeReg(REG_FDEVLSB, RF_FDEVLSB_100000);
-  writeReg( REG_RXBW, RF_RXBW_DCCFREQ_000 | RF_RXBW_MANT_20 | RF_RXBW_EXP_0 );
+  writeReg(REG_RXBW, RF_RXBW_DCCFREQ_000 | RF_RXBW_MANT_20 | RF_RXBW_EXP_0);
   
   // Force LNA to the highest gain
   //writeReg(REG_LNA, (readReg(REG_LNA) << 2) | RF_LNA_GAINSELECT_MAX);

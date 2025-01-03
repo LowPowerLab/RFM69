@@ -153,33 +153,33 @@
 #define RF69_MODE_TX            4 // TX MODE
 
 // available frequency bands
-#define RF69_315MHZ            31 // non trivial values to avoid misconfiguration
-#define RF69_433MHZ            43
-#define RF69_868MHZ            86
-#define RF69_915MHZ            91
+#define RF69_315MHZ             31 // non trivial values to avoid misconfiguration
+#define RF69_433MHZ             43
+#define RF69_868MHZ             86
+#define RF69_915MHZ             91
 
-#define null                  0
-#define COURSE_TEMP_COEF    -90 // puts the temperature reading in the ballpark, user can fine tune the returned value
-#define RF69_BROADCAST_ADDR   0
-#define RF69_CSMA_LIMIT_MS 1000
-#define RF69_TX_LIMIT_MS   1000
-#define RF69_FSTEP  61.03515625 // == FXOSC / 2^19 = 32MHz / 2^19 (p13 in datasheet)
+#define null                    0
+#define COURSE_TEMP_COEF        -90 // puts the temperature reading in the ballpark, user can fine tune the returned value
+#define RF69_BROADCAST_ADDR     0
+#define RF69_CSMA_LIMIT_MS      1000
+#define RF69_TX_LIMIT_MS        1000
+#define RF69_FSTEP              61.03515625 // == FXOSC / 2^19 = 32MHz / 2^19 (p13 in datasheet)
 
 // TWS: define CTLbyte bits
-#define RFM69_CTL_SENDACK   0x80
-#define RFM69_CTL_REQACK    0x40
+#define RFM69_CTL_SENDACK       0x80
+#define RFM69_CTL_REQACK        0x40
 
-#define RFM69_ACK_TIMEOUT   30  // 30ms roundtrip req for 61byte packets
+#define RFM69_ACK_TIMEOUT       30  // 30ms roundtrip req for 61byte packets
 
-//Native hardware ListenMode is experimental
-//It was determined to be buggy and unreliable, see https://lowpowerlab.com/forum/low-power-techniques/ultra-low-power-listening-mode-for-battery-nodes/msg20261/#msg20261
-//uncomment to try ListenMode, adds ~1K to compiled size
-//FYI - 10bit addressing is not supported in ListenMode
+// Native hardware ListenMode is experimental
+// It was determined to be buggy and unreliable, see https://lowpowerlab.com/forum/low-power-techniques/ultra-low-power-listening-mode-for-battery-nodes/msg20261/#msg20261
+// uncomment to try ListenMode, adds ~1K to compiled size
+// FYI - 10bit addressing is not supported in ListenMode
 //#define RF69_LISTENMODE_ENABLE
 
 #if defined(RF69_LISTENMODE_ENABLE)
   // By default, receive for 256uS in listen mode and idle for ~1s
-  #define  DEFAULT_LISTEN_RX_US 256
+  #define  DEFAULT_LISTEN_RX_US   256
   #define  DEFAULT_LISTEN_IDLE_US 1000000
 #endif
 

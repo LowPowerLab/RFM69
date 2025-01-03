@@ -21,21 +21,25 @@ GPL 3.0, please see the [License.txt](https://github.com/LowPowerLab/RFM69/blob/
 - 61 bytes max message length (limited to 61 to support AES hardware encryption)
 - customizable transmit power (32 levels) for low-power transmission control
 - sleep function for power saving
-- automatic ACKs with the sendWithRetry() function
+- automatic ACKs with the `sendWithRetry()` function
 - hardware 128bit AES encryption
 - hardware preamble, synch recognition and CRC check
-- digital RSSI can be read at any time with readRSSI()
+- digital RSSI can be read at any time with `readRSSI()`
 - interrupt driven
 - tested on [all Moteinos & many custom boards designed by LowPowerLab](https://lowpowerlab.com/shop/moteino)
 - works with RFM69W, RFM69HW, RFM69CW, RFM69HCW, Semtech SX1231/SX1231H transceivers
 - promiscuous mode allows any node to listen to any packet on same network
 
-### Library Installation (Arduino IDE)
-Copy the content of this library in the "Arduino/libraries/RFM69" folder.
+### Library Installation
+#### Arduino IDE
+Copy the content of this library in the `Arduino/libraries/RFM69` folder.
 <br />
-To find your Arduino folder go to File>Preferences in the Arduino IDE.
+To find your Arduino folder go to `File -> Preferences` in the Arduino IDE.
 <br/>
 See [this tutorial](https://www.arduino.cc/en/Guide/Libraries) on Arduino libraries.
+
+#### PlatformIO
+See [PlatformIO registry](https://registry.platformio.org/libraries/lowpowerlab/RFM69) for latest installation details.
 
 ### Hardware & programming
 The easiest way to get started is with the well documented and supported [Moteino](http://moteino.com) microcontroller platform which is [easily programmable](https://lowpowerlab.com/programming) from the Arduino IDE. This includes the [Moteino, MoteinoUSB & MoteinoMEGA](https://lowpowerlab.com/shop/Moteino). RFM69 transceivers were extensively tested on Moteinos for the purpose of building internet of things (IoT) devices that can be controlled wirelessly. This platform has matured over time and there is now a [dedicated page](https://lowpowerlab.com/gateway) where you can review how these devices can interact with each other via a RaspberryPi gateway interface. Here's a video overview:<br/>

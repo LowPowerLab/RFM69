@@ -10,6 +10,7 @@
 // **********************************************************************************
 #include <RFM69.h>      //get it here: https://www.github.com/lowpowerlab/rfm69
 #include <RFM69_ATC.h>
+#include <RFM69registers.h>
 
 #define NODEID        123   //must be unique for each node on same network (range up to 254, 255 is used for broadcast)
 #define NETWORKID     100  //the same on all nodes that talk to each other (range up to 255)
@@ -17,7 +18,7 @@
 //Match frequency to the hardware version of the radio on your Moteino (uncomment one):
 //#define FREQUENCY     RF69_433MHZ
 #define FREQUENCY     RF69_915MHZ
-#define FREQUENCY_EXACT 915500000
+#define FREQUENCY_EXACT 910000000
 #define IS_RFM69HW_HCW   //uncomment only for RFM69HCW! Leave out if you have RFM69CW!
 #define ENABLE_ATC    //comment out this line to disable AUTO TRANSMISSION CONTROL
 #define ATC_RSSI -90
@@ -27,6 +28,19 @@
 #define DEBUGln(input) Serial.println(input)
 #define DEBUGHEX(input, param) Serial.print(input, param)
 
+//assert button (to trigger transmission)
+#ifdef RFGATEWAY
+  #define ASSERT_BTN            44
+#else
+  #define ASSERT_BTN            A0
+#endif
+
+#define TX_MODE_PACKET        1
+#define TX_MODE_PACKET_BURST  2
+#define TX_MODE_CONSTANT      3
+#define TX_PACKET_PAYLOAD "PACKET WITH SOME DATA"
+#define TX_MODE    TX_MODE_CONSTANT
+
 #ifdef ENABLE_ATC
   RFM69_ATC radio/*(10,11) FOR M0 radio add-on board*/;  //#if defined (__AVR_ATmega32U4__) RFM69_ATC radio(8,7);
 #else
@@ -35,12 +49,17 @@
 
 int MODE;
 
+void printHelp() {
+  DEBUGln("Use:\nt to toggle transmission on/off");
+  DEBUGln("+/- to adjust power in _powerLevel steps");
+  DEBUGln("<,> to adjust power in dBm");
+  DEBUGln("? to print this command reference\n");
+}
+
 void setup() {
   Serial.begin(SERIAL_BAUD);
   pinMode(LED_BUILTIN, OUTPUT);
-  
-  pinMode(0, OUTPUT); digitalWrite(0, LOW);
-  pinMode(A0, INPUT_PULLUP);
+  pinMode(ASSERT_BTN, INPUT_PULLUP);
 
   DEBUGln("START RFM69_NODE_TX_TEST!");
 
@@ -48,6 +67,9 @@ void setup() {
     DEBUGln("radio.init() FAIL");
   else
     DEBUGln("radio.init() SUCCESS");
+
+  radio.writeReg(REG_FDEVMSB, RF_FDEVMSB_50000);
+  radio.writeReg(REG_FDEVLSB, RF_FDEVLSB_50000);
 
 #ifdef IS_RFM69HW_HCW
   radio.setHighPower(); //only for RFM69HW/HCW!
@@ -61,12 +83,12 @@ void setup() {
   radio.enableAutoPower(ATC_RSSI);
 #endif
 
+  delay(5000);
   char buff[50];
-  sprintf(buff, "\nTransmitting at %lu Mhz...", radio.getFrequency()/1000000L);
+  sprintf(buff, "\nTransmitting at %lu Hz...", radio.getFrequency());
   DEBUGln(buff);
 
-  DEBUGln("Use:\n+,- to adjust power in _powerLevel steps");
-  DEBUGln("<,> to adjust power in dBm");
+  printHelp();
 
 #ifdef ENABLE_ATC
   DEBUGln("RFM69_ATC Enabled (Auto Transmission Control)\n");
@@ -111,15 +133,26 @@ void loop() {
       if (MODE == RF69_MODE_TX) {
         MODE = RF69_MODE_SLEEP;
         DEBUG("RADIO_MODE = 0/SLEEP; _powerLevel=");DEBUGln(radio.getPowerLevel());
-      }
-      else {
+      } else {
         MODE = RF69_MODE_TX;
         DEBUG("RADIO_MODE = 4/TX;    _powerLevel=");DEBUGln(radio.getPowerLevel());
       }
     }
+    if (input=='?') printHelp();
   }
-  delay(200);
+  delay(100);
   if (MODE == RF69_MODE_TX) radio.setMode(MODE);
-  else if (digitalRead(A0)==LOW) radio.setMode(RF69_MODE_TX);
+  else if (digitalRead(ASSERT_BTN)==LOW) {
+    if (TX_MODE == TX_MODE_PACKET) {
+      DEBUGln("Sending 1 PACKET to node 88");
+      radio.send(88, TX_PACKET_PAYLOAD, strlen(TX_PACKET_PAYLOAD));
+    } else if (TX_MODE == TX_MODE_PACKET_BURST) {
+      DEBUGln("Sending RETRY PACKET to node 88");
+      radio.sendWithRetry(88, TX_PACKET_PAYLOAD, strlen(TX_PACKET_PAYLOAD));
+    } else if (TX_MODE == TX_MODE_CONSTANT) {
+      DEBUGln("Modulating constant carrier");
+      radio.setMode(TX_MODE);
+    }
+  }
   else radio.setMode(RF69_MODE_SLEEP);
 }

@@ -290,33 +290,8 @@ uint8_t RFM69::getOutputPower() {
   return readReg(REG_PALEVEL) & 0x1F;
 }
 
-uint8_t RFM69::getPowerLevel() {
-  uint8_t val = readReg(REG_PALEVEL);
-  uint8_t outputPower = getOutputPower();
-
-  bool pa0 = (val & 0b10000000) > 0;
-  bool pa1 = (val & 0b01000000) > 0;
-  bool pa2 = (val & 0b00100000) > 0;
-
-  if (pa0 && !pa1 && !pa2) {
-    // -18 to 13 dBm range
-    return -18 + outputPower;
-  }
-  if (!pa0 && pa1 && !pa2) {
-    // -2 to 13 dBm range
-    return -18 + outputPower;
-  }
-  if (!pa0 && pa1 && pa2 && !_isRFM69HW) {
-    // 2 to 17 dBm range
-    return -14 + outputPower;
-  }
-  if (!pa0 && pa1 && pa2 && _isRFM69HW) {
-    // 5 to 20 dBm range
-    return -11 + outputPower;
-  }
-
-  return 255;
-}
+// return stored _powerLevel
+uint8_t RFM69::getPowerLevel() { return _powerLevel; }
 
 // Set TX Output power in dBm:
 // [-18..+13]dBm in RFM69 W/CW

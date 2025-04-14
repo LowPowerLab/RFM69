@@ -120,7 +120,16 @@ void RFM69::setMode (uint8_t newMode) {
   
   // we are using packet mode, so this check is not really needed
   // but waiting for mode ready is necessary when going from sleep because the FIFO may not be immediately available from previous mode
-  while (_mode == RF69_MODE_SLEEP && (readReg(REG_IRQFLAGS1) & RF_IRQFLAGS1_MODEREADY) == 0x00); // wait for ModeReady
+
+  uint32_t start = millis();
+  uint8_t timeout = 100;
+
+  while (_mode == RF69_MODE_SLEEP && (readReg(REG_IRQFLAGS1) & RF_IRQFLAGS1_MODEREADY) == 0x00) {
+    if (millis()-start >= timeout) {
+      // setMode(RF69_MODE_STANDBY);
+      return;
+    }
+  }
 
   _mode = newMode;
 }
@@ -213,7 +222,16 @@ void RFM69::sendACK(const void* buffer, uint8_t bufferSize) {
 void RFM69::sendFrame(uint16_t toAddress, const void* buffer, uint8_t bufferSize, bool requestACK, bool sendACK)
 {
   setMode(RF69_MODE_STANDBY); // turn off receiver to prevent reception while filling fifo
-  while ((readReg(REG_IRQFLAGS1) & RF_IRQFLAGS1_MODEREADY) == 0x00); // wait for ModeReady
+
+  uint32_t start = millis();
+  uint8_t timeout = 100;
+
+  while ((readReg(REG_IRQFLAGS1) & RF_IRQFLAGS1_MODEREADY) == 0x00) { // wait for ModeReady
+    if (millis()-start >= timeout) {
+      setMode(RF69_MODE_STANDBY);
+      return;
+    }
+  }
   
   if (bufferSize > RF69_MAX_DATA_LEN) bufferSize = RF69_MAX_DATA_LEN;
 
@@ -241,7 +259,13 @@ void RFM69::sendFrame(uint16_t toAddress, const void* buffer, uint8_t bufferSize
 
   // no need to wait for transmit mode to be ready since its handled by the radio
   setMode(RF69_MODE_TX);
-  while ((readReg(REG_IRQFLAGS2) & RF_IRQFLAGS2_PACKETSENT) == 0x00); // wait for packet sent
+  start = millis();
+  while ((readReg(REG_IRQFLAGS2) & RF_IRQFLAGS2_PACKETSENT) == 0x00) { // wait for packet sent
+    if (millis()-start >= timeout) {
+      setMode(RF69_MODE_STANDBY);
+      return;
+    }
+  }
   setMode(RF69_MODE_STANDBY);
 }
 
@@ -337,12 +361,20 @@ void RFM69::encrypt(const char* key) {
 
 // get the received signal strength indicator (RSSI)
 int16_t RFM69::readRSSI(bool forceTrigger) {
+  
   int16_t rssi = 0;
   if (forceTrigger)
   {
+    uint32_t start = millis();
+    uint8_t timeout = 100;
     // RSSI trigger not needed if DAGC is in continuous mode
     writeReg(REG_RSSICONFIG, RF_RSSI_START);
-    while ((readReg(REG_RSSICONFIG) & RF_RSSI_DONE) == 0x00); // wait for RSSI_Ready
+    while ((readReg(REG_RSSICONFIG) & RF_RSSI_DONE) == 0x00) { // wait for RSSI_Ready
+      if (millis()-start >= timeout) {
+        // setMode(RF69_MODE_STANDBY);
+        return 0;
+      }
+    }
   }
   rssi = -readReg(REG_RSSIVALUE);
   rssi >>= 1;

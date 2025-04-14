@@ -68,6 +68,8 @@ class RFM69 {
     bool canSend(); 
     void send(uint16_t toAddress, const void* buffer, uint8_t bufferSize, bool requestACK=false);
     bool sendWithRetry(uint16_t toAddress, const void* buffer, uint8_t bufferSize, uint8_t retries=2, uint8_t retryWaitTime=RFM69_ACK_TIMEOUT);    
+    void send_csma(uint16_t toAddress, const void* buffer, uint8_t bufferSize, uint8_t custom_csma_limit=0);
+
     bool receiveDone();
     bool ACKReceived(uint16_t fromNodeID);
     bool ACKRequested();

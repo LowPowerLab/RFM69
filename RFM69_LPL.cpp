@@ -166,6 +166,18 @@ void RFM69::send(uint16_t toAddress, const void* buffer, uint8_t bufferSize, boo
   sendFrame(toAddress, buffer, bufferSize, requestACK, false);
 }
 
+void RFM69::send_csma(uint16_t toAddress, const void* buffer, uint8_t bufferSize, uint8_t custom_csma_limit=0)
+{
+  if (custom_csma_limit > 0) {
+    writeReg(REG_PACKETCONFIG2, (readReg(REG_PACKETCONFIG2) & 0xFB) | RF_PACKET2_RXRESTART); // avoid RX deadlocks
+    uint32_t now = millis();
+    while (!canSend() && millis() - now < custom_csma_limit){
+        receiveDone();
+    }
+  }
+  sendFrame(toAddress, buffer, bufferSize, false, false);
+}
+
 // to increase the chance of getting a packet across, call this function instead of send
 // and it handles all the ACK requesting/retrying for you :)
 // The only twist is that you have to manually listen to ACK requests on the other side and send back the ACKs

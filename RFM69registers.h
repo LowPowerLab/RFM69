@@ -305,6 +305,10 @@
 #define RF_FRFMSB_433             0x6C
 #define RF_FRFMID_433             0x40
 #define RF_FRFLSB_433             0x00
+//center frequency: 433.92 - see https://github.com/LowPowerLab/RFM69/issues/202
+#define RF_FRFMSB_433_92          0x6C
+#define RF_FRFMID_433_92          0x7A
+#define RF_FRFLSB_433_92          0xE1
 #define RF_FRFMSB_434             0x6C
 #define RF_FRFMID_434             0x80
 #define RF_FRFLSB_434             0x00

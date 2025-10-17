@@ -1,6 +1,6 @@
 {
   "name": "RFM69",
-  "version": "1.6",
+  "version": "1.6.0",
   "keywords": "rf, radio, wireless, spi",
   "description": "RFM69 library for RFM69W, RFM69HW, RFM69CW, RFM69HCW (semtech SX1231, SX1231H)",
   "repository":

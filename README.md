@@ -13,7 +13,11 @@ RFM69 library for RFM69W, RFM69HW, RFM69CW, RFM69HCW (semtech SX1231, SX1231H)
 The latest examples, new features and bug fixes are found in the [original repository](https://github.com/LowPowerLab/RFM69) of this library.
 
 ## License
-GPL 3.0, please see the [License.txt](https://github.com/LowPowerLab/RFM69/blob/master/License.txt) file for details. Be sure to include the same license with any fork or redistribution of this library.
+The default license is GPL 3.0, please see the [License.txt](https://github.com/LowPowerLab/RFM69/blob/master/License.txt) file for details. Be sure to include the same license with any fork or redistribution of this library.
+<br/>
+You are free to use the library for personal or commercial purposes but you must adhere to its copyleft requirements. This means that any modified or derivative work you distribute must also be licensed under GPL, and you must provide the source code to recipients.
+<br/>
+**For any other custom licensing arrangements where these terms are not acceptable, you must contact the [author directly]([url](https://github.com/LowPowerLab)) or use the [contact form through LowPowerLab.com](lowpowerlab.com/contact).**
 
 ## Features
 - easy to use API with a few simple functions for basic usage

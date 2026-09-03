@@ -1,0 +1,3 @@
+Adding features:
+* New "MID:" command specifies Id of target Moteino.
+* New "LST:" command requests list of connected Moteinos.

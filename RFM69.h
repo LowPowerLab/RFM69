@@ -178,6 +178,11 @@
 // FYI - 10bit addressing is not supported in ListenMode
 //#define RF69_LISTENMODE_ENABLE
 
+// readAllRegs() and readAllRegsCompact() print through Serial, which links the core's
+// UART and its interrupt handlers even when neither is ever called
+// uncomment (or pass -D RF69_NO_READALLREGS) to drop them, saves ~0.8K flash and the UART buffers on AVR
+//#define RF69_NO_READALLREGS
+
 #if defined(RF69_LISTENMODE_ENABLE)
   // By default, receive for 256uS in listen mode and idle for ~1s
   #define  DEFAULT_LISTEN_RX_US   256
@@ -246,8 +251,10 @@ class RFM69 {
     // allow hacking registers by making these public
     uint8_t readReg(uint8_t addr);
     void writeReg(uint8_t addr, uint8_t val);
+#if !defined(RF69_NO_READALLREGS)
     void readAllRegs();
     void readAllRegsCompact();
+#endif
 
     // ListenMode sleep/timer
     void listenModeSleep(uint16_t millisInterval);

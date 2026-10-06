@@ -664,6 +664,7 @@ bool RFM69::setIrq(uint8_t newIRQPin) {
   return true;
 }
 
+#if !defined(RF69_NO_READALLREGS)
 // for debugging
 #define REGISTER_DETAIL 0
 #if REGISTER_DETAIL
@@ -966,6 +967,7 @@ void RFM69::readAllRegsCompact() {
     Serial.print(" ");
   }
 }
+#endif // RF69_NO_READALLREGS
 
 uint8_t RFM69::readTemperature(uint8_t calFactor) { // returns centigrade
   setMode(RF69_MODE_STANDBY);

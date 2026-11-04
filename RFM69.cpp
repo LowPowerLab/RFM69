@@ -434,7 +434,7 @@ void RFM69::interruptHandler() {
     select();
     _spi->transfer(REG_FIFO & 0x7F);
     PAYLOADLEN = _spi->transfer(0);
-    PAYLOADLEN = PAYLOADLEN > 66 ? 66 : PAYLOADLEN; // precaution
+    PAYLOADLEN = PAYLOADLEN > RF69_MAX_DATA_LEN + 3 ? RF69_MAX_DATA_LEN + 3 : PAYLOADLEN; // precaution: DATA holds RF69_MAX_DATA_LEN bytes plus the terminating null
     TARGETID = _spi->transfer(0);
     SENDERID = _spi->transfer(0);
     uint8_t CTLbyte = _spi->transfer(0);
@@ -1193,7 +1193,7 @@ void RFM69::listenModeInterruptHandler(void) {
   PAYLOADLEN = PAYLOADLEN > 64 ? 64 : PAYLOADLEN; // precaution
   TARGETID = _spi->transfer(0);
   if(!(_spyMode || TARGETID == _address || TARGETID == RF69_BROADCAST_ADDR) // match this node's address, or broadcast address or anything in spy mode
-     || PAYLOADLEN < 3) // address situation could receive packets that are malformed and don't fit this library's extra fields
+     || PAYLOADLEN < 4) // address situation could receive packets that are malformed and don't fit this library's extra fields (target, sender and two "burst time remaining" bytes)
   {
     listenModeReset();
     goto out;
